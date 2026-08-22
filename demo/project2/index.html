@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>CROWD EVOLUTION 3D: Cyber Legion | Кибер Легион</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      * {
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: manipulation;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background-color: #080c14;
+        font-family: 'Rajdhani', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+      .font-orbitron {
+        font-family: 'Orbitron', sans-serif;
+      }
+      /* Custom scrollbars */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.6);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(56, 189, 248, 0.4);
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(56, 189, 248, 0.8);
+      }
+    </style>
+  </head>
+  <body class="bg-slate-950 text-white select-none overflow-hidden">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

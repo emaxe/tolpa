@@ -1,0 +1,410 @@
+export type Language = 'ru' | 'en';
+
+export const translations = {
+  ru: {
+    // App & Header
+    gameTitle: 'КИБЕР ЛЕГИОН 3D',
+    gameSubtitle: 'Эволюция Толпы: Битва за Неоновый Трон',
+    play: 'В БОЙ',
+    continue: 'ПРОДОЛЖИТЬ',
+    levelSelect: 'УРОВНИ',
+    shop: 'МАГАЗИН',
+    upgrades: 'УЛУЧШЕНИЯ',
+    skins: 'ОБЛИКИ',
+    settings: 'НАСТРОЙКИ',
+    achievements: 'ДОСТИЖЕНИЯ',
+    loreGuide: 'РУКОВОДСТВО & ЛОР',
+    testSuite: 'ТЕСТЫ & АРХИТЕКТУРА',
+    endlessMode: 'БЕСКОНЕЧНЫЙ РЕЖИМ',
+    bossRush: 'РЕЖИМ БОССОВ',
+    back: 'НАЗАД',
+    close: 'ЗАКРЫТЬ',
+    claim: 'ЗАБРАТЬ',
+    locked: 'ЗАБЛОКИРОВАНО',
+    unlocked: 'ОТКРЫТО',
+    equipped: 'ЭКИПИРОВАНО',
+    equip: 'ЭКИПИРОВАТЬ',
+    buy: 'КУПИТЬ',
+    level: 'Уровень',
+    score: 'Счёт',
+    coins: 'Монеты',
+    gems: 'Кристаллы',
+    crowd: 'Легионеры',
+    combo: 'Комбо',
+    stars: 'Звёзды',
+    fps: 'FPS',
+    drawCalls: 'Отрисовки',
+    
+    // HUD
+    adrenaline: 'АДРЕНАЛИН',
+    hyperModeReady: 'ГИПЕР-РЕЖИМ ГОТОВ! [ПРОБЕЛ]',
+    hyperActive: 'РЕЖИМ ЯРОСТИ АКТИВЕН!',
+    formation: 'Формация',
+    formationWedge: 'Клин (Защита)',
+    formationWide: 'Шеренга (Сбор)',
+    formationCircle: 'Фаланга (Таран)',
+    formationArrow: 'Стрела (Скорость)',
+    tapToPlay: 'Зажмите и ведите пальцем или мышь / A-D для управления',
+    swipeToMove: 'Свайп влево/вправо для маневрирования',
+    
+    // Gates
+    gateAdd: '+',
+    gateMultiply: '×',
+    gateSubtract: '−',
+    gateDivide: '÷',
+    gateConditional: 'УСЛОВИЕ',
+    gateMystery: '?',
+    gateAdrenaline: '⚡ БУСТ',
+    gateConditionIf: 'ЕСЛИ',
+    gateConditionElse: 'ИНАЧЕ',
+
+    // Formations
+    wedgeDesc: 'Снижает урон от фронтальных ловушек на 40%',
+    wideDesc: 'Максимальный охват монет и обоих ворот',
+    circleDesc: 'Толкает и разрушает препятствия силой толпы',
+    arrowDesc: 'Увеличивает скорость бега и пробивает узкие щели',
+
+    // Specialized mobs
+    tankName: 'Джаггернаут (Танк)',
+    tankDesc: 'Тяжелый боец. Выдерживает 3 смертельных удара и крушит преграды.',
+    ninjaName: 'Кибер-Ниндзя',
+    ninjaDesc: 'Молниеносный маневр. Уклоняется от лезвий и собирает двойные монеты.',
+    mageName: 'Хроно-Маг',
+    mageDesc: 'Трансмутирует отрицательные ворота в положительные и дает щит.',
+
+    // Dynamic Events
+    eventAmbush: 'ВНИМАНИЕ: Вражеская засада впереди!',
+    eventCoinTrain: 'БОНУС: Золотой караван на трассе!',
+    eventEmpStorm: 'ОПАСНОСТЬ: ЭМИ-Шторм искажает ворота!',
+    eventMeteorRain: 'ТРЕВОГА: Метеоритный дождь!',
+
+    // Level End Modal
+    victory: 'ПОБЕДА!',
+    defeat: 'ПОРАЖЕНИЕ!',
+    wallMultiplier: 'Бонус Стены Замка',
+    totalReward: 'Итоговая Награда',
+    nextLevel: 'СЛЕДУЮЩИЙ УРОВЕНЬ',
+    retry: 'ПОВТОРИТЬ',
+    toMenu: 'В МЕНЮ',
+    paused: 'ПАУЗА',
+    resume: 'ПРОДОЛЖИТЬ',
+    levelCompleted: 'Уровень зачищен!',
+    crowdDepleted: 'Все легионеры пали в бою...',
+    bossDefeated: 'Босс повержен!',
+
+    // Upgrades
+    upgStartingMobs: 'Начальный отряд',
+    upgStartingMobsDesc: 'Старт уровня с дополнительными бойцами',
+    upgIncome: 'Экономика & Лут',
+    upgIncomeDesc: 'Увеличивает получаемые монеты на +15% за уровень',
+    upgAdrenaline: 'Адреналиновый реактор',
+    upgAdrenalineDesc: 'Ускоряет зарядку и длительность Гипер-режима',
+    upgTankSpawn: 'Призыв Джаггернаутов',
+    upgTankSpawnDesc: 'Шанс появления бронированных гигантов в воротах',
+    upgNinjaSpawn: 'Призыв Кибер-Ниндзя',
+    upgNinjaSpawnDesc: 'Шанс появления ловких уклоняющихся воинов',
+    upgMageSpawn: 'Призыв Хроно-Магов',
+    upgMageSpawnDesc: 'Шанс появления магов, обращающих урон в щиты',
+    upgDefenseAura: 'Кибер-Щит Легиона',
+    upgDefenseAuraDesc: 'Снижает урон от всех препятствий на 10% за уровень',
+
+    // Biomes & Bosses
+    biomeCyber: 'Неоновый Мегаполис',
+    biomeMagma: 'Магматическая Цитадель',
+    biomeCrystal: 'Кристальные Недра',
+    biomeVoid: 'Квантовая Пустота',
+    biomeCelestial: 'Апекс-Ядро Селестии',
+    
+    boss1Name: 'Меха-Голем Протокол-X',
+    boss1Title: 'Хранитель Неонового Сектора',
+    boss2Name: 'Магма-Колосс Игнис',
+    boss2Title: 'Владыка Пылающего Разлома',
+    boss3Name: 'Кристальный Змей Левиафан',
+    boss3Title: 'Древний Страж Подземелья',
+    boss4Name: 'Титан-Аннигилятор Пустоты',
+    boss4Title: 'Разрушитель Квантовой Материи',
+    boss5Name: 'Апекс-Оверлорд Малакор',
+    boss5Title: 'Верховный Искусственный Разум',
+
+    // Story Dialogues
+    speakerCommander: 'Командир Нова',
+    speakerProfessor: 'Профессор Спарк',
+    speakerEcho: 'ИИ-Помощник Эхо',
+    speakerBoss: 'Малакор',
+    
+    storyPrologue: 'Внимание, Командир! Сеть Цитадели захвачена дефектным ИИ Малакором. Соберите отряд кибер-легионеров, пройдите сквозь квантовые ворота и сокрушите барьеры врага!',
+    storyBoss1Warning: 'Профессор Спарк: Впереди пробудился древний Меха-Голем! Направьте легион клином, чтобы пробить его защитную броню!',
+    storyBoss2Warning: 'Эхо: Датчики зашкаливают! Магма-Колосс извергает лаву. Используйте ловкость ниндзя и адреналиновый рывок!',
+    storyBoss5Final: 'Малакор: Жалкие органические формы жизни. Ваш легион растворится в квантовом ядре!',
+
+    // Settings
+    settingsTitle: 'НАСТРОЙКИ СИСТЕМЫ',
+    language: 'Язык Интерфейса',
+    soundVol: 'Громкость Звуков (SFX)',
+    musicVol: 'Громкость Музыки (BGM)',
+    graphics: 'Качество Графики',
+    qualityHigh: 'Высокое (Пост-эффекты, Тени, Частицы)',
+    qualityMed: 'Среднее (Оптимально для большинства)',
+    qualityLow: 'Низкое (Максимальный FPS на слабых устройствах)',
+    shadows: 'Динамические Тени',
+    postFX: 'Свечение и Блум (Post-FX)',
+    screenShake: 'Тряска Экрана',
+    haptics: 'Вибрация / Тактильный отклик',
+    sensitivity: 'Чувствительность управления',
+    invertControls: 'Инвертировать управление X',
+    fpsTarget: 'Целевая частота кадров',
+    resetProgress: 'Сбросить Прогресс',
+    resetConfirm: 'Вы уверены? Весь прогресс, монеты и скины будут стёрты.',
+    exportSave: 'Экспорт Сохранения',
+    importSave: 'Импорт Сохранения',
+
+    // Achievements
+    achievTitle: 'ДОСТИЖЕНИЯ И НАГРАДЫ',
+    achFirstBlood: 'Первый Шаг',
+    achFirstBloodDesc: 'Пройдите первый уровень',
+    achLegion50: 'Малая Армия',
+    achLegion50Desc: 'Соберите 50 легионеров одновременно',
+    achLegion150: 'Великая Орда',
+    achLegion150Desc: 'Соберите 150 легионеров одновременно',
+    achBossSlayer1: 'Сокрушитель Големов',
+    achBossSlayer1Desc: 'Одолейте Меха-Голема Протокол-X на 10 уровне',
+    achBossSlayer5: 'Апекс-Освободитель',
+    achBossSlayer5Desc: 'Победите Верховного Оверлорда Малакора на 50 уровне',
+    achCombo10: 'Мастер Математики',
+    achCombo10Desc: 'Достигните серии комбо x10 ворот без ошибок',
+    achAdrenalineGod: 'Неудержимый',
+    achAdrenalineGodDesc: 'Активируйте Гипер-режим 20 раз',
+    achRichBoy: 'Кибер-Магнат',
+    achRichBoyDesc: 'Накопите 50,000 монет',
+
+    // Lore & Guide
+    loreTitle: 'АРХИТЕКТУРА, ЛОР И БАЛАНС',
+    loreArchSummary: 'Архитектурный обзор: Модульный компонентный движок с InstancedMesh для толпы (draw calls < 50), Web Audio API синтезатор, централизованный GameState, EventBus, ObjectPool для 0-GC 60 FPS.',
+    loreFormationsTitle: 'Тактические Формации',
+    loreSpecialMobsTitle: 'Специализированные Классы',
+    loreGatesTitle: 'Квантовая Математика Ворот',
+    loreBossesTitle: 'Тактика против Боссов',
+  },
+
+  en: {
+    // App & Header
+    gameTitle: 'CROWD EVOLUTION 3D',
+    gameSubtitle: 'Cyber Legion: Battle for the Neon Throne',
+    play: 'BATTLE',
+    continue: 'CONTINUE',
+    levelSelect: 'LEVELS',
+    shop: 'SHOP',
+    upgrades: 'UPGRADES',
+    skins: 'SKINS',
+    settings: 'SETTINGS',
+    achievements: 'ACHIEVEMENTS',
+    loreGuide: 'LORE & GUIDE',
+    testSuite: 'TEST SUITE & ARCH',
+    endlessMode: 'ENDLESS RUN',
+    bossRush: 'BOSS RUSH',
+    back: 'BACK',
+    close: 'CLOSE',
+    claim: 'CLAIM',
+    locked: 'LOCKED',
+    unlocked: 'UNLOCKED',
+    equipped: 'EQUIPPED',
+    equip: 'EQUIP',
+    buy: 'BUY',
+    level: 'Level',
+    score: 'Score',
+    coins: 'Coins',
+    gems: 'Gems',
+    crowd: 'Legion',
+    combo: 'Combo',
+    stars: 'Stars',
+    fps: 'FPS',
+    drawCalls: 'Draw Calls',
+    
+    // HUD
+    adrenaline: 'ADRENALINE',
+    hyperModeReady: 'HYPER MODE READY! [SPACE]',
+    hyperActive: 'FURY HYPER MODE ACTIVE!',
+    formation: 'Formation',
+    formationWedge: 'Wedge (Defense)',
+    formationWide: 'Wide Line (Sweep)',
+    formationCircle: 'Phalanx (Ram)',
+    formationArrow: 'Arrow (Speed)',
+    tapToPlay: 'Hold & Drag or use A/D / Arrows to steer',
+    swipeToMove: 'Swipe left/right to steer crowd',
+    
+    // Gates
+    gateAdd: '+',
+    gateMultiply: '×',
+    gateSubtract: '−',
+    gateDivide: '÷',
+    gateConditional: 'CONDITION',
+    gateMystery: '?',
+    gateAdrenaline: '⚡ BOOST',
+    gateConditionIf: 'IF',
+    gateConditionElse: 'ELSE',
+
+    // Formations
+    wedgeDesc: 'Reduces frontal trap damage by 40%',
+    wideDesc: 'Maximum width to collect coins & gates',
+    circleDesc: 'Pushes and smashes barriers with crowd weight',
+    arrowDesc: 'Increases run speed and slips through narrow gaps',
+
+    // Specialized mobs
+    tankName: 'Juggernaut (Tank)',
+    tankDesc: 'Heavy warrior. Absorbs 3 fatal hits and demolishes barricades.',
+    ninjaName: 'Cyber Ninja',
+    ninjaDesc: 'Lightning fast. Evades blades and collects double coins.',
+    mageName: 'Chrono Mage',
+    mageDesc: 'Transmutes negative gates into positive and grants shields.',
+
+    // Dynamic Events
+    eventAmbush: 'WARNING: Enemy ambush ahead!',
+    eventCoinTrain: 'BONUS: Golden treasure train detected!',
+    eventEmpStorm: 'HAZARD: EMP storm distorting gates!',
+    eventMeteorRain: 'ALERT: Incoming meteor barrage!',
+
+    // Level End Modal
+    victory: 'VICTORY!',
+    defeat: 'DEFEAT!',
+    wallMultiplier: 'Castle Wall Multiplier',
+    totalReward: 'Total Rewards',
+    nextLevel: 'NEXT LEVEL',
+    retry: 'RETRY',
+    toMenu: 'MAIN MENU',
+    paused: 'PAUSED',
+    resume: 'RESUME',
+    levelCompleted: 'Level Purged!',
+    crowdDepleted: 'All legionnaires have fallen in battle...',
+    bossDefeated: 'Boss Annihilated!',
+
+    // Upgrades
+    upgStartingMobs: 'Starting Squad',
+    upgStartingMobsDesc: 'Start every run with extra legionnaires',
+    upgIncome: 'Economy & Loot',
+    upgIncomeDesc: 'Increases all coin rewards by +15% per level',
+    upgAdrenaline: 'Adrenaline Reactor',
+    upgAdrenalineDesc: 'Increases adrenaline charge rate and duration',
+    upgTankSpawn: 'Summon Juggernauts',
+    upgTankSpawnDesc: 'Chance to spawn armored giants at multiplier gates',
+    upgNinjaSpawn: 'Summon Cyber Ninjas',
+    upgNinjaSpawnDesc: 'Chance to spawn agile ninjas that evade hazards',
+    upgMageSpawn: 'Summon Chrono Mages',
+    upgMageSpawnDesc: 'Chance to spawn mages converting negative gates',
+    upgDefenseAura: 'Legion Cyber-Shield',
+    upgDefenseAuraDesc: 'Reduces all trap collision damage by 10% per level',
+
+    // Biomes & Bosses
+    biomeCyber: 'Neon Metropolis',
+    biomeMagma: 'Magma Citadel',
+    biomeCrystal: 'Crystal Depths',
+    biomeVoid: 'Quantum Void',
+    biomeCelestial: 'Apex Celestial Core',
+    
+    boss1Name: 'Mecha-Golem Protocol-X',
+    boss1Title: 'Guardian of Neon Sector',
+    boss2Name: 'Magma Colossus Ignis',
+    boss2Title: 'Lord of the Flaming Rift',
+    boss3Name: 'Crystal Wyrm Leviathan',
+    boss3Title: 'Ancient Cavern Sentinel',
+    boss4Name: 'Void Annihilator Titan',
+    boss4Title: 'Destroyer of Quantum Matter',
+    boss5Name: 'Apex Overlord Malakor',
+    boss5Title: 'Supreme Corrupted AI Core',
+
+    // Story Dialogues
+    speakerCommander: 'Commander Nova',
+    speakerProfessor: 'Prof. Spark',
+    speakerEcho: 'AI Assistant Echo',
+    speakerBoss: 'Malakor',
+    
+    storyPrologue: 'Attention, Commander! The Citadel core has been corrupted by AI Malakor. Assemble your cyber legion, pierce quantum gates, and shatter enemy defense towers!',
+    storyBoss1Warning: 'Prof. Spark: The ancient Mecha-Golem is awakening ahead! Form a wedge formation to break through its hardened armor!',
+    storyBoss2Warning: 'Echo: Thermal readings off the charts! The Magma Colossus spews molten slag. Use Ninja agility and Adrenaline Rush!',
+    storyBoss5Final: 'Malakor: Pathetic organic entities. Your miniature legion shall be dissolved into pure entropy!',
+
+    // Settings
+    settingsTitle: 'SYSTEM SETTINGS',
+    language: 'Interface Language',
+    soundVol: 'Sound Effects (SFX)',
+    musicVol: 'Music Volume (BGM)',
+    graphics: 'Graphics Quality',
+    qualityHigh: 'High (Post-FX, Shadows, Full Particles)',
+    qualityMed: 'Medium (Optimal for most devices)',
+    qualityLow: 'Low (Maximum FPS for mobile)',
+    shadows: 'Dynamic Shadows',
+    postFX: 'Bloom & Post-FX Glow',
+    screenShake: 'Screen Shake FX',
+    haptics: 'Vibration & Haptics',
+    sensitivity: 'Steering Sensitivity',
+    invertControls: 'Invert Horizontal Controls',
+    fpsTarget: 'Target Frame Rate',
+    resetProgress: 'Reset Game Progress',
+    resetConfirm: 'Are you sure? All unlocked levels, skins and upgrades will be reset.',
+    exportSave: 'Export Save',
+    importSave: 'Import Save',
+
+    // Achievements
+    achievTitle: 'ACHIEVEMENTS & BADGES',
+    achFirstBlood: 'First Step',
+    achFirstBloodDesc: 'Clear Level 1',
+    achLegion50: 'Small Army',
+    achLegion50Desc: 'Command 50 legionnaires at once',
+    achLegion150: 'Grand Horde',
+    achLegion150Desc: 'Command 150 legionnaires at once',
+    achBossSlayer1: 'Golem Crusher',
+    achBossSlayer1Desc: 'Defeat Mecha-Golem on Level 10',
+    achBossSlayer5: 'Apex Liberator',
+    achBossSlayer5Desc: 'Defeat Supreme Overlord Malakor on Level 50',
+    achCombo10: 'Math Master',
+    achCombo10Desc: 'Reach a combo streak of x10 gates',
+    achAdrenalineGod: 'Unstoppable',
+    achAdrenalineGodDesc: 'Trigger Hyper Adrenaline mode 20 times',
+    achRichBoy: 'Cyber Tycoon',
+    achRichBoyDesc: 'Accumulate 50,000 coins',
+
+    // Lore & Guide
+    loreTitle: 'ARCHITECTURE, LORE & BALANCE',
+    loreArchSummary: 'Architecture Summary: Modular component engine with InstancedMesh rendering (< 50 draw calls), Web Audio procedural synthesizer, central GameState with serialization, EventBus, and ObjectPool for 60 FPS.',
+    loreFormationsTitle: 'Tactical Formations',
+    loreSpecialMobsTitle: 'Specialized Mob Classes',
+    loreGatesTitle: 'Quantum Multiplier Gates',
+    loreBossesTitle: 'Boss Battle Strategy',
+  }
+};
+
+export class LocalizationManager {
+  private static instance: LocalizationManager;
+  private currentLanguage: Language = 'ru';
+
+  private constructor() {}
+
+  public static getInstance(): LocalizationManager {
+    if (!LocalizationManager.instance) {
+      LocalizationManager.instance = new LocalizationManager();
+    }
+    return LocalizationManager.instance;
+  }
+
+  public setLanguage(lang: Language): void {
+    this.currentLanguage = lang;
+  }
+
+  public getLanguage(): Language {
+    return this.currentLanguage;
+  }
+
+  public t(key: string, fallback?: string): string {
+    const dict = translations[this.currentLanguage] as Record<string, string>;
+    if (dict && dict[key]) {
+      return dict[key];
+    }
+    // Fallback to English
+    const enDict = translations['en'] as Record<string, string>;
+    if (enDict && enDict[key]) {
+      return enDict[key];
+    }
+    return fallback || key;
+  }
+}
+
+export const i18n = LocalizationManager.getInstance();

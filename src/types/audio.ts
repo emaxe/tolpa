@@ -1,0 +1,28 @@
+export type SoundEffect =
+  | 'footstep'
+  | 'gate_pass_positive'
+  | 'gate_pass_negative'
+  | 'gate_pass_multiplier'
+  | 'mob_spawn'
+  | 'mob_death'
+  | 'coin_pickup'
+  | 'gem_pickup'
+  | 'obstacle_hit'
+  | 'obstacle_smash'
+  | 'adrenaline_activate'
+  | 'adrenaline_whoosh'
+  | 'boss_roar'
+  | 'boss_slam'
+  | 'boss_laser'
+  | 'boss_hit'
+  | 'boss_defeat'
+  | 'formation_change'
+  | 'finish_wall_hit'
+  | 'finish_chest_open'
+  | 'level_win'
+  | 'level_lose'
+  | 'button_click'
+  | 'upgrade_buy'
+  | 'combo_ding';
+
+export type MusicTheme = 'cyber' | 'magma' | 'crystal' | 'void' | 'celestial' | 'boss_battle' | 'menu';
