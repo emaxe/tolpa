@@ -1,6 +1,6 @@
 export type MobType = 'regular' | 'tank' | 'ninja' | 'mage';
 
-export type FormationType = 'wedge' | 'wide' | 'circle' | 'arrow';
+export type FormationType = 'wedge' | 'wide' | 'circle' | 'arrow' | 'oval';
 
 export type GateOp = 'add' | 'multiply' | 'subtract' | 'divide' | 'conditional' | 'mystery' | 'adrenaline';
 
@@ -124,6 +124,11 @@ export interface MobInstance {
   shieldHp: number;
   animOffset: number;
   invulnerableTime: number;
+  // Моб упал с края дорожки и сейчас падает вниз (анимация падения) — ещё не удалён из сцены.
+  falling?: boolean;
+  fallVy?: number;
+  fallRotX?: number;
+  fallRotZ?: number;
 }
 
 export interface DialogueLine {

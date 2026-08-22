@@ -187,6 +187,24 @@ export class SoundEngine {
         break;
       }
 
+      case 'mob_fall': {
+        // Падение с края: нисходящий свист (whistle down) — короткий, чтобы не раздражать
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(900 * pitchShift, t);
+        osc.frequency.exponentialRampToValueAtTime(180 * pitchShift, t + 0.25);
+
+        gain.gain.setValueAtTime(0.12, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain!);
+        osc.start(t);
+        osc.stop(t + 0.25);
+        break;
+      }
+
       case 'coin_pickup': {
         // High sparkle bell
         const osc = this.ctx.createOscillator();

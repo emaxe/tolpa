@@ -26,9 +26,9 @@ export class CrowdManager {
   // Crowd State
   public leaderX: number = 0;
   public leaderZ: number = 0;
-  // Дефолтная формация — НЕ клин: толпа по умолчанию разворачивается в широкую шеренгу,
-  // а не стягивается в клин. Клин остаётся доступен как осознанный выбор игрока (кнопка 1).
-  public formation: FormationType = 'wide';
+  // Дефолтная формация — ОВАЛ, вытянутый вперёд: толпа по умолчанию строится в эллипс
+  // вдоль трассы, а не стягивается в клин. Клин/шеренга остаются доступны как выбор игрока.
+  public formation: FormationType = 'oval';
   public isHyperMode: boolean = false;
   public hyperTimer: number = 0;
 
@@ -327,6 +327,19 @@ export class CrowdManager {
     return killed;
   }
 
+  /** Убивает конкретного моба по id, игнорируя броню/уклонение/гипер-режим. Возвращает true, если убит. */
+  public killMobById(id: number): boolean {
+    const mob = this.mobs[id];
+    if (!mob || !mob.alive) return false;
+    mob.alive = false;
+    this.aliveCount--;
+    mob.y = -100;
+    this.dummy.position.set(0, -100, 0);
+    this.dummy.updateMatrix();
+    this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
+    return true;
+  }
+
   /** Возвращает фактический прирост (может быть 0, если толпа уже на потолке). */
   public multiplyMobs(factor: number): number {
     const current = this.getAliveCount();
@@ -371,6 +384,44 @@ export class CrowdManager {
 
     // Update individual mob positions & running animation
     this.updateMobPositions(dt);
+    // Обновляем анимацию падения упавших с края мобов
+    this.updateFallingMobs(dt);
+  }
+
+  // Анимация падения мобов, вышедших за край дорожки: ускорение вниз + вращение.
+  // Когда моб улетает достаточно далеко вниз — окончательно удаляется из сцены.
+  private updateFallingMobs(dt: number): void {
+    for (let i = 0; i < this.mobs.length; i++) {
+      const mob = this.mobs[i];
+      if (!mob.falling) continue;
+
+      // Гравитация
+      mob.fallVy = (mob.fallVy || 0) - 18 * dt;
+      mob.y += (mob.fallVy || 0) * dt;
+      // Вращение при падении
+      mob.fallRotX = (mob.fallRotX || 0) + dt * 2.5;
+      mob.fallRotZ = (mob.fallRotZ || 0) + dt * 1.8;
+
+      // Обновляем матрицу
+      this.dummy.position.set(mob.x, mob.y, mob.z);
+      this.dummy.rotation.set(mob.fallRotX, 0, mob.fallRotZ);
+      const s = mob.scale;
+      this.dummy.scale.set(s, s, s);
+      this.dummy.updateMatrix();
+      this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
+
+      // Улетел достаточно далеко — удаляем окончательно
+      if (mob.y < -12) {
+        mob.falling = false;
+        mob.alive = false;
+        this.aliveCount--;
+        mob.y = -100;
+        this.dummy.position.set(0, -100, 0);
+        this.dummy.updateMatrix();
+        this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
+      }
+    }
+    this.instancedMesh.instanceMatrix.needsUpdate = true;
   }
 
   private updateMobPositions(dt: number, instant: boolean = false): void {
@@ -399,14 +450,16 @@ export class CrowdManager {
         mob.z = lerp(mob.z, mob.targetZ, Math.min(1.0, 14.0 * dt));
       }
 
-      // Если боец вышел за физический край дорожки — падает вниз и погибает.
-      if (Math.abs(mob.x) > this.trackHalfWidth) {
-        mob.alive = false;
-        this.aliveCount--;
-        mob.y = -100;
-        this.dummy.position.set(0, -100, 0);
-        this.dummy.updateMatrix();
-        this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
+      // Если боец вышел за физический край дорожки — начинает падать вниз (анимация
+      // падения с вращением), а не мгновенно исчезает. Падение обрабатывается в
+      // updateFallingMobs().
+      if (Math.abs(mob.x) > this.trackHalfWidth && !mob.falling) {
+        mob.falling = true;
+        mob.fallVy = 0;
+        mob.fallRotX = (Math.random() - 0.5) * 0.6;
+        mob.fallRotZ = (Math.random() - 0.5) * 0.6;
+        // Спецэффект: вспышка у края + звук падения
+        eventBus.emit('mobFell', { x: mob.x, z: mob.z });
         continue;
       }
 

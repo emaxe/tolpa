@@ -43,7 +43,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
 
-  const [formation, setFormation] = useState<FormationType>('wide');
+  const [formation, setFormation] = useState<FormationType>('oval');
   const [combo, setCombo] = useState<number>(0);
   const [hud, setHud] = useState<HudSnapshot>(EMPTY_SNAPSHOT);
 
@@ -74,7 +74,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     }
 
     engine.start();
-    setFormation('wide');
+    setFormation('oval');
     setCombo(0);
     setHud(engine.getHudSnapshot());
 

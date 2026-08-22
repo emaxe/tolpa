@@ -5,6 +5,7 @@ export type SoundEffect =
   | 'gate_pass_multiplier'
   | 'mob_spawn'
   | 'mob_death'
+  | 'mob_fall'
   | 'coin_pickup'
   | 'gem_pickup'
   | 'obstacle_hit'

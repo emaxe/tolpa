@@ -21,6 +21,10 @@ const WEDGE_Z_STEP = 0.65;
 const WIDE_SPREAD = 0.55;
 const WIDE_Z_STEP = 0.5;
 const CIRCLE_COEF = 0.42;
+// Овальная формация: эллипс, вытянутый ВПЕРЁД (по Z). По X — компактнее, по Z — длиннее,
+// чтобы толпа занимала больше места вдоль трассы и меньше по ширине.
+const OVAL_X_COEF = 0.5;
+const OVAL_Z_COEF = 0.9;
 
 // Calculate mob positions based on crowd count and formation.
 // playableHalfWidth ограничивает формацию по ширине трассы: если "естественная"
@@ -89,6 +93,21 @@ export function calculateFormationOffset(
       const row = Math.floor(shaftIdx / 3);
       const col = (shaftIdx % 3) - 1;
       return { x: col * 0.4, z: 2.5 + row * 0.45 };
+    }
+
+    case 'oval': {
+      // Овал, вытянутый ВПЕРЁД (по Z). Золотой угол распределяет мобов по эллипсу
+      // равномерно; X-коэффициент меньше Z-коэффициента, поэтому форма вытянута вдоль
+      // трассы. Масштаб сжимается под ширину дорожки, чтобы овал не вылезал за края.
+      if (index === 0) return { x: 0, z: 0 };
+      const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ~137.5°
+      const naturalMax = Math.sqrt(Math.max(0, totalCount - 1)) * OVAL_X_COEF;
+      const scale = naturalMax > playableHalfWidth ? playableHalfWidth / naturalMax : 1;
+      const r = Math.sqrt(index) * scale;
+      const theta = index * goldenAngle;
+      const x = r * OVAL_X_COEF * Math.cos(theta);
+      const z = r * OVAL_Z_COEF * Math.sin(theta);
+      return { x, z };
     }
 
     default:

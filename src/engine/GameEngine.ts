@@ -96,6 +96,7 @@ export class GameEngine {
   private callbacks: GameEngineCallbacks;
   private unsubShake: (() => void) | null = null;
   private unsubGateCharge: (() => void) | null = null;
+  private unsubMobFell: (() => void) | null = null;
 
   constructor(container: HTMLElement, callbacks: GameEngineCallbacks = {}) {
     this.container = container;
@@ -170,6 +171,12 @@ export class GameEngine {
       if (data?.isPositive) {
         this.adrenalineCharge = Math.min(100, this.adrenalineCharge + 15);
       }
+    });
+
+    // Спецэффект при падении человечка с края дорожки: вспышка частиц + звук
+    this.unsubMobFell = eventBus.on('mobFell', (data: { x: number; z: number }) => {
+      this.particles.emitBurst(data.x, 0.6, data.z, 10, 0x94a3b8, 3.0);
+      soundEngine.playSound('mob_fall');
     });
 
     this.animate = this.animate.bind(this);
@@ -583,21 +590,8 @@ export class GameEngine {
       group.add(ring);
     }
 
-    // Голограммы-знаки (тонкие светящиеся столбы, мягко пульсируют) — колорит
-    const holoGeo = new THREE.BoxGeometry(0.4, 3.2, 0.4);
-    const holoMat = new THREE.MeshBasicMaterial({
-      color: accent,
-      transparent: true,
-      opacity: 0.55,
-      blending: THREE.AdditiveBlending,
-    });
-    for (let z = 24; z < length; z += 34) {
-      const holo = new THREE.Mesh(holoGeo, holoMat);
-      holo.position.set((Math.random() - 0.5) * (width + 12), 1.6, z);
-      holo.userData.animate = 'holo';
-      holo.userData.baseY = holo.position.y;
-      group.add(holo);
-    }
+    // Голограммы-знаки УБРАНЫ — они отвлекали от игровых элементов. Остаются только
+    // пилоны, орбы, биомное окружение и прожекторные кольца.
 
     this.scene.add(group);
     this.decorGroup = group;
@@ -917,9 +911,6 @@ export class GameEngine {
           if (axis === 'z') child.rotation.z += dt * 1.6;
           else child.rotation.y += dt * 1.6;
           child.position.y = (child.userData.baseY ?? 5.5) + Math.sin(t * 1.2 + child.position.z) * 0.2;
-        } else if (tag === 'holo') {
-          // Голограммы: мягкое покачивание по высоте
-          child.position.y = (child.userData.baseY ?? 1.6) + Math.sin(t * 2 + child.position.z) * 0.15;
         } else if (tag === 'scenerySpin') {
           // Вращение фоновых объектов (кольца монолитов, антенны)
           child.rotation.y += dt * 0.5;
@@ -1016,6 +1007,7 @@ export class GameEngine {
 
     this.unsubShake?.();
     this.unsubGateCharge?.();
+    this.unsubMobFell?.();
 
     this.crowd.dispose();
     this.gates.clear();

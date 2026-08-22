@@ -209,6 +209,7 @@ export class ObstacleManager {
     const isHyper = crowd.isHyperMode;
     const hasTanks = aliveMobs.some((m) => m.type === 'tank');
 
+    let anyHit = false;
     for (let mob of aliveMobs) {
       if (!mob.alive) continue;
 
@@ -233,18 +234,19 @@ export class ObstacleManager {
           eventBus.emit('obstacleSmashed', { type: obs.type });
           break;
         } else {
-          // Hurt crowd! Wedge formation reduces damage
-          const formationReduction = crowd.formation === 'wedge' ? 0.6 : 1.0;
-          const damage = Math.max(1, Math.round(obs.damage * formationReduction));
-
-          crowd.killMobs(damage, 'obstacle');
-          obsVis.hitCooldown = 0.8; // Safe cooldown to avoid multi-frame wiping
-          soundEngine.playSound('obstacle_hit');
-          particles.emitBurst(mob.x, 0.8, mob.z, 15, 0xef4444, 4.5);
-          eventBus.emit('screenShake', { intensity: 0.35 });
-          break;
+          // Препятствие уничтожает ВСЕХ человечков, которые его касаются — каждый моб,
+          // попавший в зону препятствия, погибает (игнорируя броню/уклонение).
+          crowd.killMobById(mob.id);
+          particles.emitBurst(mob.x, 0.8, mob.z, 12, 0xef4444, 4.0);
+          anyHit = true;
         }
       }
+    }
+
+    if (anyHit) {
+      obsVis.hitCooldown = 0.8; // Safe cooldown to avoid multi-frame wiping
+      soundEngine.playSound('obstacle_hit');
+      eventBus.emit('screenShake', { intensity: 0.35 });
     }
   }
 

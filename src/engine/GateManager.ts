@@ -16,6 +16,9 @@ interface GateVisual {
   rightMat: THREE.MeshBasicMaterial;
   leftTexture: THREE.CanvasTexture;
   rightTexture: THREE.CanvasTexture;
+  // Мобы, которые уже прошли через эти ворота — чтобы каждый человечек обрабатывался
+  // воротами независимо (по своей реальной позиции), а не по лидеру толпы.
+  processedMobs: Set<number>;
 }
 
 export class GateManager {
@@ -101,7 +104,7 @@ export class GateManager {
 
     this.scene.add(group);
 
-    return { data: gate, group, leftMesh, rightMesh, leftMat, rightMat, leftTexture, rightTexture };
+    return { data: gate, group, leftMesh, rightMesh, leftMat, rightMat, leftTexture, rightTexture, processedMobs: new Set<number>() };
   }
 
   public initGates(gatesData: GateData[]): void {
@@ -122,9 +125,6 @@ export class GateManager {
     crowd: CrowdManager,
     particles: ParticleSystem
   ): void {
-    const crowdZ = crowd.leaderZ;
-    const crowdX = crowd.leaderX;
-
     this.gates.forEach((gateVisual) => {
       const gate = gateVisual.data;
       if (gate.passed) return;
@@ -136,23 +136,43 @@ export class GateManager {
         gateVisual.rightMesh.position.y = 1.9 + Math.cos(gate.flipTimer * 3) * 0.15;
       }
 
-      // Check collision
-      if (crowdZ >= gate.z - 0.5 && crowdZ <= gate.z + 1.2) {
+      // Каждый человечек обрабатывается воротами НЕЗАВИСИМО — по своей реальной позиции,
+      // а не по лидеру толпы. Ворота срабатывают один раз, когда через них проходит
+      // первый моб, но выбор створки определяется по реальному распределению мобов,
+      // пересекших плоскость ворот (а не по leaderX). Если толпа растянута по ширине
+      // так, что часть мобов у левой створки, а часть у правой — обе створки срабатывают
+      // для своих мобов.
+      const aliveMobs = crowd.getAliveMobs();
+      let leftCount = 0;
+      let rightCount = 0;
+      let anyProcessed = false;
+      for (const mob of aliveMobs) {
+        if (gateVisual.processedMobs.has(mob.id)) continue;
+        if (mob.z < gate.z - 0.5) continue;
+        gateVisual.processedMobs.add(mob.id);
+        anyProcessed = true;
+        if (Math.abs(mob.x - gate.xLeft) < Math.abs(mob.x - gate.xRight)) leftCount++;
+        else rightCount++;
+      }
+
+      if (anyProcessed) {
+        // Обрабатываем обе створки, через которые реально прошли мобы
+        if (leftCount > 0) {
+          this.executeGateEffect(
+            gate.leftOp, gate.leftVal, gate.leftCondition,
+            crowd, crowd.getAliveMobs().some((m) => m.type === 'mage'),
+            particles, gate.xLeft, gate.z
+          );
+        }
+        if (rightCount > 0) {
+          this.executeGateEffect(
+            gate.rightOp, gate.rightVal, gate.rightCondition,
+            crowd, crowd.getAliveMobs().some((m) => m.type === 'mage'),
+            particles, gate.xRight, gate.z
+          );
+        }
+
         gate.passed = true;
-
-        // Determine which side the player took by actual gate geometry, not just
-        // the sign of X — at the start of a level leaderX is exactly 0, and a naive
-        // `crowdX < 0` check would always resolve to the right leaf.
-        const tookLeft = Math.abs(crowdX - gate.xLeft) < Math.abs(crowdX - gate.xRight);
-        const op = tookLeft ? gate.leftOp : gate.rightOp;
-        const val = tookLeft ? gate.leftVal : gate.rightVal;
-        const condition = tookLeft ? gate.leftCondition : gate.rightCondition;
-
-        // Check if crowd has Chrono-Mages (convert negative ops to positive)
-        const hasMages = crowd.getAliveMobs().some((m) => m.type === 'mage');
-
-        this.executeGateEffect(op, val, condition, crowd, hasMages, particles, tookLeft ? gate.xLeft : gate.xRight, gate.z);
-
         // Visual fade out
         gateVisual.leftMat.opacity = 0.3;
         gateVisual.rightMat.opacity = 0.3;

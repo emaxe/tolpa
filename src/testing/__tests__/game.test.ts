@@ -165,7 +165,7 @@ describe('Formations & Math Helpers', () => {
 
   it('calculateFormationOffset возвращает корректные координаты для всех формаций', () => {
     const PLAYABLE_HALF_WIDTH = 6.8; // соответствует боевой ширине трассы 16
-    const formations = ['wedge', 'wide', 'circle', 'arrow'] as const;
+    const formations = ['wedge', 'wide', 'circle', 'arrow', 'oval'] as const;
     for (const f of formations) {
       const offset0 = calculateFormationOffset(0, 50, f, PLAYABLE_HALF_WIDTH);
       expect(Number.isFinite(offset0.x)).toBe(true);
@@ -183,7 +183,7 @@ describe('Formations & Math Helpers', () => {
 
   it('calculateFormationOffset никогда не выходит за playableHalfWidth даже при огромной толпе', () => {
     const PLAYABLE_HALF_WIDTH = 6.8;
-    const formations = ['wedge', 'wide', 'circle'] as const; // arrow всегда узкая, не сжимается
+    const formations = ['wedge', 'wide', 'circle', 'oval'] as const; // arrow всегда узкая, не сжимается
     for (const f of formations) {
       for (const n of [50, 100, 200, 400]) {
         for (let i = 0; i < n; i++) {
