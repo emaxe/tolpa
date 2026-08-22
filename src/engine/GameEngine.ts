@@ -145,7 +145,9 @@ export class GameEngine {
     this.scene.add(this.dirLight);
 
     // 5. Instantiate sub-systems
-    this.crowd = new CrowdManager(this.scene, 400);
+    // Потолок толпы снижен с 400 до 200: меньше бойцов = меньше объектов на сцене,
+    // меньше нагрузка на CPU/GPU и проще балансировать бонусы/препятствия.
+    this.crowd = new CrowdManager(this.scene, 200);
     this.gates = new GateManager(this.scene);
     this.obstacles = new ObstacleManager(this.scene);
     this.boss = new BossManager(this.scene);

@@ -234,7 +234,7 @@ export class GateManager {
       // Mystery box: 60% бонус, 40% штраф (раньше всегда бонус — не было риска).
       // Штраф не может убить всю толпу: максимум 30% текущего состава.
       if (Math.random() < 0.6) {
-        const bonus = Math.random() < 0.3 ? 25 : 12;
+        const bonus = Math.random() < 0.3 ? 18 : 8;
         netChange = crowd.addMobs(bonus);
         soundEngine.playSound('gate_pass_multiplier');
         particles.emitBurst(gateX, 1.5, gateZ, 35, 0xf59e0b, 5.5);

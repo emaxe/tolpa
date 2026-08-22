@@ -20,7 +20,9 @@ export class CrowdManager {
   // Crowd State
   public leaderX: number = 0;
   public leaderZ: number = 0;
-  public formation: FormationType = 'wedge';
+  // Дефолтная формация — НЕ клин: толпа по умолчанию разворачивается в широкую шеренгу,
+  // а не стягивается в клин. Клин остаётся доступен как осознанный выбор игрока (кнопка 1).
+  public formation: FormationType = 'wide';
   public isHyperMode: boolean = false;
   public hyperTimer: number = 0;
 
@@ -28,6 +30,8 @@ export class CrowdManager {
   // update()/reset() и используется и для формации (calculateFormationOffset), и для
   // жёсткого клампа позиции каждого бойца, и для клампа точки спавна.
   private playableHalfWidth: number = 5;
+  // Физическая половина ширины трассы (trackWidth/2) — за этим краем бойцы падают.
+  private trackHalfWidth: number = 8;
 
   constructor(scene: THREE.Scene, maxMobs: number = 400) {
     this.scene = scene;
@@ -97,6 +101,7 @@ export class CrowdManager {
     this.hyperTimer = 0;
     // До первого спавна — иначе spawnMob() использовал бы клампы со старого/дефолтного уровня.
     this.playableHalfWidth = trackWidth / 2 - TRACK_RAIL_MARGIN;
+    this.trackHalfWidth = trackWidth / 2;
 
     // Reset all mobs
     for (let i = 0; i < this.maxCapacity; i++) {
@@ -344,6 +349,7 @@ export class CrowdManager {
     // Steer leader left/right
     const steerSpeed = 12.0;
     this.playableHalfWidth = trackWidth / 2 - TRACK_RAIL_MARGIN;
+    this.trackHalfWidth = trackWidth / 2;
     this.leaderX = clamp(
       this.leaderX + steerInput * steerSpeed * dt,
       -this.playableHalfWidth,
@@ -365,11 +371,10 @@ export class CrowdManager {
       }
 
       const offset = calculateFormationOffset(index, totalCount, this.formation, this.playableHalfWidth);
-      // Формация уже сама сжимается под ширину трассы (calculateFormationOffset), но
-      // дополнительно клампим итоговую позицию каждого бойца — независимая гарантия,
-      // что боец физически не может оказаться за пределами дорожки, даже если формула
-      // выше где-то ошибётся.
-      mob.targetX = clamp(this.leaderX + offset.x, -this.playableHalfWidth, this.playableHalfWidth);
+      // Формация сама сжимается под ширину трассы (calculateFormationOffset). Жёсткий
+      // кламп к playableHalfWidth УБРАН: бойцы могут выходить за игровую зону к самому
+      // краю дорожки, и если выходят за физический край (trackHalfWidth) — падают.
+      mob.targetX = this.leaderX + offset.x;
       mob.targetZ = this.leaderZ - offset.z;
 
       if (instant) {
@@ -379,6 +384,16 @@ export class CrowdManager {
         // Organic flocking spring interpolation
         mob.x = lerp(mob.x, mob.targetX, Math.min(1.0, 14.0 * dt));
         mob.z = lerp(mob.z, mob.targetZ, Math.min(1.0, 14.0 * dt));
+      }
+
+      // Если боец вышел за физический край дорожки — падает вниз и погибает.
+      if (Math.abs(mob.x) > this.trackHalfWidth) {
+        mob.alive = false;
+        mob.y = -100;
+        this.dummy.position.set(0, -100, 0);
+        this.dummy.updateMatrix();
+        this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
+        continue;
       }
 
       // Procedural running hop & tilt

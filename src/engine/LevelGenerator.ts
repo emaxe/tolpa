@@ -38,9 +38,9 @@ export class LevelGenerator {
     const rng = createRng(levelNum * 7919 + 12345);
     const biome = this.getBiomeForLevel(levelNum);
     const trackWidth = DEFAULT_TRACK_WIDTH;
-    // Track length scales with level. Удлинено в ~12-16 раз относительно прежнего
-    // (было 180..340м): L1 ≈ 2300м, L50 ≈ 5400м — полноценная длинная трасса.
-    const trackLength = 2200 + Math.min(32, levelNum) * 100;
+    // Track length scales with level. Укорочено в 2 раза относительно предыдущей версии
+    // (было 2200..5400м): L1 ≈ 1100м, L50 ≈ 2700м.
+    const trackLength = 1100 + Math.min(32, levelNum) * 50;
     const isBossLevel = levelNum % 10 === 0;
 
     const gates: GateData[] = [];
@@ -52,7 +52,8 @@ export class LevelGenerator {
     // мгновенный game over ещё до первых ворот. 8 даёт толпе шанс среагировать и
     // соответствует BALANCE.md ("до 11 бойцов на старте при максимальном апгрейде").
     const startingMobs = 8;
-    const targetMobsToWin = Math.min(150, 10 + Math.floor(levelNum * 2.2));
+    // Цель победы снижена под новый потолок толпы (200): раньше до 150, теперь до 100.
+    const targetMobsToWin = Math.min(100, 8 + Math.floor(levelNum * 1.8));
 
     // Number of gate pairs. Плотность НЕ растёт с длиной трассы — иначе на 2200-5400м
     // было бы 56-140 ворот, толпа упёрлась бы в потолок 400 за первые 500м, а сцена
@@ -64,16 +65,16 @@ export class LevelGenerator {
       const z = 32 + g * gateSpacing + (rng() * 2 - 1);
       const gateId = `gate_${levelNum}_${g}`;
 
-      // Множитель масштабируется ОБРАТНО уровню: на ранних уровнях толпа мала и ×3
-      // безопасен, на поздних (толпа уже 100-200) большой множитель мгновенно упирается
-      // в потолок 400 и обесценивает экономику. На L1-10 ×3, к L50 плавно падает до ×1.6.
-      const multVal = Math.max(1.6, 3 - levelNum * 0.028);
+      // Множитель масштабируется ОБРАТНО уровню и снижен под новый потолок толпы (200):
+      // на ранних уровнях толпа мала и ×2.2 безопасен, на поздних плавно падает до ×1.4.
+      // Раньше было ×3..×1.6 — при потолке 200 это слишком быстро упиралось в лимит.
+      const multVal = Math.max(1.4, 2.2 - levelNum * 0.02);
       // Вычитание смягчено на ранних уровнях (стартовая толпа всего 8-11 бойцов):
       // -5..-15 на L1 могло убить всю толпу ещё до первых ворот.
       const subVal = Math.max(3, 5 + Math.floor(rng() * 10) - Math.floor(levelNum * 0.15));
 
       let leftOp: GateOp = 'add';
-      let leftVal = 5 + Math.floor(rng() * (levelNum > 15 ? 15 : 10));
+      let leftVal = 4 + Math.floor(rng() * 8);
       let rightOp: GateOp = 'multiply';
       let rightVal = multVal;
 
@@ -81,7 +82,7 @@ export class LevelGenerator {
       const rand = rng();
       if (rand < 0.25) {
         leftOp = 'add';
-        leftVal = 10 + Math.floor(rng() * 15);
+        leftVal = 8 + Math.floor(rng() * 10);
         rightOp = 'multiply';
         rightVal = multVal;
       } else if (rand < 0.5) {
@@ -92,7 +93,7 @@ export class LevelGenerator {
       } else if (rand < 0.7) {
         // One positive, one conditional
         leftOp = 'add';
-        leftVal = 8;
+        leftVal = 6;
         rightOp = 'conditional';
         rightVal = 0;
       } else if (rand < 0.85) {
@@ -100,7 +101,7 @@ export class LevelGenerator {
         leftOp = 'mystery';
         leftVal = 0;
         rightOp = 'add';
-        rightVal = 12;
+        rightVal = 8;
       } else {
         // Adrenaline gate
         leftOp = 'adrenaline';
@@ -110,11 +111,11 @@ export class LevelGenerator {
       }
 
       const conditionalData = {
-        minMobs: 10 + Math.floor(g * 3 + levelNum * 0.5),
+        minMobs: 8 + Math.floor(g * 2 + levelNum * 0.4),
         passOp: 'multiply' as GateOp,
-        passVal: 3,
+        passVal: 2.5,
         failOp: 'subtract' as GateOp,
-        failVal: 10,
+        failVal: 8,
       };
 
       gates.push({
@@ -141,10 +142,10 @@ export class LevelGenerator {
     // толпу — обе створки положительны/нейтральны.
     if (gates.length > 0) {
       gates[0].leftOp = 'add';
-      gates[0].leftVal = 10 + Math.floor(rng() * 10);
+      gates[0].leftVal = 8 + Math.floor(rng() * 8);
       gates[0].leftCondition = undefined;
       gates[0].rightOp = 'multiply';
-      gates[0].rightVal = Math.max(1.6, 3 - levelNum * 0.028);
+      gates[0].rightVal = Math.max(1.4, 2.2 - levelNum * 0.02);
       gates[0].rightCondition = undefined;
       gates[0].isDynamic = false;
     }
@@ -209,13 +210,12 @@ export class LevelGenerator {
         speed: 1.5 + rng() * 2.0,
         range,
         initialOffset: rng() * Math.PI * 2,
-        // Урон масштабируется с уровнем, но не смертелен на старте: базовый урон
-        // препятствия (4-8) + плавный рост до ~+6 к L50. На ранних уровнях толпа
-        // маленькая, поэтому урон остаётся щадящим; на поздних — толпа большая и
-        // может пережить более серьёзные потери.
+        // Урон масштабируется с уровнем и стал заметно выше: базовый урон препятствия
+        // (6-12) + рост до ~+8 к L50. Толпа теперь меньше (потолок 200), поэтому
+        // препятствия должны наносить ощутимый урон, чтобы сохранялся риск.
         damage:
-          (type === 'saw_blade' || type === 'laser_grid' || type === 'spike_trap' ? 4 : 8) +
-          Math.floor(levelNum * 0.12),
+          (type === 'saw_blade' || type === 'laser_grid' || type === 'spike_trap' ? 6 : 12) +
+          Math.floor(levelNum * 0.16),
         destructible: type === 'crusher' || type === 'axe_pendulum',
         hp: 15,
         maxHp: 15,
