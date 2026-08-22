@@ -433,6 +433,121 @@ export function createSpikeTrapMesh(): THREE.Group {
   return group;
 }
 
+// Procedural Wrecking Ball Mesh — тяжёлый шипастый шар на цепи, раскачивающийся
+// поперёк трассы. Убивает мобов, которых задевает. Разрушаем танками/адреналином.
+export function createWreckingBallMesh(): THREE.Group {
+  const group = new THREE.Group();
+
+  // Верхняя балка-портальчик (гантри)
+  const beamGeo = new THREE.BoxGeometry(4.2, 0.25, 0.25);
+  const beamMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.3 });
+  const beam = new THREE.Mesh(beamGeo, beamMat);
+  beam.position.y = 3.6;
+  group.add(beam);
+
+  // Опорные столбы гантри
+  const postGeo = new THREE.CylinderGeometry(0.12, 0.12, 3.6, 8);
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.85, roughness: 0.3 });
+  const postL = new THREE.Mesh(postGeo, postMat);
+  postL.position.set(-2.0, 1.8, 0);
+  group.add(postL);
+  const postR = new THREE.Mesh(postGeo, postMat);
+  postR.position.set(2.0, 1.8, 0);
+  group.add(postR);
+
+  // Цепь от балки к шару
+  const chainGeo = new THREE.CylinderGeometry(0.05, 0.05, 2.6, 6);
+  const chainMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.9, roughness: 0.2 });
+  const chain = new THREE.Mesh(chainGeo, chainMat);
+  chain.position.y = 2.3;
+  group.add(chain);
+
+  // Тяжёлый шипастый шар
+  const ballGeo = new THREE.SphereGeometry(1.0, 20, 20);
+  const ballMat = new THREE.MeshStandardMaterial({
+    color: 0x1f2937,
+    metalness: 0.95,
+    roughness: 0.15,
+    emissive: 0xf97316,
+    emissiveIntensity: 0.35,
+  });
+  const ball = new THREE.Mesh(ballGeo, ballMat);
+  ball.position.y = 1.0;
+  group.add(ball);
+
+  // Шипы на шаре
+  const spikeMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.1 });
+  for (let i = 0; i < 10; i++) {
+    const phi = (i / 10) * Math.PI * 2;
+    const theta = (i % 3) * 0.9 + 0.5;
+    const spikeGeo = new THREE.ConeGeometry(0.18, 0.5, 6);
+    const spike = new THREE.Mesh(spikeGeo, spikeMat);
+    spike.position.set(
+      Math.sin(theta) * Math.cos(phi) * 1.05,
+      1.0 + Math.cos(theta) * 1.05,
+      Math.sin(theta) * Math.sin(phi) * 1.05
+    );
+    spike.quaternion.setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      new THREE.Vector3(
+        Math.sin(theta) * Math.cos(phi),
+        Math.cos(theta),
+        Math.sin(theta) * Math.sin(phi)
+      )
+    );
+    group.add(spike);
+  }
+
+  return group;
+}
+
+// Procedural Lava Pit Mesh — наземная лужа лавы, убивающая мобов, которые в неё ступают.
+// Статична (только пульсирующее свечение), неразрушаема.
+export function createLavaPitMesh(): THREE.Group {
+  const group = new THREE.Group();
+
+  // Каменная окантовка
+  const rimGeo = new THREE.BoxGeometry(2.6, 0.2, 2.6);
+  const rimMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, metalness: 0.6, roughness: 0.8 });
+  const rim = new THREE.Mesh(rimGeo, rimMat);
+  rim.position.y = 0.1;
+  group.add(rim);
+
+  // Лавовая поверхность
+  const lavaGeo = new THREE.CylinderGeometry(1.05, 1.05, 0.12, 20);
+  const lavaMat = new THREE.MeshStandardMaterial({
+    color: 0xea580c,
+    metalness: 0.1,
+    roughness: 0.4,
+    emissive: 0xf97316,
+    emissiveIntensity: 0.9,
+  });
+  const lava = new THREE.Mesh(lavaGeo, lavaMat);
+  lava.position.y = 0.18;
+  group.add(lava);
+
+  // Внутреннее яркое ядро
+  const coreGeo = new THREE.CircleGeometry(0.7, 20);
+  const coreMat = new THREE.MeshBasicMaterial({ color: 0xffedd5 });
+  const core = new THREE.Mesh(coreGeo, coreMat);
+  core.rotation.x = -Math.PI / 2;
+  core.position.y = 0.25;
+  group.add(core);
+
+  // Предупреждающие жёлтые метки по краям
+  const warnMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+  for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
+    const warnGeo = new THREE.BoxGeometry(0.1, 0.04, 0.5);
+    const warn = new THREE.Mesh(warnGeo, warnMat);
+    warn.position.set(Math.cos(angle) * 1.15, 0.22, Math.sin(angle) * 1.15);
+    warn.rotation.y = -angle;
+    group.add(warn);
+  }
+
+  return group;
+}
+
 // Procedural Boss Mesh Generator
 export function createBossMesh(boss: BossData): THREE.Group {
   const group = new THREE.Group();

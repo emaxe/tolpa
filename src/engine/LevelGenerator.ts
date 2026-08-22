@@ -170,12 +170,14 @@ export class LevelGenerator {
       z = Math.min(trackLength - 15, Math.max(50, z));
       if (gates.some((gate) => Math.abs(gate.z - z) < GATE_CLEARANCE)) continue; // не нашли места — пропускаем
 
-      const types: ('saw_blade' | 'axe_pendulum' | 'crusher' | 'spike_trap' | 'laser_grid')[] = [
+      const types: ('saw_blade' | 'axe_pendulum' | 'crusher' | 'spike_trap' | 'laser_grid' | 'wrecking_ball' | 'lava_pit')[] = [
         'saw_blade',
         'axe_pendulum',
         'crusher',
         'spike_trap',
         'laser_grid',
+        'wrecking_ball',
+        'lava_pit',
       ];
       const type = types[Math.floor(rng() * types.length)];
       const playableHalf = trackWidth / 2 - TRACK_RAIL_MARGIN; // совпадает с клампом лидера в CrowdManager.update
@@ -190,6 +192,16 @@ export class LevelGenerator {
         obsWidth = 4.0;
         const side = rng() < 0.5 ? -1 : 1;
         x = side * (playableHalf - obsWidth / 2);
+        range = 0;
+      } else if (type === 'wrecking_ball') {
+        // Крушащий шар — широкая зона поражения, раскачивается поперёк трассы.
+        obsWidth = 2.4;
+        x = (rng() * 2 - 1) * (playableHalf - 1.2);
+        range = Math.min(3.0, playableHalf - 1.2);
+      } else if (type === 'lava_pit') {
+        // Лавовая лужа — статична, занимает заметную площадь, неразрушаема.
+        obsWidth = 2.4;
+        x = (rng() * 2 - 1) * (playableHalf - 1.2);
         range = 0;
       } else {
         const maxHalfX = Math.max(0.5, (trackWidth / 2 - 0.6) - 2 / 2);
@@ -216,7 +228,7 @@ export class LevelGenerator {
         damage:
           (type === 'saw_blade' || type === 'laser_grid' || type === 'spike_trap' ? 6 : 12) +
           Math.floor(levelNum * 0.16),
-        destructible: type === 'crusher' || type === 'axe_pendulum',
+        destructible: type === 'crusher' || type === 'axe_pendulum' || type === 'wrecking_ball',
         hp: 15,
         maxHp: 15,
       });
@@ -361,21 +373,36 @@ export class LevelGenerator {
     }
 
     // 4 Obstacles
+    const endlessTypes: ('saw_blade' | 'axe_pendulum' | 'crusher' | 'spike_trap' | 'laser_grid' | 'wrecking_ball' | 'lava_pit')[] = [
+      'saw_blade',
+      'axe_pendulum',
+      'crusher',
+      'spike_trap',
+      'laser_grid',
+      'wrecking_ball',
+      'lava_pit',
+    ];
     for (let o = 0; o < 4; o++) {
       const z = currentZ + 15 + o * 25;
+      const type = endlessTypes[Math.floor(Math.random() * endlessTypes.length)];
+      const isWrecking = type === 'wrecking_ball';
+      const isLava = type === 'lava_pit';
       obstacles.push({
         id: `endless_obs_${segmentIndex}_${o}`,
-        type: 'saw_blade',
+        type,
         x: (Math.random() - 0.5) * (trackWidth - 3),
         y: 0,
         z,
-        width: 2,
+        width: isWrecking || isLava ? 2.4 : 2,
         height: 2,
         depth: 2,
         speed: 2.5,
-        range: 3.0,
+        range: isWrecking ? 3.0 : 0,
         initialOffset: Math.random() * Math.PI * 2,
         damage: 5,
+        destructible: type === 'crusher' || type === 'axe_pendulum' || type === 'wrecking_ball',
+        hp: 15,
+        maxHp: 15,
       });
     }
 

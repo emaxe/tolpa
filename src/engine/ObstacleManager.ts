@@ -6,6 +6,8 @@ import {
   createCrusherMesh,
   createLaserGridMesh,
   createSpikeTrapMesh,
+  createWreckingBallMesh,
+  createLavaPitMesh,
 } from '../utils/proceduralMeshes';
 import { CrowdManager } from './CrowdManager';
 import { ParticleSystem } from './ParticleSystem';
@@ -63,6 +65,12 @@ export class ObstacleManager {
         break;
       case 'spike_trap':
         mesh = createSpikeTrapMesh();
+        break;
+      case 'wrecking_ball':
+        mesh = createWreckingBallMesh();
+        break;
+      case 'lava_pit':
+        mesh = createLavaPitMesh();
         break;
       default:
         mesh = createSawBladeMesh();
@@ -135,6 +143,26 @@ export class ObstacleManager {
 
         case 'laser_grid':
           // Laser grid remains static or pulses
+          break;
+
+        case 'wrecking_ball':
+          // Шар раскачивается поперёк трассы (по X) вокруг верхней балки.
+          // Позиция шара — это дочерний меш на индексе 3 (после балки и 2 столбов),
+          // но для коллизии используем фактическую X-координату шара.
+          const ball = obsVis.mesh.children[3];
+          if (ball) {
+            ball.position.x = Math.sin(t) * obs.range;
+            obs.x = obsVis.mesh.position.x + ball.position.x;
+          }
+          break;
+
+        case 'lava_pit':
+          // Лава пульсирует свечением — статична по позиции.
+          const lavaMesh = obsVis.mesh.children[1] as THREE.Mesh;
+          if (lavaMesh) {
+            const pulse = 0.7 + Math.abs(Math.sin(t * 2)) * 0.3;
+            (lavaMesh.material as THREE.MeshStandardMaterial).emissiveIntensity = pulse;
+          }
           break;
       }
 
