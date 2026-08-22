@@ -5,6 +5,7 @@ import {
   createPendulumAxeMesh,
   createCrusherMesh,
   createLaserGridMesh,
+  createSpikeTrapMesh,
 } from '../utils/proceduralMeshes';
 import { CrowdManager } from './CrowdManager';
 import { ParticleSystem } from './ParticleSystem';
@@ -62,9 +63,7 @@ export class ObstacleManager {
         mesh = createLaserGridMesh(obs.width);
         break;
       case 'spike_trap':
-        // Пока нет отдельной модели — плоская неподвижная преграда у земли, урон ниже пилы.
-        mesh = createSawBladeMesh();
-        mesh.scale.set(1, 0.35, 1);
+        mesh = createSpikeTrapMesh();
         break;
       default:
         mesh = createSawBladeMesh();

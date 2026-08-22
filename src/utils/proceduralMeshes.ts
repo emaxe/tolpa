@@ -106,42 +106,73 @@ export function createGateTexture(
 export function createHumanoidGeometry(): THREE.BufferGeometry {
   const geometries: THREE.BufferGeometry[] = [];
 
-  // Head (Sphere)
-  const headGeo = new THREE.SphereGeometry(0.22, 10, 10);
-  headGeo.translate(0, 1.25, 0);
+  // Head (Sphere) — slightly larger, more readable silhouette
+  const headGeo = new THREE.SphereGeometry(0.24, 12, 12);
+  headGeo.translate(0, 1.3, 0);
   geometries.push(headGeo);
 
-  // Torso (Capsule/Cylinder)
-  const torsoGeo = new THREE.CylinderGeometry(0.18, 0.14, 0.55, 10);
-  torsoGeo.translate(0, 0.8, 0);
+  // Torso (Capsule/Cylinder) — tapered chest with shoulder mass
+  const torsoGeo = new THREE.CylinderGeometry(0.2, 0.15, 0.6, 12);
+  torsoGeo.translate(0, 0.82, 0);
   geometries.push(torsoGeo);
 
+  // Shoulder pads (cyber armor) — give the silhouette a distinct armored look
+  const shoulderGeo = new THREE.SphereGeometry(0.1, 8, 8);
+  shoulderGeo.scale(1, 0.7, 1.2);
+  shoulderGeo.translate(-0.2, 1.12, 0);
+  geometries.push(shoulderGeo);
+  const shoulderGeoR = new THREE.SphereGeometry(0.1, 8, 8);
+  shoulderGeoR.scale(1, 0.7, 1.2);
+  shoulderGeoR.translate(0.2, 1.12, 0);
+  geometries.push(shoulderGeoR);
+
   // Left Leg
-  const legGeoL = new THREE.CylinderGeometry(0.065, 0.055, 0.55, 8);
-  legGeoL.translate(-0.09, 0.28, 0);
+  const legGeoL = new THREE.CylinderGeometry(0.07, 0.06, 0.6, 8);
+  legGeoL.translate(-0.1, 0.3, 0);
   geometries.push(legGeoL);
 
   // Right Leg
-  const legGeoR = new THREE.CylinderGeometry(0.065, 0.055, 0.55, 8);
-  legGeoR.translate(0.09, 0.28, 0);
+  const legGeoR = new THREE.CylinderGeometry(0.07, 0.06, 0.6, 8);
+  legGeoR.translate(0.1, 0.3, 0);
   geometries.push(legGeoR);
 
+  // Feet (boots) — grounded stance
+  const footGeo = new THREE.BoxGeometry(0.12, 0.08, 0.2);
+  footGeo.translate(-0.1, 0.04, 0.05);
+  geometries.push(footGeo);
+  const footGeoR = new THREE.BoxGeometry(0.12, 0.08, 0.2);
+  footGeoR.translate(0.1, 0.04, 0.05);
+  geometries.push(footGeoR);
+
   // Left Arm
-  const armGeoL = new THREE.CylinderGeometry(0.05, 0.045, 0.45, 8);
+  const armGeoL = new THREE.CylinderGeometry(0.055, 0.05, 0.5, 8);
   armGeoL.rotateZ(0.2);
-  armGeoL.translate(-0.25, 0.8, 0);
+  armGeoL.translate(-0.28, 0.85, 0);
   geometries.push(armGeoL);
 
   // Right Arm
-  const armGeoR = new THREE.CylinderGeometry(0.05, 0.045, 0.45, 8);
+  const armGeoR = new THREE.CylinderGeometry(0.055, 0.05, 0.5, 8);
   armGeoR.rotateZ(-0.2);
-  armGeoR.translate(0.25, 0.8, 0);
+  armGeoR.translate(0.28, 0.85, 0);
   geometries.push(armGeoR);
 
-  // Visor / Cyber Mask
-  const visorGeo = new THREE.BoxGeometry(0.22, 0.08, 0.12);
-  visorGeo.translate(0, 1.28, 0.14);
+  // Hands (fists)
+  const handGeo = new THREE.SphereGeometry(0.06, 6, 6);
+  handGeo.translate(-0.3, 0.6, 0);
+  geometries.push(handGeo);
+  const handGeoR = new THREE.SphereGeometry(0.06, 6, 6);
+  handGeoR.translate(0.3, 0.6, 0);
+  geometries.push(handGeoR);
+
+  // Visor / Cyber Mask — wider, glowing band across the face
+  const visorGeo = new THREE.BoxGeometry(0.26, 0.09, 0.14);
+  visorGeo.translate(0, 1.33, 0.15);
   geometries.push(visorGeo);
+
+  // Backpack / jetpack core — cyber runner detail
+  const packGeo = new THREE.BoxGeometry(0.2, 0.3, 0.14);
+  packGeo.translate(0, 0.95, -0.2);
+  geometries.push(packGeo);
 
   // Merge geometries into single buffer
   const merged = mergeBufferGeometries(geometries);
@@ -335,6 +366,53 @@ export function createLaserGridMesh(width: number): THREE.Group {
     beam.rotation.z = Math.PI / 2;
     beam.position.set(0, y, 0);
     group.add(beam);
+  }
+
+  return group;
+}
+
+// Procedural Spike Trap Mesh (ground hazard)
+export function createSpikeTrapMesh(): THREE.Group {
+  const group = new THREE.Group();
+
+  // Base plate
+  const baseGeo = new THREE.BoxGeometry(2.2, 0.15, 2.2);
+  const baseMat = new THREE.MeshStandardMaterial({
+    color: 0x1e293b,
+    metalness: 0.8,
+    roughness: 0.3,
+    emissive: 0xdc2626,
+    emissiveIntensity: 0.25,
+  });
+  const base = new THREE.Mesh(baseGeo, baseMat);
+  base.position.y = 0.1;
+  group.add(base);
+
+  // Warning chevron stripes on the plate
+  const stripeMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+  for (let i = -1; i <= 1; i++) {
+    const stripeGeo = new THREE.BoxGeometry(0.12, 0.02, 1.6);
+    const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+    stripe.position.set(i * 0.5, 0.2, 0);
+    stripe.rotation.y = Math.PI / 4;
+    group.add(stripe);
+  }
+
+  // Spikes (retractable cones)
+  const spikeMat = new THREE.MeshStandardMaterial({
+    color: 0x94a3b8,
+    metalness: 0.95,
+    roughness: 0.1,
+    emissive: 0xef4444,
+    emissiveIntensity: 0.4,
+  });
+  for (let x = -0.7; x <= 0.7; x += 0.45) {
+    for (let z = -0.7; z <= 0.7; z += 0.45) {
+      const spikeGeo = new THREE.ConeGeometry(0.12, 0.5, 6);
+      const spike = new THREE.Mesh(spikeGeo, spikeMat);
+      spike.position.set(x, 0.4, z);
+      group.add(spike);
+    }
   }
 
   return group;

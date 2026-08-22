@@ -51,6 +51,7 @@ export class GameEngine {
   private trackMesh: THREE.Mesh | null = null;
   private leftBorder: THREE.Mesh | null = null;
   private rightBorder: THREE.Mesh | null = null;
+  private decorGroup: THREE.Group | null = null;
 
   // State
   public isRunning: boolean = false;
@@ -85,6 +86,9 @@ export class GameEngine {
 
   // Screen shake
   private screenShakeIntensity: number = 0;
+
+  // Speed-trail particle accumulator (hyper mode / arrow formation)
+  private trailAccum: number = 0;
 
   // Callbacks
   private onLevelWinCb?: (score: number, mult: number, mobs: number) => void;
@@ -440,6 +444,17 @@ export class GameEngine {
       (this.rightBorder.material as THREE.Material).dispose();
       this.rightBorder = null;
     }
+    if (this.decorGroup) {
+      this.scene.remove(this.decorGroup);
+      this.decorGroup.traverse((obj) => {
+        const mesh = obj as THREE.Mesh;
+        if (mesh.geometry) mesh.geometry.dispose();
+        const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
+        if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+        else mat?.dispose();
+      });
+      this.decorGroup = null;
+    }
   }
 
   private buildTrack(length: number, width: number, biome: BiomeType): void {
@@ -473,6 +488,53 @@ export class GameEngine {
     this.rightBorder = new THREE.Mesh(railGeo, railMat.clone());
     this.rightBorder.position.set(width / 2, 0.4, (length + 80) / 2 - 20);
     this.scene.add(this.rightBorder);
+
+    this.buildTrackDecor(length, width, biome);
+  }
+
+  // Neon pylons + floating energy orbs along the track edges — pure visual, zero gameplay.
+  private buildTrackDecor(length: number, width: number, biome: BiomeType): void {
+    const group = new THREE.Group();
+    const accent = biome === 'magma_citadel' ? 0xf97316 : biome === 'crystal_cavern' ? 0x10b981 : biome === 'quantum_void' ? 0xa855f7 : biome === 'celestial_core' ? 0xfacc15 : 0x00f0ff;
+
+    const pylonGeo = new THREE.CylinderGeometry(0.12, 0.18, 2.2, 6);
+    const pylonMat = new THREE.MeshStandardMaterial({
+      color: 0x1e293b,
+      metalness: 0.85,
+      roughness: 0.25,
+      emissive: accent,
+      emissiveIntensity: 0.5,
+    });
+    const capGeo = new THREE.SphereGeometry(0.16, 8, 8);
+    const capMat = new THREE.MeshBasicMaterial({ color: accent });
+
+    const half = width / 2 + 1.2;
+    const step = 18;
+    for (let z = 10; z < length; z += step) {
+      for (const side of [-1, 1]) {
+        const pylon = new THREE.Mesh(pylonGeo, pylonMat);
+        pylon.position.set(side * half, 1.1, z);
+        group.add(pylon);
+        const cap = new THREE.Mesh(capGeo, capMat);
+        cap.position.set(side * half, 2.3, z);
+        group.add(cap);
+      }
+    }
+
+    // Floating energy orbs drifting above the track
+    const orbGeo = new THREE.SphereGeometry(0.18, 8, 8);
+    const orbMat = new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.85 });
+    for (let z = 20; z < length; z += 26) {
+      const orb = new THREE.Mesh(orbGeo, orbMat);
+      const baseY = 2.6 + Math.random() * 1.2;
+      orb.position.set((Math.random() - 0.5) * (width - 2), baseY, z);
+      orb.userData.animate = 'orb';
+      orb.userData.baseY = baseY;
+      group.add(orb);
+    }
+
+    this.scene.add(group);
+    this.decorGroup = group;
   }
 
   public start(): void {
@@ -579,6 +641,22 @@ export class GameEngine {
     // Update Crowd
     this.crowd.update(dt, this.baseSpeed, this.steerInput, trackWidth);
 
+    // Speed-trail particles behind the crowd in hyper mode / arrow formation — pure juice
+    if (this.crowd.isHyperMode || this.crowd.formation === 'arrow') {
+      this.trailAccum += dt;
+      if (this.trailAccum >= 0.05) {
+        this.trailAccum = 0;
+        this.particles.emitBurst(
+          this.crowd.leaderX + (Math.random() - 0.5) * 2,
+          0.4 + Math.random() * 0.6,
+          this.crowd.leaderZ - 2 - Math.random() * 2,
+          2,
+          this.crowd.isHyperMode ? 0xfacc15 : 0x00f0ff,
+          2.5
+        );
+      }
+    }
+
     // Update Sub-systems
     this.gates.update(dt, this.crowd, this.particles);
     this.obstacles.update(dt, this.crowd, this.particles);
@@ -635,6 +713,17 @@ export class GameEngine {
       GameEngine.CAMERA_LOOKAT_HEIGHT,
       this.crowd.leaderZ + GameEngine.CAMERA_LOOKAT_LEAD
     );
+
+    // Animate floating energy orbs (bob + gentle spin) — zero-alloc scan of decor group
+    if (this.decorGroup) {
+      const t = performance.now() * 0.001;
+      for (const child of this.decorGroup.children) {
+        if (child.userData.animate === 'orb') {
+          child.position.y = (child.userData.baseY ?? 2.6) + Math.sin(t * 1.5 + child.position.z) * 0.25;
+          child.rotation.y += dt * 0.8;
+        }
+      }
+    }
 
     // Update Light Position to follow crowd
     this.dirLight.position.set(this.crowd.leaderX + 15, 30, this.crowd.leaderZ + 15);
