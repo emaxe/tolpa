@@ -494,7 +494,9 @@ export class GameEngine {
     this.buildTrackDecor(length, width, biome);
   }
 
-  // Neon pylons + floating energy orbs along the track edges — pure visual, zero gameplay.
+  // Neon pylons + floating energy orbs + biome scenery along the track edges —
+  // pure visual, zero gameplay. Никаких PointLight (мобильный бюджет): только
+  // emissive/Basic материалы.
   private buildTrackDecor(length: number, width: number, biome: BiomeType): void {
     const group = new THREE.Group();
     const accent = biome === 'magma_citadel' ? 0xf97316 : biome === 'crystal_cavern' ? 0x10b981 : biome === 'quantum_void' ? 0xa855f7 : biome === 'celestial_core' ? 0xfacc15 : 0x00f0ff;
@@ -535,8 +537,193 @@ export class GameEngine {
       group.add(orb);
     }
 
+    // ==== Биомное окружение ЗА краями дорожки ====
+    // Большие силуэты по бокам (здания / скалы / кристаллы / колонны) — дают ощущение
+    // полноценного мира вокруг трассы, а не пустоты. Материалы emissive/Basic — 0 новых
+    // PointLight, чтобы не прожечь мобильный GPU-бюджет.
+    const sceneryStep = 30;
+    // Детерминированный PRNG на основе биома — окружение стабильно между перезапусками уровня.
+    const prng = (seed: number) => {
+      let s = seed;
+      return () => {
+        s = (s * 1664525 + 1013904223) | 0;
+        const t = (s ^ (s >>> 15)) >>> 0;
+        return t / 4294967296;
+      };
+    };
+    let seed = biome.charCodeAt(0) * 131 + biome.length;
+    for (let z = 8; z < length; z += sceneryStep) {
+      seed = (seed * 1103515245 + 12345) | 0;
+      const rnd = prng(seed);
+      const side = rnd() < 0.5 ? -1 : 1;
+      const off = 0.5 + rnd() * 4; // вариация расстояния от края
+      const x = side * (half + off);
+      const obj = this.makeBiomeScenery(biome, accent, rnd);
+      obj.position.set(x, 0, z);
+      obj.scale.setScalar(0.6 + rnd() * 0.9);
+      obj.rotation.y = rnd() * Math.PI * 2;
+      // Лёгкая анимация (вращение у колец-монолитов) через тег
+      if (rnd() < 0.5) {
+        obj.userData.animate = 'scenerySpin';
+      }
+      group.add(obj);
+    }
+
+    // ==== ОБЪЕКТЫ-ЗАГОЛОВКИ ====
+    // Прожекторные кольца над дорожкой — вращаются (анимация)
+    const ringGeo = new THREE.TorusGeometry(1.6, 0.08, 6, 20);
+    const ringMat = new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.6 });
+    for (let z = 30; z < length; z += 44) {
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.position.set(0, 5.5 + Math.random() * 1.5, z);
+      ring.rotation.x = Math.PI / 2;
+      ring.userData.animate = 'ring';
+      ring.userData.baseY = ring.position.y;
+      ring.userData.axis = Math.random() < 0.5 ? 'z' : 'y';
+      group.add(ring);
+    }
+
+    // Голограммы-знаки (тонкие светящиеся столбы, мягко пульсируют) — колорит
+    const holoGeo = new THREE.BoxGeometry(0.4, 3.2, 0.4);
+    const holoMat = new THREE.MeshBasicMaterial({
+      color: accent,
+      transparent: true,
+      opacity: 0.55,
+      blending: THREE.AdditiveBlending,
+    });
+    for (let z = 24; z < length; z += 34) {
+      const holo = new THREE.Mesh(holoGeo, holoMat);
+      holo.position.set((Math.random() - 0.5) * (width + 12), 1.6, z);
+      holo.userData.animate = 'holo';
+      holo.userData.baseY = holo.position.y;
+      group.add(holo);
+    }
+
     this.scene.add(group);
     this.decorGroup = group;
+  }
+
+  // Конструктор биомного фонового объекта (здание/скала/кристалл/колонна) без новых PointLight.
+  private makeBiomeScenery(
+    biome: BiomeType,
+    accent: number,
+    rnd: () => number
+  ): THREE.Object3D {
+    const group = new THREE.Group();
+    switch (biome) {
+      case 'cyber_city': {
+        // Небоскрёбы с светящимися окнами
+        const w = 1.0 + rnd() * 1.4;
+        const d = 1.0 + rnd() * 1.4;
+        const h = 4 + rnd() * 6;
+        const towerGeo = new THREE.BoxGeometry(w, h, d);
+        const towerMat = new THREE.MeshStandardMaterial({
+          color: 0x1e293b,
+          metalness: 0.6,
+          roughness: 0.4,
+          emissive: accent,
+          emissiveIntensity: 0.25,
+        });
+        const tower = new THREE.Mesh(towerGeo, towerMat);
+        tower.position.y = h / 2;
+        group.add(tower);
+        // окна-точки
+        const winGeo = new THREE.BoxGeometry(w * 0.8, 0.06, 0.06);
+        const winMat = new THREE.MeshBasicMaterial({ color: 0x67e8f9 });
+        for (let wy = 0.5; wy < h - 0.5; wy += 1.1) {
+          for (let wx = -1; wx <= 1; wx++) {
+            const win = new THREE.Mesh(winGeo, winMat);
+            win.position.set(wx * w * 0.3, wy, d / 2 + 0.01);
+            group.add(win);
+          }
+        }
+        // неоновая антенна
+        const antGeo = new THREE.CylinderGeometry(0.05, 0.05, 2.2, 4);
+        const antMat = new THREE.MeshBasicMaterial({ color: accent });
+        const ant = new THREE.Mesh(antGeo, antMat);
+        ant.position.y = h + 1.1;
+        ant.userData.animate = 'scenerySpin';
+        ant.userData.spin = 'y';
+        group.add(ant);
+        break;
+      }
+      case 'magma_citadel': {
+        // лавовые скалы с огненными прожилками
+        const rockGeo = new THREE.DodecahedronGeometry(1.6 + rnd() * 1.8, 1);
+        const rockMat = new THREE.MeshStandardMaterial({
+          color: 0x451a03,
+          roughness: 0.9,
+          emissive: 0x7c2d12,
+          emissiveIntensity: 0.5,
+        });
+        const rock = new THREE.Mesh(rockGeo, rockMat);
+        rock.position.y = 1.6;
+        group.add(rock);
+        // лавовые колонны
+        const pillarGeo = new THREE.CylinderGeometry(0.5, 0.7, 3.5, 6);
+        const pillarMat = new THREE.MeshBasicMaterial({
+          color: 0xf97316,
+          transparent: true,
+          opacity: 0.5,
+        });
+        const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+        pillar.position.y = 1.75;
+        pillar.userData.animate = 'pulse';
+        group.add(pillar);
+        break;
+      }
+      case 'crystal_cavern': {
+        // кристаллы
+        for (let i = 0; i < 3; i++) {
+          const cGeo = new THREE.ConeGeometry(0.4 + rnd() * 0.5, 3 + rnd() * 3, 5);
+          const cMat = new THREE.MeshStandardMaterial({
+            color: 0x10b981,
+            metalness: 0.3,
+            roughness: 0.2,
+            emissive: accent,
+            emissiveIntensity: 0.5,
+            transparent: true,
+            opacity: 0.9,
+          });
+          const crystal = new THREE.Mesh(cGeo, cMat);
+          crystal.position.set((rnd() - 0.5) * 3, 1.5 + rnd() * 1.5, (rnd() - 0.5) * 2);
+          crystal.rotation.y = rnd() * Math.PI;
+          group.add(crystal);
+        }
+        break;
+      }
+      case 'quantum_void':
+      case 'celestial_core': {
+        // парящие энерго-монолиты / колонны
+        const monoGeo = new THREE.BoxGeometry(1.4, 5 + rnd() * 4, 1.4);
+        const monoMat = new THREE.MeshStandardMaterial({
+          color: biome === 'quantum_void' ? 0x180f2d : 0x241d0c,
+          metalness: 0.4,
+          roughness: 0.3,
+          emissive: accent,
+          emissiveIntensity: 0.45,
+        });
+        const mono = new THREE.Mesh(monoGeo, monoMat);
+        mono.position.y = 2.5;
+        group.add(mono);
+        // кольцо вокруг монолита
+        const ringGeo = new THREE.TorusGeometry(1.3, 0.09, 6, 18);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: accent,
+          transparent: true,
+          opacity: 0.6,
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.position.y = 3.5;
+        ring.userData.animate = 'scenerySpin';
+        ring.userData.spin = 'y';
+        group.add(ring);
+        break;
+      }
+      default:
+        break;
+    }
+    return group;
   }
 
   public start(): void {
@@ -720,9 +907,26 @@ export class GameEngine {
     if (this.decorGroup) {
       const t = performance.now() * 0.001;
       for (const child of this.decorGroup.children) {
-        if (child.userData.animate === 'orb') {
+        const tag = child.userData.animate;
+        if (tag === 'orb') {
           child.position.y = (child.userData.baseY ?? 2.6) + Math.sin(t * 1.5 + child.position.z) * 0.25;
           child.rotation.y += dt * 0.8;
+        } else if (tag === 'ring') {
+          // Прожекторные кольца: вращение вокруг выбранной оси + лёгкое покачивание
+          const axis = child.userData.axis ?? 'y';
+          if (axis === 'z') child.rotation.z += dt * 1.6;
+          else child.rotation.y += dt * 1.6;
+          child.position.y = (child.userData.baseY ?? 5.5) + Math.sin(t * 1.2 + child.position.z) * 0.2;
+        } else if (tag === 'holo') {
+          // Голограммы: мягкое покачивание по высоте
+          child.position.y = (child.userData.baseY ?? 1.6) + Math.sin(t * 2 + child.position.z) * 0.15;
+        } else if (tag === 'scenerySpin') {
+          // Вращение фоновых объектов (кольца монолитов, антенны)
+          child.rotation.y += dt * 0.5;
+        } else if (tag === 'pulse') {
+          // Пульсация лавовых колонн
+          const m = (child as THREE.Mesh).material as THREE.MeshBasicMaterial | undefined;
+          if (m) m.opacity = 0.3 + Math.abs(Math.sin(t * 2 + child.position.z)) * 0.4;
         }
       }
     }
