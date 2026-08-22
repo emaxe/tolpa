@@ -57,7 +57,8 @@ export class ParticleSystem {
     z: number,
     count: number = 15,
     colorHex: number = 0x00f0ff,
-    speed: number = 4.0
+    speed: number = 4.0,
+    upBias: number = 1.5
   ): void {
     let emitted = 0;
     this.colorDummy.setHex(colorHex);
@@ -79,7 +80,7 @@ export class ParticleSystem {
         const spd = speed * (0.6 + Math.random() * 0.8);
 
         p.vx = Math.cos(angle) * Math.cos(elev) * spd;
-        p.vy = Math.sin(elev) * spd + 1.5;
+        p.vy = Math.sin(elev) * spd + upBias;
         p.vz = Math.sin(angle) * Math.cos(elev) * spd;
 
         this.instancedMesh.setColorAt(i, p.color);

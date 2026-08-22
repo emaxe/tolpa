@@ -18,7 +18,6 @@ interface ObstacleVisual {
   data: ObstacleData;
   mesh: THREE.Group;
   animTime: number;
-  hitCooldown: number;
 }
 
 interface CoinVisual {
@@ -73,7 +72,7 @@ export class ObstacleManager {
     mesh.position.set(obs.x, obs.y || 0.5, obs.z);
     this.scene.add(mesh);
 
-    return { data: obs, mesh, animTime: obs.initialOffset || 0, hitCooldown: 0 };
+    return { data: obs, mesh, animTime: obs.initialOffset || 0 };
   }
 
   public initObstacles(obsData: ObstacleData[], coinData: CoinData[]): void {
@@ -110,10 +109,6 @@ export class ObstacleManager {
       const obs = obsVis.data;
       if (obs.isDead) return;
 
-      if (obsVis.hitCooldown > 0) {
-        obsVis.hitCooldown -= dt;
-      }
-
       obsVis.animTime += dt * obs.speed;
       const t = obsVis.animTime;
 
@@ -144,9 +139,7 @@ export class ObstacleManager {
       }
 
       // Check collision with crowd
-      if (obsVis.hitCooldown <= 0) {
-        this.checkObstacleCollision(obsVis, crowd, particles);
-      }
+      this.checkObstacleCollision(obsVis, crowd, particles);
     });
 
     // 2. Update and check coins
@@ -195,6 +188,46 @@ export class ObstacleManager {
     }
   }
 
+  // Разные спецэффекты смерти для каждого типа препятствия: цвет искр, разлёт,
+  // вертикальное смещение. Партиклы берутся из общего пула (0-GC), новый объект не создаётся.
+  private playDeathEffect(obs: ObstacleData, x: number, y: number, z: number, particles: ParticleSystem): void {
+    switch (obs.type) {
+      case 'saw_blade':
+        // Пылающая пила — оранжево-красные искры разлетаются по горизонтали
+        particles.emitBurst(x, y, z, 14, 0xf97316, 5.5, 1.2);
+        break;
+      case 'axe_pendulum':
+        // Маятник — холодные металлические искры, резкий разлёт в сторону
+        particles.emitBurst(x, y, z, 12, 0x94a3b8, 6.0, 1.0);
+        break;
+      case 'crusher':
+        // Пресс — сплющивание: искры у земли, красный всплеск
+        particles.emitBurst(x, y - 0.3, z, 16, 0xef4444, 3.5, 0.4);
+        break;
+      case 'laser_grid':
+        // Лазер — яркий циановый столб искр вверх
+        particles.emitBurst(x, y, z, 14, 0x22d3ee, 6.5, 2.8);
+        break;
+      case 'spike_trap':
+        // Шипы — колючий фиолетовый разброс
+        particles.emitBurst(x, y, z, 13, 0xa855f7, 5.0, 1.6);
+        break;
+      case 'wrecking_ball':
+        // Крушащий шар — тяжёлый удар, оранжево-серые искры
+        particles.emitBurst(x, y, z, 16, 0xfb923c, 6.0, 0.8);
+        break;
+      case 'lava_pit':
+        // Лава — поднимающиеся вверх оранжевые угли
+        particles.emitBurst(x, y, z, 14, 0xea580c, 4.0, 3.0);
+        break;
+      case 'barrier_gate':
+      default:
+        // Барьер — белые/желтоватые искры
+        particles.emitBurst(x, y, z, 12, 0xfacc15, 4.5, 1.4);
+        break;
+    }
+  }
+
   private checkObstacleCollision(
     obsVis: ObstacleVisual,
     crowd: CrowdManager,
@@ -205,7 +238,7 @@ export class ObstacleManager {
     const obs = obsVis.data;
     const aliveMobs = crowd.getAliveMobs();
 
-    // If Hyper Mode active or Tank hits destructible obstacle -> smash obstacle!
+    // Если Hyper Mode активен или есть танки — препятствие можно сломать.
     const isHyper = crowd.isHyperMode;
     const hasTanks = aliveMobs.some((m) => m.type === 'tank');
 
@@ -225,7 +258,7 @@ export class ObstacleManager {
 
       if (hit) {
         if (isHyper || (obs.destructible && hasTanks)) {
-          // Smash obstacle!
+          // Сломать препятствие!
           obs.isDead = true;
           this.scene.remove(obsVis.mesh);
           soundEngine.playSound('obstacle_hit');
@@ -234,19 +267,21 @@ export class ObstacleManager {
           eventBus.emit('obstacleSmashed', { type: obs.type });
           break;
         } else {
-          // Препятствие уничтожает ВСЕХ человечков, которые его касаются — каждый моб,
-          // попавший в зону препятствия, погибает (игнорируя броню/уклонение).
+          // Препятствие уничтожает КАЖДОГО моба, который его касается — в этом же кадре.
+          // killMobById помечает моба умирающим (death-анимация) и убирает из живых,
+          // поэтому один и тот же моб не погибает дважды, а остальные в этом кадре
+          // проверяются независимо и тоже гибнут, если касаются.
           crowd.killMobById(mob.id);
-          particles.emitBurst(mob.x, 0.8, mob.z, 12, 0xef4444, 4.0);
+          this.playDeathEffect(obs, mob.x, 0.8, mob.z, particles);
           anyHit = true;
         }
       }
     }
 
     if (anyHit) {
-      obsVis.hitCooldown = 0.8; // Safe cooldown to avoid multi-frame wiping
-      soundEngine.playSound('obstacle_hit');
-      eventBus.emit('screenShake', { intensity: 0.35 });
+      // Звук смерти и лёгкая тряска камеры. Никакого hitCooldown — каждый коснувшийся гибнет.
+      soundEngine.playSound('mob_death');
+      eventBus.emit('screenShake', { intensity: 0.3 });
     }
   }
 

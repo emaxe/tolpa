@@ -129,6 +129,12 @@ export interface MobInstance {
   fallVy?: number;
   fallRotX?: number;
   fallRotZ?: number;
+  // Моб погибает (от препятствия/ловушки) — проигрывается death-анимация перед удалением.
+  dying?: boolean;
+  deathT?: number;
+  deathRotX?: number;
+  deathRotZ?: number;
+  deathScale?: number;
 }
 
 export interface DialogueLine {

@@ -178,7 +178,9 @@ export class CrowdManager {
     // Find first inactive slot
     for (let i = 0; i < this.mobs.length; i++) {
       const mob = this.mobs[i];
-      if (!mob.alive) {
+      // Пропускаем слоты, где моб ещё проигрывает death-анимацию, — иначе новый
+      // персонаж перезапишет матрицу умирающего в одном и том же инстансе.
+      if (!mob.alive && !mob.dying) {
         mob.alive = true;
         this.aliveCount++;
         mob.type = mobType;
@@ -330,13 +332,20 @@ export class CrowdManager {
   /** Убивает конкретного моба по id, игнорируя броню/уклонение/гипер-режим. Возвращает true, если убит. */
   public killMobById(id: number): boolean {
     const mob = this.mobs[id];
-    if (!mob || !mob.alive) return false;
+    if (!mob || !mob.alive || mob.dying) return false;
+    // Сразу убираем из живых (коллизии/aliveCount больше его не видят), но включаем
+    // death-анимацию: моб заваливается и схлопывается за ~0.5с (updateDeathMobs),
+    // затем слот окончательно освобождается.
     mob.alive = false;
     this.aliveCount--;
-    mob.y = -100;
-    this.dummy.position.set(0, -100, 0);
-    this.dummy.updateMatrix();
-    this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
+    mob.dying = true;
+    mob.deathT = 0;
+    mob.deathRotX = (Math.random() - 0.5) * 2.2;
+    mob.deathRotZ = (Math.random() - 0.5) * 2.2;
+    mob.deathScale = 1.0;
+    // Сбрасываем падение с края, если моб успел улететь
+    mob.falling = false;
+    mob.fallVy = 0;
     return true;
   }
 
@@ -386,6 +395,8 @@ export class CrowdManager {
     this.updateMobPositions(dt);
     // Обновляем анимацию падения упавших с края мобов
     this.updateFallingMobs(dt);
+    // Проигрываем death-анимацию погибших от препятствий/ловушек мобов
+    this.updateDeathMobs(dt);
   }
 
   // Анимация падения мобов, вышедших за край дорожки: ускорение вниз + вращение.
@@ -417,6 +428,40 @@ export class CrowdManager {
         this.aliveCount--;
         mob.y = -100;
         this.dummy.position.set(0, -100, 0);
+        this.dummy.updateMatrix();
+        this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
+      }
+    }
+    this.instancedMesh.instanceMatrix.needsUpdate = true;
+  }
+
+  // Death-анимация мобов, погибших от препятствий/ловушек: заваливание + схлопывание.
+  // Моб уже убран из живых (alive=false), но слот удерживается, пока проигрывается
+  // анимация (~0.5с), затем матрица отправляется в (0,-100,0) и слот освобождается.
+  private updateDeathMobs(dt: number): void {
+    for (let i = 0; i < this.mobs.length; i++) {
+      const mob = this.mobs[i];
+      if (!mob.dying) continue;
+
+      mob.deathT = (mob.deathT || 0) + dt;
+      const t = Math.min(1, (mob.deathT || 0) / 0.5);
+      // Плавное заваливание + схлопывание к центру
+      const rot = t * 2.2;
+      const s = Math.max(0.05, 1.0 - t * 0.7);
+      mob.deathRotX = mob.deathRotX || 0;
+      mob.deathRotZ = mob.deathRotZ || 0;
+
+      this.dummy.position.set(mob.x, mob.y, mob.z);
+      this.dummy.rotation.set(mob.deathRotX * t, 0, mob.deathRotZ * t);
+      this.dummy.scale.set(s, s, s);
+      this.dummy.updateMatrix();
+      this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
+
+      if (t >= 1) {
+        mob.dying = false;
+        mob.y = -100;
+        this.dummy.position.set(0, -100, 0);
+        this.dummy.scale.set(1, 1, 1);
         this.dummy.updateMatrix();
         this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
       }
