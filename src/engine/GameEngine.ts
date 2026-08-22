@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BiomeType, FormationType, LevelConfig } from '../types/game';
+import { BiomeType, FormationType, LevelConfig, LevelDynamicEvent, CoinData } from '../types/game';
 import { CrowdManager } from './CrowdManager';
 import { GateManager } from './GateManager';
 import { ObstacleManager } from './ObstacleManager';
@@ -89,6 +89,16 @@ export class GameEngine {
 
   // Speed-trail particle accumulator (hyper mode / arrow formation)
   private trailAccum: number = 0;
+
+  // Динамические события уровня (ambush/coin_train/emp_storm/meteor_rain/speed_boost).
+  // Система была "мёртвой" — события генерировались в LevelGenerator, но не исполнялись.
+  // Теперь они триггерятся по leaderZ в updateDynamicEvents().
+  private pendingEvents: LevelDynamicEvent[] = [];
+  private nextEventIndex: number = 0;
+  private activeEvent: { event: LevelDynamicEvent; timer: number } | null = null;
+  private eventSpeedMult: number = 1.0; // множитель скорости толпы от событий (boost>1, ambush<1)
+  private meteorAccum: number = 0;
+  private eventFxAccum: number = 0;
 
   // Callbacks
   private onLevelWinCb?: (score: number, mult: number, mobs: number) => void;
@@ -376,6 +386,10 @@ export class GameEngine {
 
     this.finishLine.initFinishLine(levelConfig.trackLength, levelConfig.multiplierWallSteps);
     this.particles.clear();
+
+    // Reset dynamic events state (загружаем очередь событий уровня).
+    this.resetEventState();
+    this.pendingEvents = (levelConfig.events || []).slice();
 
     // Start background music
     soundEngine.playMusic(
@@ -795,11 +809,149 @@ export class GameEngine {
     if (this.runEnded) return;
     this.runEnded = true;
     this.stopLoop();
+    // Откатываем активные эффекты событий (ЭМИ-шторм, множители скорости), чтобы они
+    // не протекли в следующий забег.
+    if (this.gates.isEmpActive()) this.gates.clearEmpStorm();
+    this.resetEventState();
     stateManager.commitRun();
     if (win) {
       this.onLevelWinCb?.(score, mult, mobs);
     } else {
       this.onLevelLoseCb?.();
+    }
+  }
+
+  /** Сбрасывает состояние динамических событий (очередь, активное событие, множители). */
+  private resetEventState(): void {
+    this.pendingEvents = [];
+    this.nextEventIndex = 0;
+    if (this.gates.isEmpActive()) this.gates.clearEmpStorm();
+    this.activeEvent = null;
+    this.eventSpeedMult = 1.0;
+    this.meteorAccum = 0;
+    this.eventFxAccum = 0;
+  }
+
+  /** Обновляет динамические события уровня: триггерит новые по leaderZ и тикает активные. */
+  private updateDynamicEvents(dt: number): void {
+    const trackWidth = this.currentLevel?.trackWidth || DEFAULT_TRACK_WIDTH;
+
+    // Триггер нового события, когда толпа достигла triggerZ. В endless-режиме события пропускаются.
+    if (!this.isEndless && this.pendingEvents.length > 0) {
+      while (this.nextEventIndex < this.pendingEvents.length) {
+        const evt = this.pendingEvents[this.nextEventIndex];
+        if (this.crowd.leaderZ < evt.triggerZ) break;
+        this.nextEventIndex++;
+        this.triggerEvent(evt, trackWidth);
+      }
+    }
+
+    // Тик активного события.
+    if (this.activeEvent) {
+      const { event, timer } = this.activeEvent;
+      const newTimer = timer - dt;
+
+      if (event.type === 'meteor_rain') {
+        // Метеоритный дождь: периодические взрывы по краям трассы, малый шанс урона толпе.
+        this.meteorAccum += dt;
+        if (this.meteorAccum >= 0.8 / Math.max(0.5, event.intensity)) {
+          this.meteorAccum = 0;
+          const half = trackWidth / 2 - 1;
+          const mx = (Math.random() - 0.5) * 2 * half;
+          const mz = this.crowd.leaderZ + Math.random() * 18;
+          this.particles.emitBurst(mx, 3.0, mz, 14, 0xf97316, 6.0);
+          if (Math.random() < 0.35) {
+            const killCount = Math.min(2 + Math.floor(event.intensity), Math.floor(this.crowd.getAliveCount() * 0.12));
+            if (killCount > 0) this.crowd.killMobs(killCount, 'obstacle');
+            soundEngine.playSound('boss_slam');
+          }
+        }
+      } else if (event.type === 'ambush') {
+        // Засада: периодические красные вспышки позади толпы (замедление уже применено).
+        this.eventFxAccum += dt;
+        if (this.eventFxAccum >= 0.4) {
+          this.eventFxAccum = 0;
+          this.particles.emitBurst(
+            this.crowd.leaderX + (Math.random() - 0.5) * 3,
+            1.0,
+            this.crowd.leaderZ - 3 - Math.random() * 3,
+            8,
+            0xef4444,
+            3.5
+          );
+        }
+      }
+
+      if (newTimer <= 0) {
+        this.cleanupEvent(event);
+        this.activeEvent = null;
+      } else {
+        this.activeEvent.timer = newTimer;
+      }
+    }
+  }
+
+  /** Запускает событие: применяет стартовые эффекты, эмитит алерт в HUD, звук. */
+  private triggerEvent(evt: LevelDynamicEvent, trackWidth: number): void {
+    this.activeEvent = { event: evt, timer: evt.duration };
+
+    switch (evt.type) {
+      case 'speed_boost':
+        this.eventSpeedMult = Math.min(1.5, 1 + 0.25 * evt.intensity);
+        soundEngine.playSound('adrenaline_whoosh');
+        this.particles.emitBurst(this.crowd.leaderX, 1.0, this.crowd.leaderZ, 20, 0x00f0ff, 4.0);
+        break;
+      case 'ambush':
+        this.eventSpeedMult = 0.55;
+        soundEngine.playSound('boss_roar');
+        eventBus.emit('screenShake', { intensity: 0.25 });
+        this.particles.emitBurst(this.crowd.leaderX, 1.0, this.crowd.leaderZ, 20, 0xef4444, 5.0);
+        break;
+      case 'coin_train': {
+        // Золотой караван: кластер монет дугой впереди по текущей полосе.
+        soundEngine.playSound('coin_pickup');
+        const cluster: CoinData[] = [];
+        const startZ = this.crowd.leaderZ + 45;
+        for (let i = 0; i < 10; i++) {
+          cluster.push({
+            id: `evt_coin_${this.nextEventIndex}_${i}`,
+            x: this.crowd.leaderX + (Math.random() - 0.5) * 3,
+            y: 0.5,
+            z: startZ + i * 3,
+            value: 10,
+          });
+        }
+        this.obstacles.appendObstacles([], cluster);
+        // Монеты спавнятся сразу — событие мгновенно завершается.
+        this.cleanupEvent(evt);
+        this.activeEvent = null;
+        break;
+      }
+      case 'emp_storm':
+        this.gates.applyEmpStorm();
+        soundEngine.playSound('boss_laser');
+        this.particles.emitBurst(this.crowd.leaderX, 2.0, this.crowd.leaderZ, 20, 0xa855f7, 5.0);
+        break;
+      case 'meteor_rain':
+        soundEngine.playSound('boss_slam');
+        this.particles.emitBurst(this.crowd.leaderX, 3.0, this.crowd.leaderZ + 10, 16, 0xf97316, 6.0);
+        break;
+    }
+
+    // Алерт в HUD.
+    eventBus.emit('levelEvent', { type: evt.type });
+  }
+
+  /** Откатывает эффекты события по его окончании. */
+  private cleanupEvent(evt: LevelDynamicEvent): void {
+    switch (evt.type) {
+      case 'speed_boost':
+      case 'ambush':
+        this.eventSpeedMult = 1.0;
+        break;
+      case 'emp_storm':
+        if (this.gates.isEmpActive()) this.gates.clearEmpStorm();
+        break;
     }
   }
 
@@ -826,11 +978,12 @@ export class GameEngine {
       this.steerInput *= Math.pow(0.001, dt);
     }
 
-    // Update Crowd
-    this.crowd.update(dt, this.baseSpeed, this.steerInput, trackWidth);
+    // Update Crowd. eventSpeedMult — временный множитель скорости от динамических
+    // событий (speed_boost ускоряет, ambush замедляет).
+    this.crowd.update(dt, this.baseSpeed * this.eventSpeedMult, this.steerInput, trackWidth);
 
-    // Speed-trail particles behind the crowd in hyper mode / arrow formation — pure juice
-    if (this.crowd.isHyperMode || this.crowd.formation === 'arrow') {
+    // Speed-trail particles behind the crowd in hyper mode / arrow formation / speed_boost — pure juice
+    if (this.crowd.isHyperMode || this.crowd.formation === 'arrow' || this.activeEvent?.event.type === 'speed_boost') {
       this.trailAccum += dt;
       if (this.trailAccum >= 0.05) {
         this.trailAccum = 0;
@@ -850,6 +1003,9 @@ export class GameEngine {
     this.obstacles.update(dt, this.crowd, this.particles);
     this.boss.update(dt, this.crowd, this.particles);
     this.particles.update(dt);
+
+    // Динамические события уровня (триггер по leaderZ + тик активных эффектов).
+    this.updateDynamicEvents(dt);
 
     if (!this.isEndless) {
       this.finishLine.update(dt, this.crowd, this.particles, (finalScore, finalMult, remainingMobs) => {
@@ -881,7 +1037,7 @@ export class GameEngine {
     // подтягивалась лерпом ПОСЛЕ того как толпа уже ускорилась (гипер-режим,
     // формация "стрела"), считаем целевую дистанцию сразу с учётом текущего
     // множителя скорости — камера заранее отъезжает дальше.
-    const speedMult = this.crowd.isHyperMode ? 1.4 : this.crowd.formation === 'arrow' ? 1.15 : 1.0;
+    const speedMult = (this.crowd.isHyperMode ? 1.4 : this.crowd.formation === 'arrow' ? 1.15 : 1.0) * this.eventSpeedMult;
     const speedLag = (speedMult - 1) * this.baseSpeed;
     const targetCamX = this.crowd.leaderX * 0.4;
     const targetCamZ = this.crowd.leaderZ - (GameEngine.CAMERA_BASE_DISTANCE + speedLag);

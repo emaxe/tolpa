@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GateData } from '../types/game';
+import { GateData, GateOp } from '../types/game';
 import { createGateTexture } from '../utils/proceduralMeshes';
 import { CrowdManager } from './CrowdManager';
 import { ParticleSystem } from './ParticleSystem';
@@ -25,6 +25,11 @@ export class GateManager {
   private scene: THREE.Scene;
   private gates: GateVisual[] = [];
   private comboStreak: number = 0;
+
+  // ЭМИ-шторм: переворачивает знаки ещё не пройденных ворот на время события.
+  // originals хранит исходные операции, чтобы clearEmpStorm() их вернул.
+  private empActive: boolean = false;
+  private empOriginals: { gate: GateData; leftOp: GateOp; leftVal: number; rightOp: GateOp; rightVal: number }[] = [];
 
   // Все ворота уровня используют одну и ту же ширину/высоту, поэтому геометрии рамок
   // общие на весь набор ворот — раньше их создавали заново под каждые ворота и никогда
@@ -291,7 +296,61 @@ export class GateManager {
     return this.comboStreak;
   }
 
+  /** ЭМИ-шторм: переворачивает знаки ещё не пройденных ворот (add↔subtract, multiply↔divide)
+   *  и тонирует створки в фиолетовый цвет на время события. Сбрасывается clearEmpStorm(). */
+  public applyEmpStorm(): void {
+    if (this.empActive) return;
+    this.empActive = true;
+    this.empOriginals = [];
+    for (const gateVisual of this.gates) {
+      const gate = gateVisual.data;
+      if (gate.passed) continue;
+      // Сохраняем оригиналы для последующего восстановления.
+      this.empOriginals.push({ gate, leftOp: gate.leftOp, leftVal: gate.leftVal, rightOp: gate.rightOp, rightVal: gate.rightVal });
+      gate.leftOp = this.flipGateOp(gate.leftOp);
+      gate.rightOp = this.flipGateOp(gate.rightOp);
+      // Тонировка створок в фиолетовый — визуальный сигнал "искажения".
+      gateVisual.leftMat.color.setHex(0xa855f7);
+      gateVisual.rightMat.color.setHex(0xa855f7);
+      gateVisual.leftMat.needsUpdate = true;
+      gateVisual.rightMat.needsUpdate = true;
+    }
+  }
+
+  public clearEmpStorm(): void {
+    if (!this.empActive) return;
+    this.empActive = false;
+    for (const orig of this.empOriginals) {
+      orig.gate.leftOp = orig.leftOp;
+      orig.gate.leftVal = orig.leftVal;
+      orig.gate.rightOp = orig.rightOp;
+      orig.gate.rightVal = orig.rightVal;
+    }
+    this.empOriginals = [];
+    for (const gateVisual of this.gates) {
+      gateVisual.leftMat.color.setHex(0xffffff);
+      gateVisual.rightMat.color.setHex(0xffffff);
+      gateVisual.leftMat.needsUpdate = true;
+      gateVisual.rightMat.needsUpdate = true;
+    }
+  }
+
+  public isEmpActive(): boolean {
+    return this.empActive;
+  }
+
+  /** Переворачивает знак операции ворот: add↔subtract, multiply↔divide. */
+  private flipGateOp(op: GateOp): GateOp {
+    if (op === 'add') return 'subtract';
+    if (op === 'subtract') return 'add';
+    if (op === 'multiply') return 'divide';
+    if (op === 'divide') return 'multiply';
+    return op;
+  }
+
   public clear(): void {
+    this.empActive = false;
+    this.empOriginals = [];
     this.gates.forEach((g) => {
       this.scene.remove(g.group);
       g.leftTexture.dispose();

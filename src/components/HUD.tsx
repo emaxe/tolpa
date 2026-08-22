@@ -45,6 +45,17 @@ export const HUD: React.FC<HUDProps> = ({
 }) => {
   const [bossInfo, setBossInfo] = useState<{ hp: number; maxHp: number; nameKey: string } | null>(null);
   const [damageFlashKey, setDamageFlashKey] = useState<number>(0);
+  // Баннер динамического события уровня (ambush/coin_train/emp_storm/meteor_rain/speed_boost)
+  const [eventAlert, setEventAlert] = useState<{ type: string; key: number } | null>(null);
+
+  // Маппинг типа события -> ключ локализации и цвет баннера
+  const EVENT_ALERT_MAP: Record<string, { key: string; cls: string }> = {
+    ambush: { key: 'eventAmbush', cls: 'border-red-500 text-red-300' },
+    coin_train: { key: 'eventCoinTrain', cls: 'border-amber-500 text-amber-300' },
+    emp_storm: { key: 'eventEmpStorm', cls: 'border-purple-500 text-purple-300' },
+    meteor_rain: { key: 'eventMeteorRain', cls: 'border-orange-500 text-orange-300' },
+    speed_boost: { key: 'eventSpeedBoost', cls: 'border-cyan-500 text-cyan-300' },
+  };
 
   useEffect(() => {
     const unsubBoss = eventBus.on('bossDamaged', (data) => {
@@ -61,10 +72,17 @@ export const HUD: React.FC<HUDProps> = ({
       setDamageFlashKey((k) => k + 1);
     });
 
+    const unsubEvent = eventBus.on('levelEvent', (data: { type?: string }) => {
+      if (!data || !data.type) return;
+      setEventAlert({ type: data.type, key: Date.now() });
+      window.setTimeout(() => setEventAlert(null), 3200);
+    });
+
     return () => {
       unsubBoss();
       unsubBossDefeat();
       unsubMobsKilled();
+      unsubEvent();
     };
   }, []);
 
@@ -127,6 +145,16 @@ export const HUD: React.FC<HUDProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Event Alert Banner (динамическое событие уровня) */}
+      {eventAlert && EVENT_ALERT_MAP[eventAlert.type] && (
+        <div
+          key={eventAlert.key}
+          className={`absolute left-1/2 -translate-x-1/2 top-24 z-20 pointer-events-none px-6 py-2 rounded-xl border-2 bg-slate-950/85 backdrop-blur-md font-orbitron font-extrabold text-sm md:text-base tracking-wider animate-pulse shadow-2xl ${EVENT_ALERT_MAP[eventAlert.type].cls}`}
+        >
+          {i18n.t(EVENT_ALERT_MAP[eventAlert.type].key)}
+        </div>
+      )}
 
       {/* Progress bar to finish — раньше игрок не видел, сколько ещё бежать */}
       {!isEndless && (

@@ -77,6 +77,7 @@ export const translations = {
     eventCoinTrain: 'БОНУС: Золотой караван на трассе!',
     eventEmpStorm: 'ОПАСНОСТЬ: ЭМИ-Шторм искажает ворота!',
     eventMeteorRain: 'ТРЕВОГА: Метеоритный дождь!',
+    eventSpeedBoost: 'УСКОРЕНИЕ: Гипер-драйв активирован!',
 
     // Level End Modal
     victory: 'ПОБЕДА!',
@@ -262,6 +263,7 @@ export const translations = {
     eventCoinTrain: 'BONUS: Golden treasure train detected!',
     eventEmpStorm: 'HAZARD: EMP storm distorting gates!',
     eventMeteorRain: 'ALERT: Incoming meteor barrage!',
+    eventSpeedBoost: 'BOOST: Hyper-drive engaged!',
 
     // Level End Modal
     victory: 'VICTORY!',

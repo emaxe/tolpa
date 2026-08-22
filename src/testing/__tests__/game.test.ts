@@ -130,6 +130,32 @@ describe('Level Generator Smoke Tests', () => {
       }
     }
   });
+
+  it('динамические события генерируются детерминированно и покрывают все 5 типов', () => {
+    // Система событий была "мёртвой": генерировалась, но не исполнялась. Теперь все 5 типов
+    // (ambush/coin_train/emp_storm/meteor_rain/speed_boost) должны реально появляться,
+    // события отсортированы по triggerZ и не залезают в босс-арену.
+    const allTypes = new Set<string>();
+    for (let lvl = 3; lvl <= 50; lvl++) {
+      const config = LevelGenerator.generateLevel(lvl);
+      expect(config.events).toBeDefined();
+      expect(config.events.length).toBeGreaterThanOrEqual(1);
+      for (const evt of config.events) {
+        expect(evt.triggerZ).toBeGreaterThan(0);
+        expect(evt.triggerZ).toBeLessThan(config.trackLength - 40);
+        allTypes.add(evt.type);
+      }
+      // События упорядочены по triggerZ.
+      for (let i = 1; i < config.events.length; i++) {
+        expect(config.events[i].triggerZ).toBeGreaterThan(config.events[i - 1].triggerZ);
+      }
+    }
+    // Все 5 типов должны встречаться хотя бы раз на 3..50 уровнях.
+    expect(allTypes.size).toBe(5);
+    for (const t of ['ambush', 'coin_train', 'emp_storm', 'meteor_rain', 'speed_boost']) {
+      expect(allTypes.has(t)).toBe(true);
+    }
+  });
 });
 
 describe('Object Pool & Memory', () => {

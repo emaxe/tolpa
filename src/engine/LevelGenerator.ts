@@ -255,14 +255,41 @@ export class LevelGenerator {
       }
     }
 
-    // Dynamic Events (Ambush / Coin Train / EMP)
+    // Dynamic Events — ранее генерировались, но НИГДЕ не исполнялись (мёртвая система).
+    // Теперь все 5 типов событий детерминированно распределяются по длине трассы:
+    // coin_train / speed_boost / ambush / emp_storm / meteor_rain (цикл по модулю).
+    // События исполняются в GameEngine.updateDynamicEvents().
     if (levelNum >= 3) {
+      const eventPool: LevelDynamicEvent['type'][] = [
+        'coin_train',
+        'speed_boost',
+        'ambush',
+        'emp_storm',
+        'meteor_rain',
+      ];
+      // Босс-арена начинается на trackLength - 20, события не залезают в неё.
+      const maxEventZ = Math.max(40, trackLength - 90);
+
+      // 1-е событие на 40% трассы.
       events.push({
-        triggerZ: trackLength * 0.45,
-        type: levelNum % 4 === 0 ? 'emp_storm' : levelNum % 3 === 0 ? 'ambush' : 'coin_train',
+        triggerZ: Math.min(trackLength * 0.4, maxEventZ),
+        type: eventPool[(levelNum - 3) % 5],
         duration: 5.0,
-        intensity: 1.0 + levelNum * 0.05,
+        intensity: 1.0 + levelNum * 0.04,
       });
+
+      // На длинных трассах (уровни >= 15, не босс) — 2-е событие на 75% длины.
+      if (levelNum >= 15 && !isBossLevel) {
+        events.push({
+          triggerZ: Math.min(trackLength * 0.75, maxEventZ),
+          type: eventPool[(levelNum * 3 + 1) % 5],
+          duration: 5.0,
+          intensity: 1.0 + levelNum * 0.04,
+        });
+      }
+
+      // Детерминированная сортировка по Z, чтобы события срабатывали по порядку.
+      events.sort((a, b) => a.triggerZ - b.triggerZ);
     }
 
     // Boss Data for milestone levels
