@@ -532,13 +532,16 @@ export class GameEngine {
       }
     }
 
-    // Floating energy orbs drifting above the track
+    // Floating energy orbs drifting ALONGSIDE the track (outside the lane) —
+    // decorative elements must NOT sit on the playable surface.
     const orbGeo = new THREE.SphereGeometry(0.18, 8, 8);
     const orbMat = new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.85 });
+    const orbSide = width / 2 + 1.6;
     for (let z = 20; z < length; z += 26) {
       const orb = new THREE.Mesh(orbGeo, orbMat);
       const baseY = 2.6 + Math.random() * 1.2;
-      orb.position.set((Math.random() - 0.5) * (width - 2), baseY, z);
+      const side = Math.random() < 0.5 ? -1 : 1;
+      orb.position.set(side * (orbSide + Math.random() * 1.2), baseY, z);
       orb.userData.animate = 'orb';
       orb.userData.baseY = baseY;
       group.add(orb);
@@ -577,12 +580,14 @@ export class GameEngine {
     }
 
     // ==== ОБЪЕКТЫ-ЗАГОЛОВКИ ====
-    // Прожекторные кольца над дорожкой — вращаются (анимация)
+    // Прожекторные кольца ПО БОКАМ дорожки (вне игровой зоны) — вращаются (анимация)
     const ringGeo = new THREE.TorusGeometry(1.6, 0.08, 6, 20);
     const ringMat = new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.6 });
+    const ringSide = width / 2 + 2.2;
     for (let z = 30; z < length; z += 44) {
       const ring = new THREE.Mesh(ringGeo, ringMat);
-      ring.position.set(0, 5.5 + Math.random() * 1.5, z);
+      const side = Math.random() < 0.5 ? -1 : 1;
+      ring.position.set(side * ringSide, 3.2 + Math.random() * 1.5, z);
       ring.rotation.x = Math.PI / 2;
       ring.userData.animate = 'ring';
       ring.userData.baseY = ring.position.y;

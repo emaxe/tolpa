@@ -174,6 +174,21 @@ export function createHumanoidGeometry(): THREE.BufferGeometry {
   packGeo.translate(0, 0.95, -0.2);
   geometries.push(packGeo);
 
+  // Chest emblem — glowing core plate on the torso
+  const emblemGeo = new THREE.BoxGeometry(0.12, 0.1, 0.03);
+  emblemGeo.translate(0, 0.9, 0.2);
+  geometries.push(emblemGeo);
+
+  // Knee pads — armored shin guards
+  const kneeGeo = new THREE.SphereGeometry(0.05, 6, 6);
+  kneeGeo.scale(1, 1, 0.6);
+  kneeGeo.translate(-0.1, 0.42, 0.06);
+  geometries.push(kneeGeo);
+  const kneeGeoR = new THREE.SphereGeometry(0.05, 6, 6);
+  kneeGeoR.scale(1, 1, 0.6);
+  kneeGeoR.translate(0.1, 0.42, 0.06);
+  geometries.push(kneeGeoR);
+
   // Merge geometries into single buffer
   const merged = mergeBufferGeometries(geometries);
   return merged;

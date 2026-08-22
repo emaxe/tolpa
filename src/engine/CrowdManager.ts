@@ -463,15 +463,17 @@ export class CrowdManager {
         continue;
       }
 
-      // Procedural running hop & tilt
+      // Procedural running hop & tilt — forward lean + natural stride
       const hop = Math.abs(Math.sin(this.animTime + mob.animOffset)) * 0.25;
       mob.y = hop;
 
       // Setup 3D transform
       this.dummy.position.set(mob.x, mob.y, mob.z);
-      
+
       const tilt = (mob.targetX - mob.x) * 0.3;
-      this.dummy.rotation.set(0, 0, -tilt);
+      // Forward lean (pitch) makes the run read as dynamic; slight roll from steering.
+      const lean = 0.12 + Math.abs(Math.sin(this.animTime + mob.animOffset)) * 0.08;
+      this.dummy.rotation.set(lean, 0, -tilt);
 
       const s = mob.scale * (this.isHyperMode ? 1.15 : 1.0);
       this.dummy.scale.set(s, s, s);
