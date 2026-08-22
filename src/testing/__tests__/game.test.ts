@@ -95,8 +95,8 @@ describe('Level Generator Smoke Tests', () => {
       const config = LevelGenerator.generateLevel(lvl);
       expect(config).toBeDefined();
       expect(config.levelNumber).toBe(lvl);
-      expect(config.trackLength).toBeGreaterThanOrEqual(100);
-      expect(config.trackLength).toBeLessThanOrEqual(500);
+      expect(config.trackLength).toBeGreaterThanOrEqual(2000);
+      expect(config.trackLength).toBeLessThanOrEqual(6000);
       expect(config.gates.length).toBeGreaterThanOrEqual(2);
       expect(config.trackWidth).toBe(DEFAULT_TRACK_WIDTH);
     }

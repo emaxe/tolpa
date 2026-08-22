@@ -237,7 +237,7 @@ function test50LevelsIntegritySmoke(): TestResult {
       errorMsg = `Level ${lvl} failed number check`;
       break;
     }
-    if (config.trackLength < 100 || config.trackLength > 500) {
+    if (config.trackLength < 2000 || config.trackLength > 6000) {
       allValid = false;
       errorMsg = `Level ${lvl} abnormal length: ${config.trackLength}`;
       break;

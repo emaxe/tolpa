@@ -38,8 +38,9 @@ export class LevelGenerator {
     const rng = createRng(levelNum * 7919 + 12345);
     const biome = this.getBiomeForLevel(levelNum);
     const trackWidth = DEFAULT_TRACK_WIDTH;
-    // Track length scales with level, e.g. 180m at L1 to 350m at L50
-    const trackLength = 180 + Math.min(32, levelNum) * 5;
+    // Track length scales with level. Удлинено в ~12-16 раз относительно прежнего
+    // (было 180..340м): L1 ≈ 2300м, L50 ≈ 5400м — полноценная длинная трасса.
+    const trackLength = 2200 + Math.min(32, levelNum) * 100;
     const isBossLevel = levelNum % 10 === 0;
 
     const gates: GateData[] = [];
@@ -53,16 +54,28 @@ export class LevelGenerator {
     const startingMobs = 8;
     const targetMobsToWin = Math.min(150, 10 + Math.floor(levelNum * 2.2));
 
-    // Number of gate pairs (roughly every 30-40 meters)
-    const gateCount = Math.max(3, Math.floor((trackLength - 60) / 38));
+    // Number of gate pairs. Плотность НЕ растёт с длиной трассы — иначе на 2200-5400м
+    // было бы 56-140 ворот, толпа упёрлась бы в потолок 400 за первые 500м, а сцена
+    // перегрузилась бы тысячами объектов. Вместо этого держим разумное число ворот
+    // (8 на L1 → 18 на L50) и равномерно распределяем их по всей длине.
+    const gateCount = Math.min(20, 8 + Math.floor(levelNum / 5));
+    const gateSpacing = (trackLength - 60) / Math.max(1, gateCount);
     for (let g = 0; g < gateCount; g++) {
-      const z = 32 + g * 38 + (rng() * 2 - 1);
+      const z = 32 + g * gateSpacing + (rng() * 2 - 1);
       const gateId = `gate_${levelNum}_${g}`;
+
+      // Множитель масштабируется ОБРАТНО уровню: на ранних уровнях толпа мала и ×3
+      // безопасен, на поздних (толпа уже 100-200) большой множитель мгновенно упирается
+      // в потолок 400 и обесценивает экономику. На L1-10 ×3, к L50 плавно падает до ×1.6.
+      const multVal = Math.max(1.6, 3 - levelNum * 0.028);
+      // Вычитание смягчено на ранних уровнях (стартовая толпа всего 8-11 бойцов):
+      // -5..-15 на L1 могло убить всю толпу ещё до первых ворот.
+      const subVal = Math.max(3, 5 + Math.floor(rng() * 10) - Math.floor(levelNum * 0.15));
 
       let leftOp: GateOp = 'add';
       let leftVal = 5 + Math.floor(rng() * (levelNum > 15 ? 15 : 10));
       let rightOp: GateOp = 'multiply';
-      let rightVal = 2;
+      let rightVal = multVal;
 
       // Introduce multipliers, subtractions, conditionals
       const rand = rng();
@@ -70,12 +83,12 @@ export class LevelGenerator {
         leftOp = 'add';
         leftVal = 10 + Math.floor(rng() * 15);
         rightOp = 'multiply';
-        rightVal = levelNum > 20 ? 3 : 2;
+        rightVal = multVal;
       } else if (rand < 0.5) {
         leftOp = 'multiply';
-        leftVal = 2;
+        leftVal = multVal;
         rightOp = 'subtract';
-        rightVal = 5 + Math.floor(rng() * 10);
+        rightVal = subVal;
       } else if (rand < 0.7) {
         // One positive, one conditional
         leftOp = 'add';
@@ -83,7 +96,7 @@ export class LevelGenerator {
         rightOp = 'conditional';
         rightVal = 0;
       } else if (rand < 0.85) {
-        // Mystery gate
+        // Mystery gate — теперь с риском: 60% бонус, 40% штраф (раньше всегда бонус)
         leftOp = 'mystery';
         leftVal = 0;
         rightOp = 'add';
@@ -93,7 +106,7 @@ export class LevelGenerator {
         leftOp = 'adrenaline';
         leftVal = 0;
         rightOp = 'multiply';
-        rightVal = 2;
+        rightVal = multVal;
       }
 
       const conditionalData = {
@@ -131,15 +144,17 @@ export class LevelGenerator {
       gates[0].leftVal = 10 + Math.floor(rng() * 10);
       gates[0].leftCondition = undefined;
       gates[0].rightOp = 'multiply';
-      gates[0].rightVal = 2;
+      gates[0].rightVal = Math.max(1.6, 3 - levelNum * 0.028);
       gates[0].rightCondition = undefined;
       gates[0].isDynamic = false;
     }
 
     const GATE_CLEARANCE = 10.5;
 
-    // Place Obstacles between gates (starting AFTER the first gate at z >= 55)
-    const obstacleCount = Math.floor(gateCount * 1.3) + Math.floor(levelNum * 0.25);
+    // Place Obstacles between gates. Плотность фиксирована (~1 препятствие на 60м),
+    // а не растёт с длиной — иначе на 5400м было бы ~70 препятствий и сцена
+    // перегрузилась бы. Равномерно распределяем по всей длине трассы.
+    const obstacleCount = Math.min(60, Math.floor(trackLength / 60));
     for (let o = 0; o < obstacleCount; o++) {
       let z = 55 + (o / Math.max(1, obstacleCount - 1)) * (trackLength - 105) + (rng() * 4 - 2);
 
@@ -194,7 +209,13 @@ export class LevelGenerator {
         speed: 1.5 + rng() * 2.0,
         range,
         initialOffset: rng() * Math.PI * 2,
-        damage: type === 'saw_blade' || type === 'laser_grid' ? 4 : type === 'spike_trap' ? 4 : 8,
+        // Урон масштабируется с уровнем, но не смертелен на старте: базовый урон
+        // препятствия (4-8) + плавный рост до ~+6 к L50. На ранних уровнях толпа
+        // маленькая, поэтому урон остаётся щадящим; на поздних — толпа большая и
+        // может пережить более серьёзные потери.
+        damage:
+          (type === 'saw_blade' || type === 'laser_grid' || type === 'spike_trap' ? 4 : 8) +
+          Math.floor(levelNum * 0.12),
         destructible: type === 'crusher' || type === 'axe_pendulum',
         hp: 15,
         maxHp: 15,
@@ -204,10 +225,12 @@ export class LevelGenerator {
     // Sort obstacles by Z
     obstacles.sort((a, b) => a.z - b.z);
 
-    // Place Coins along paths
-    const coinClusters = Math.floor(trackLength / 22);
+    // Place Coins along paths. Плотность фиксирована (~1 кластер на 40м), а не растёт
+    // с длиной — иначе на 5400м было бы ~250 кластеров / 1000 монет и сцена
+    // перегрузилась бы. Равномерно распределяем по всей длине.
+    const coinClusters = Math.min(90, Math.floor(trackLength / 40));
     for (let c = 0; c < coinClusters; c++) {
-      const zCenter = 16 + c * 22;
+      const zCenter = 16 + c * (trackLength / Math.max(1, coinClusters));
       const xCenter = (rng() - 0.5) * (trackWidth - 4);
       for (let i = 0; i < 4; i++) {
         coins.push({

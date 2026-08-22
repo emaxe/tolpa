@@ -231,12 +231,21 @@ export class GateManager {
         eventBus.emit('screenShake', { intensity: 0.3 });
       }
     } else if (op === 'mystery') {
-      // Mystery box: 70% positive, 30% huge jackpot
-      const bonus = Math.random() < 0.3 ? 25 : 12;
-      netChange = crowd.addMobs(bonus);
-      soundEngine.playSound('gate_pass_multiplier');
-      particles.emitBurst(gateX, 1.5, gateZ, 35, 0xf59e0b, 5.5);
-      isPositive = true;
+      // Mystery box: 60% бонус, 40% штраф (раньше всегда бонус — не было риска).
+      // Штраф не может убить всю толпу: максимум 30% текущего состава.
+      if (Math.random() < 0.6) {
+        const bonus = Math.random() < 0.3 ? 25 : 12;
+        netChange = crowd.addMobs(bonus);
+        soundEngine.playSound('gate_pass_multiplier');
+        particles.emitBurst(gateX, 1.5, gateZ, 35, 0xf59e0b, 5.5);
+        isPositive = true;
+      } else {
+        const penalty = Math.max(1, Math.floor(crowd.getAliveCount() * 0.3));
+        netChange = -crowd.killMobs(penalty, 'gate');
+        soundEngine.playSound('gate_pass_negative');
+        particles.emitBurst(gateX, 1.5, gateZ, 20, 0xef4444, 4.0);
+        eventBus.emit('screenShake', { intensity: 0.3 });
+      }
     } else if (op === 'adrenaline') {
       crowd.activateHyperMode(6.0);
       particles.emitBurst(gateX, 1.5, gateZ, 45, 0xfacc15, 7.0);
