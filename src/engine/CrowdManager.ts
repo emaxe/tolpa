@@ -11,7 +11,13 @@ export class CrowdManager {
   private instancedMesh: THREE.InstancedMesh;
   private maxCapacity: number = 400;
   private mobs: MobInstance[] = [];
-  
+  // Живой счётчик толпы — getAliveCount() раньше сканировал все 200 слотов на каждый
+  // вызов (а вызывался по многу раз за кадр из FinishLine/GameEngine/Gate/Boss).
+  private aliveCount: number = 0;
+  // Переиспользуемый буфер для killMobs/consumeMobs — раньше каждый вызов делал
+  // .filter().sort() (две аллокации на каждое убийство).
+  private aliveScratch: MobInstance[] = [];
+
   // Reusable 3D math objects to guarantee ZERO runtime GC allocations
   private dummy: THREE.Object3D = new THREE.Object3D();
   private colorDummy: THREE.Color = new THREE.Color();
@@ -104,6 +110,7 @@ export class CrowdManager {
     this.trackHalfWidth = trackWidth / 2;
 
     // Reset all mobs
+    this.aliveCount = 0;
     for (let i = 0; i < this.maxCapacity; i++) {
       this.mobs[i].alive = false;
       this.mobs[i].y = -100;
@@ -121,15 +128,18 @@ export class CrowdManager {
   }
 
   public getAliveCount(): number {
-    let count = 0;
-    for (let i = 0; i < this.mobs.length; i++) {
-      if (this.mobs[i].alive) count++;
-    }
-    return count;
+    return this.aliveCount;
   }
 
+  /** Возвращает живых мобов. ВАЖНО: возвращает переиспользуемый внутренний буфер —
+   *  содержимое валидно только до следующего вызова getAliveMobs()/killMobs()/consumeMobs().
+   *  Не храни ссылку на результат между кадрами. */
   public getAliveMobs(): MobInstance[] {
-    return this.mobs.filter((m) => m.alive);
+    this.aliveScratch.length = 0;
+    for (let i = 0; i < this.mobs.length; i++) {
+      if (this.mobs[i].alive) this.aliveScratch.push(this.mobs[i]);
+    }
+    return this.aliveScratch;
   }
 
   public setFormation(f: FormationType): void {
@@ -170,6 +180,7 @@ export class CrowdManager {
       const mob = this.mobs[i];
       if (!mob.alive) {
         mob.alive = true;
+        this.aliveCount++;
         mob.type = mobType;
         mob.x =
           spawnX !== undefined
@@ -250,7 +261,7 @@ export class CrowdManager {
 
     let killed = 0;
     let budget = finalCount; // сколько "ударов" осталось потратить в этом вызове
-    const alive = this.mobs.filter((m) => m.alive);
+    const alive = this.getAliveMobs();
 
     // Frontline mobs take damage first
     alive.sort((a, b) => b.z - a.z);
@@ -281,6 +292,7 @@ export class CrowdManager {
 
       // Kill mob
       mob.alive = false;
+      this.aliveCount--;
       mob.y = -100;
       this.dummy.position.set(0, -100, 0);
       this.dummy.updateMatrix();
@@ -301,10 +313,11 @@ export class CrowdManager {
   public consumeMobs(count: number): number {
     if (count <= 0) return 0;
     let killed = 0;
-    const alive = this.mobs.filter((m) => m.alive).sort((a, b) => b.z - a.z);
+    const alive = this.getAliveMobs().sort((a, b) => b.z - a.z);
     for (const mob of alive) {
       if (killed >= count) break;
       mob.alive = false;
+      this.aliveCount--;
       mob.y = -100;
       this.dummy.position.set(0, -100, 0);
       this.dummy.updateMatrix();
@@ -389,6 +402,7 @@ export class CrowdManager {
       // Если боец вышел за физический край дорожки — падает вниз и погибает.
       if (Math.abs(mob.x) > this.trackHalfWidth) {
         mob.alive = false;
+        this.aliveCount--;
         mob.y = -100;
         this.dummy.position.set(0, -100, 0);
         this.dummy.updateMatrix();
