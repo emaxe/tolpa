@@ -1,6 +1,7 @@
 import React from 'react';
 import { i18n } from '../core/Localization';
-import { Trophy, Skull, Star, Coins, Gem, ArrowRight, RotateCcw, Home, ShoppingCart } from 'lucide-react';
+import { RunStats } from '../core/StateManager';
+import { Trophy, Skull, Star, Coins, Gem, ArrowRight, RotateCcw, Home, ShoppingCart, Zap, Users, Shield, Swords, DoorOpen } from 'lucide-react';
 
 interface LevelEndModalProps {
   isVictory: boolean;
@@ -9,6 +10,7 @@ interface LevelEndModalProps {
   multiplier: number;
   crowdCount: number;
   stars: number;
+  runStats: RunStats | null;
   onNextLevel: () => void;
   onRetry: () => void;
   onHome: () => void;
@@ -22,6 +24,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
   multiplier,
   crowdCount,
   stars,
+  runStats,
   onNextLevel,
   onRetry,
   onHome,
@@ -92,6 +95,44 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
                 <span className="font-orbitron font-bold text-cyan-400">{crowdCount}</span>
               </div>
             </>
+          )}
+
+          {/* Run-detail stats (макс. комбо, макс. толпа, сломанные препятствия, ворота, боссы) */}
+          {runStats && (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-2 border-t border-slate-800/80">
+              <div className="flex items-center justify-between text-slate-300">
+                <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-400">
+                  <Zap className="w-3.5 h-3.5 text-amber-400" /> {i18n.t('runMaxCombo')}
+                </span>
+                <span className="font-orbitron font-bold text-amber-400">×{runStats.maxCombo}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-300">
+                <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-400">
+                  <Users className="w-3.5 h-3.5 text-cyan-400" /> {i18n.t('runMaxCrowd')}
+                </span>
+                <span className="font-orbitron font-bold text-cyan-400">{runStats.maxCrowd}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-300">
+                <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-400">
+                  <Swords className="w-3.5 h-3.5 text-red-400" /> {i18n.t('runObstaclesSmashed')}
+                </span>
+                <span className="font-orbitron font-bold text-red-400">{runStats.obstaclesSmashed}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-300">
+                <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-400">
+                  <DoorOpen className="w-3.5 h-3.5 text-emerald-400" /> {i18n.t('runGatesPassed')}
+                </span>
+                <span className="font-orbitron font-bold text-emerald-400">{runStats.gatesPassed}</span>
+              </div>
+              {runStats.bossesDefeated > 0 && (
+                <div className="flex items-center justify-between text-slate-300 col-span-2">
+                  <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-400">
+                    <Shield className="w-3.5 h-3.5 text-purple-400" /> {i18n.t('runBossesDefeated')}
+                  </span>
+                  <span className="font-orbitron font-bold text-purple-400">{runStats.bossesDefeated}</span>
+                </div>
+              )}
+            </div>
           )}
 
           <div className="flex justify-between items-center pt-2 border-t border-slate-800/80">

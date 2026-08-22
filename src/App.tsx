@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { GamePhase, DialogueLine } from './types/game';
-import { stateManager } from './core/StateManager';
+import { stateManager, RunStats } from './core/StateManager';
 import { GameCanvas } from './components/GameCanvas';
 import { MainMenu } from './components/MainMenu';
 import { DialogueModal } from './components/DialogueModal';
@@ -30,6 +30,7 @@ export const App: React.FC = () => {
     multiplier: number;
     crowdCount: number;
     stars: number;
+    runStats: RunStats | null;
   } | null>(null);
 
   // Story dialogue lines
@@ -107,7 +108,7 @@ export const App: React.FC = () => {
   }, []);
 
   const handleLevelWon = useCallback(
-    (score: number, mult: number, remainingMobs: number) => {
+    (score: number, mult: number, remainingMobs: number, runStats: RunStats) => {
       const stars = remainingMobs >= 60 ? 3 : remainingMobs >= 20 ? 2 : 1;
       const coinsEarned = Math.round(score * 0.5);
       const gemsEarned = activeLevel % 10 === 0 ? 10 : 2;
@@ -122,19 +123,21 @@ export const App: React.FC = () => {
         multiplier: mult,
         crowdCount: remainingMobs,
         stars,
+        runStats,
       });
       setPhase('level_won');
     },
     [activeLevel]
   );
 
-  const handleLevelLost = useCallback(() => {
+  const handleLevelLost = useCallback((runStats: RunStats) => {
     setEndResult({
       isVictory: false,
       score: 0,
       multiplier: 1.0,
       crowdCount: 0,
       stars: 0,
+      runStats,
     });
     setPhase('level_lost');
   }, []);
@@ -228,6 +231,7 @@ export const App: React.FC = () => {
           multiplier={endResult.multiplier}
           crowdCount={endResult.crowdCount}
           stars={endResult.stars}
+          runStats={endResult.runStats}
           onNextLevel={handleNextLevel}
           onRetry={handleRetry}
           onHome={handleToMainMenu}

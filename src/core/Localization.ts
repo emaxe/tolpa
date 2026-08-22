@@ -92,6 +92,11 @@ export const translations = {
     levelCompleted: 'Уровень зачищен!',
     crowdDepleted: 'Все легионеры пали в бою...',
     bossDefeated: 'Босс повержен!',
+    runMaxCombo: 'Макс. комбо',
+    runMaxCrowd: 'Макс. толпа',
+    runObstaclesSmashed: 'Сломано',
+    runGatesPassed: 'Ворот пройдено',
+    runBossesDefeated: 'Боссов повержено',
 
     // Upgrades
     upgStartingMobs: 'Начальный отряд',
@@ -278,6 +283,11 @@ export const translations = {
     levelCompleted: 'Level Purged!',
     crowdDepleted: 'All legionnaires have fallen in battle...',
     bossDefeated: 'Boss Annihilated!',
+    runMaxCombo: 'Max Combo',
+    runMaxCrowd: 'Max Crowd',
+    runObstaclesSmashed: 'Smashed',
+    runGatesPassed: 'Gates Passed',
+    runBossesDefeated: 'Bosses Defeated',
 
     // Upgrades
     upgStartingMobs: 'Starting Squad',

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { GameEngine, HudSnapshot } from '../engine/GameEngine';
 import { FormationType } from '../types/game';
+import { RunStats } from '../core/StateManager';
 import { HUD } from './HUD';
 import { FloatingText } from './FloatingText';
 import { eventBus } from '../core/EventBus';
@@ -11,8 +12,8 @@ interface GameCanvasProps {
   runId: number;
   isPaused: boolean;
   inputEnabled: boolean;
-  onLevelWon: (score: number, mult: number, remainingMobs: number) => void;
-  onLevelLost: () => void;
+  onLevelWon: (score: number, mult: number, remainingMobs: number, runStats: RunStats) => void;
+  onLevelLost: (runStats: RunStats) => void;
   onPauseRequest: () => void;
   onPauseButton: () => void;
 }
@@ -64,12 +65,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     engineRef.current = engine;
 
     if (isEndless) {
-      engine.startEndlessMode(() => callbacksRef.current.onLevelLost());
+      engine.startEndlessMode((runStats) => callbacksRef.current.onLevelLost(runStats));
     } else {
       engine.loadLevel(
         levelNumber,
-        (score, mult, mobs) => callbacksRef.current.onLevelWon(score, mult, mobs),
-        () => callbacksRef.current.onLevelLost()
+        (score, mult, mobs, runStats) => callbacksRef.current.onLevelWon(score, mult, mobs, runStats),
+        (runStats) => callbacksRef.current.onLevelLost(runStats)
       );
     }
 

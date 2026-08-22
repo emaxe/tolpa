@@ -7,7 +7,7 @@ import { BossManager } from './BossManager';
 import { FinishLineManager } from './FinishLineManager';
 import { ParticleSystem } from './ParticleSystem';
 import { LevelGenerator, DEFAULT_TRACK_WIDTH } from './LevelGenerator';
-import { stateManager } from '../core/StateManager';
+import { stateManager, RunStats } from '../core/StateManager';
 import { soundEngine } from '../audio/SoundEngine';
 import { eventBus } from '../core/EventBus';
 import { perfMonitor } from '../core/Performance';
@@ -101,8 +101,8 @@ export class GameEngine {
   private eventFxAccum: number = 0;
 
   // Callbacks
-  private onLevelWinCb?: (score: number, mult: number, mobs: number) => void;
-  private onLevelLoseCb?: () => void;
+  private onLevelWinCb?: (score: number, mult: number, mobs: number, runStats: RunStats) => void;
+  private onLevelLoseCb?: (runStats: RunStats) => void;
   private callbacks: GameEngineCallbacks;
   private unsubShake: (() => void) | null = null;
   private unsubGateCharge: (() => void) | null = null;
@@ -354,8 +354,8 @@ export class GameEngine {
 
   public loadLevel(
     levelNum: number,
-    onWin: (score: number, mult: number, mobs: number) => void,
-    onLose: () => void
+    onWin: (score: number, mult: number, mobs: number, runStats: RunStats) => void,
+    onLose: (runStats: RunStats) => void
   ): void {
     this.isEndless = false;
     this.onLevelWinCb = onWin;
@@ -405,7 +405,7 @@ export class GameEngine {
     );
   }
 
-  public startEndlessMode(onLose: () => void): void {
+  public startEndlessMode(onLose: (runStats: RunStats) => void): void {
     this.isEndless = true;
     this.onLevelLoseCb = onLose;
     this.endlessSegmentIndex = 0;
@@ -809,15 +809,21 @@ export class GameEngine {
     if (this.runEnded) return;
     this.runEnded = true;
     this.stopLoop();
+    // Снимок статистики забега ДО commitRun() — тот обнуляет run, а нам нужно
+    // показать детали (макс. комбо, макс. толпа, сломанные препятствия) на экране итогов.
+    const runStats: RunStats = stateManager.getRun() || {
+      coins: 0, mobsSpawned: 0, gatesPassed: 0, obstaclesSmashed: 0,
+      bossesDefeated: 0, bossCoins: 0, bossGems: 0, maxCombo: 0, maxCrowd: 0,
+    };
     // Откатываем активные эффекты событий (ЭМИ-шторм, множители скорости), чтобы они
     // не протекли в следующий забег.
     if (this.gates.isEmpActive()) this.gates.clearEmpStorm();
     this.resetEventState();
     stateManager.commitRun();
     if (win) {
-      this.onLevelWinCb?.(score, mult, mobs);
+      this.onLevelWinCb?.(score, mult, mobs, runStats);
     } else {
-      this.onLevelLoseCb?.();
+      this.onLevelLoseCb?.(runStats);
     }
   }
 
