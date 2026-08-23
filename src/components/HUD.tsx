@@ -3,7 +3,7 @@ import { FormationType } from '../types/game';
 import { i18n } from '../core/Localization';
 import { stateManager } from '../core/StateManager';
 import { eventBus } from '../core/EventBus';
-import { Zap, Users, Coins, Shield, ArrowUp, MoveHorizontal, CircleDot, Pause, Skull, TriangleAlert, Route } from 'lucide-react';
+import { Zap, Users, Coins, Shield, ArrowUp, MoveHorizontal, CircleDot, Pause, Skull, TriangleAlert, Route, Trophy } from 'lucide-react';
 
 interface HUDProps {
   crowdCount: number;
@@ -27,6 +27,11 @@ interface HUDProps {
   distanceTraveled: number; // метров, пройденных с начала забега (Бесконечный режим)
   fps: number;
   drawCalls: number;
+  // Индикатор финишной фазы: текущий множитель, прогресс по стенам, активность финиша.
+  finishMultiplier: number;
+  finishStepsDone: number;
+  finishStepsTotal: number;
+  isFinishActive: boolean;
 }
 
 export const HUD: React.FC<HUDProps> = ({
@@ -49,6 +54,10 @@ export const HUD: React.FC<HUDProps> = ({
   distanceTraveled,
   fps,
   drawCalls,
+  finishMultiplier,
+  finishStepsDone,
+  finishStepsTotal,
+  isFinishActive,
 }) => {
   const [bossInfo, setBossInfo] = useState<{ hp: number; maxHp: number; nameKey: string } | null>(null);
   const [damageFlashKey, setDamageFlashKey] = useState<number>(0);
@@ -173,6 +182,27 @@ export const HUD: React.FC<HUDProps> = ({
           className={`absolute left-1/2 -translate-x-1/2 top-24 z-20 pointer-events-none px-6 py-2 rounded-xl border-2 bg-slate-950/85 backdrop-blur-md font-orbitron font-extrabold text-sm md:text-base tracking-wider animate-pulse shadow-2xl ${EVENT_ALERT_MAP[eventAlert.type].cls}`}
         >
           {i18n.t(EVENT_ALERT_MAP[eventAlert.type].key)}
+        </div>
+      )}
+
+      {/* Индикатор финишной фазы — появляется после пересечения финишной черты.
+          Показывает текущий множитель бонуса и прогресс по стенам замка. */}
+      {isFinishActive && !isEndless && (
+        <div className="absolute left-1/2 -translate-x-1/2 top-12 z-20 pointer-events-none flex flex-col items-center gap-1">
+          <div className="bg-slate-950/90 border-2 border-amber-400/80 rounded-2xl px-5 py-2 shadow-[0_0_25px_rgba(251,191,36,0.5)] backdrop-blur-md flex items-center gap-3">
+            <Trophy className="w-5 h-5 text-amber-400 fill-amber-400 animate-bounce" />
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] uppercase font-orbitron tracking-widest text-amber-300">
+                {i18n.t('wallMultiplier')}
+              </span>
+              <span className="text-2xl font-extrabold font-orbitron text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.8)]">
+                ×{finishMultiplier.toFixed(1)}
+              </span>
+            </div>
+            <span className="text-xs font-orbitron text-slate-400 ml-1">
+              {finishStepsDone}/{finishStepsTotal}
+            </span>
+          </div>
         </div>
       )}
 

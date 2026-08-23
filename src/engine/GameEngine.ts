@@ -29,6 +29,11 @@ export interface HudSnapshot {
   distanceTraveled: number; // метров, пройденных с начала забега (Бесконечный режим)
   fps: number;
   drawCalls: number;
+  // Индикатор финишной фазы: текущий множитель, прогресс по стенам, активность финиша.
+  finishMultiplier: number;
+  finishStepsDone: number;
+  finishStepsTotal: number;
+  isFinishActive: boolean;
 }
 
 export interface GameEngineCallbacks {
@@ -1645,6 +1650,10 @@ export class GameEngine {
       distanceTraveled: Math.max(0, Math.round(this.crowd.leaderZ)),
       fps: perfMonitor.getFPS(),
       drawCalls: perfMonitor.getDrawCalls(),
+      finishMultiplier: this.finishLine.finalMultiplier,
+      finishStepsDone: this.finishLine.getFinishStepsDone(),
+      finishStepsTotal: this.finishLine.getFinishStepsTotal(),
+      isFinishActive: this.finishLine.hasCrossedFinish,
     };
   }
 

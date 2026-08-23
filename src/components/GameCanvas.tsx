@@ -31,6 +31,10 @@ const EMPTY_SNAPSHOT: HudSnapshot = {
   distanceTraveled: 0,
   fps: 60,
   drawCalls: 0,
+  finishMultiplier: 1.0,
+  finishStepsDone: 0,
+  finishStepsTotal: 0,
+  isFinishActive: false,
 };
 
 export const GameCanvas: React.FC<GameCanvasProps> = ({
@@ -153,6 +157,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         distanceTraveled={hud.distanceTraveled}
         fps={hud.fps}
         drawCalls={hud.drawCalls}
+        finishMultiplier={hud.finishMultiplier}
+        finishStepsDone={hud.finishStepsDone}
+        finishStepsTotal={hud.finishStepsTotal}
+        isFinishActive={hud.isFinishActive}
       />
     </div>
   );

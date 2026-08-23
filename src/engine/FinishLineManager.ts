@@ -19,6 +19,8 @@ export class FinishLineManager {
   private finishLineZ: number = 0;
   public hasCrossedFinish: boolean = false;
   public finalMultiplier: number = 1.0;
+  // Сколько легионеров пожертвовано на пробитие финишных стен — усиливает итоговый бонус.
+  public sacrificedTotal: number = 0;
   private finalStepIndex: number = 0;
   private isCelebrating: boolean = false;
   private chestMesh: THREE.Group | null = null;
@@ -32,16 +34,19 @@ export class FinishLineManager {
     this.finishLineZ = finishZ;
     this.hasCrossedFinish = false;
     this.finalMultiplier = 1.0;
+    this.sacrificedTotal = 0;
     this.finalStepIndex = 0;
     this.isCelebrating = false;
 
     // Multiplier steps
     const multipliers = [1.2, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 8.0, 10.0];
+    // Стоимость пробития каждой стены в легионерах (сумма = 66). Толпа реально редеет на финише.
+    const costs = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15];
 
     for (let i = 0; i < stepsCount; i++) {
       const mult = multipliers[i] || 1.0 + i * 0.5;
       const stepZ = finishZ + 10 + i * 8;
-      const cost = Math.floor(2 + i * 3.5);
+      const cost = costs[i] ?? Math.floor(2 + i * 3.5);
 
       // Create Step Barrier Mesh
       const stepGeo = new THREE.BoxGeometry(8, 2.0 + i * 0.3, 2.5);
@@ -104,7 +109,12 @@ export class FinishLineManager {
         const step = this.wallSteps[this.finalStepIndex];
 
         if (crowdZ >= step.z - 1.0 && !step.smashed) {
-          if (mobCount >= step.costMobs) {
+          if (mobCount > step.costMobs) {
+            // Жертвуем легионеров на кинетический прорыв стены — толпа реально редеет.
+            // Строгое условие > гарантирует, что после жертвы останется минимум 1 живой.
+            const sacrificed = crowd.consumeMobs(step.costMobs);
+            this.sacrificedTotal += sacrificed;
+
             // Smash wall!
             step.smashed = true;
             this.finalMultiplier = step.multiplier;
@@ -112,12 +122,17 @@ export class FinishLineManager {
             particles.emitBurst(0, 1.5, step.z, 35, 0x00f0ff, 6.0);
             eventBus.emit('screenShake', { intensity: 0.35 });
 
+            // Красная вспышка урона + плавающий текст потерь при жертве.
+            if (sacrificed > 0) {
+              eventBus.emit('mobsKilled', { count: sacrificed, reason: 'finish_wall', x: 0, z: step.z });
+            }
+
             // Animate barrier breaking downwards
             step.mesh.position.y = -2;
 
             this.finalStepIndex++;
           } else {
-            // Stop crowd here! Final wall reached
+            // Толпе не хватает массы пробить стену — триумфальная остановка на достигнутом множителе.
             this.triggerVictory(crowd, particles, onLevelWon);
           }
         }
@@ -151,10 +166,23 @@ export class FinishLineManager {
     }
 
     const remainingMobs = crowd.getAliveCount();
+    // Чем больше легионеров пожертвовано на пробитие стен — тем выше итоговый бонус.
+    // Коэффициент мал (0.005), чтобы не взорвать баланс: при 66 пожертвованных даёт ×1.33.
+    this.finalMultiplier *= 1 + this.sacrificedTotal * 0.005;
     const baseScore = remainingMobs * 100;
     const finalScore = Math.round(baseScore * this.finalMultiplier);
 
     onLevelWon(finalScore, this.finalMultiplier, remainingMobs);
+  }
+
+  /** Индекс текущей преодолеваемой стены (0..N) — для HUD-индикатора финиша. */
+  public getFinishStepsDone(): number {
+    return this.finalStepIndex;
+  }
+
+  /** Общее число финишных стен — для HUD-индикатора финиша. */
+  public getFinishStepsTotal(): number {
+    return this.wallSteps.length;
   }
 
   public clear(): void {
@@ -171,5 +199,6 @@ export class FinishLineManager {
     }
     this.hasCrossedFinish = false;
     this.isCelebrating = false;
+    this.sacrificedTotal = 0;
   }
 }
