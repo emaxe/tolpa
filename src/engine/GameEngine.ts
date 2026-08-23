@@ -14,7 +14,7 @@ import { soundEngine } from '../audio/SoundEngine';
 import { eventBus } from '../core/EventBus';
 import { perfMonitor } from '../core/Performance';
 import { clamp } from '../utils/math';
-import { createHumanoidGeometry } from '../utils/proceduralMeshes';
+import { createSpectatorGeometry } from '../utils/proceduralMeshes';
 
 export interface HudSnapshot {
   crowd: number;
@@ -67,16 +67,22 @@ export class GameEngine {
   private decorGroup: THREE.Group | null = null;
 
   // ==== Трибуны и зрители ====
-  // Зрители — 2 InstancedMesh (тела + машущие руки), 1 draw call каждый.
+  // Зрители — InstancedMesh (тела + 2 машущие руки + головы + лайтстики), 1 draw call каждый.
   // frustumCulled=false, иначе меш пропадает после ~60м из-за кэшируемого boundingSphere.
   private spectatorMesh: THREE.InstancedMesh | null = null;
   private spectatorArmMesh: THREE.InstancedMesh | null = null;
+  private spectatorArm2Mesh: THREE.InstancedMesh | null = null;
+  private spectatorHeadMesh: THREE.InstancedMesh | null = null;
+  private spectatorGlowMesh: THREE.InstancedMesh | null = null;
   private spectatorCount: number = 0;
   // Per-instance данные зрителей (stride 12): baseX, baseY, baseZ, phase, freq, amp,
   // armPhase, armFreq, side, baseRotZ, armBaseX, armBaseY. Предаллоцированы — 0-GC.
   private spectatorData: Float32Array = new Float32Array(0);
   private spectatorDummy: THREE.Object3D = new THREE.Object3D();
   private spectatorArmDummy: THREE.Object3D = new THREE.Object3D();
+  private spectatorArm2Dummy: THREE.Object3D = new THREE.Object3D();
+  private spectatorHeadDummy: THREE.Object3D = new THREE.Object3D();
+  private spectatorGlowDummy: THREE.Object3D = new THREE.Object3D();
   private spectatorColorDummy: THREE.Color = new THREE.Color();
 
   // ==== Спецэффекты декора ====
@@ -599,6 +605,17 @@ export class GameEngine {
       });
       this.decorGroup = null;
     }
+    // Сброс ссылок на зрителей (меши уже удалены вместе с decorGroup).
+    this.spectatorMesh = null;
+    this.spectatorArmMesh = null;
+    this.spectatorArm2Mesh = null;
+    this.spectatorHeadMesh = null;
+    this.spectatorGlowMesh = null;
+    this.spectatorCount = 0;
+    this.spectatorData = new Float32Array(0);
+    this.beamMeshes = [];
+    this.flagMeshes = [];
+    this.droneMeshes = [];
   }
 
   private buildTrack(length: number, width: number, biome: BiomeType): void {
@@ -643,7 +660,21 @@ export class GameEngine {
     const group = new THREE.Group();
     const accent = biome === 'magma_citadel' ? 0xf97316 : biome === 'crystal_cavern' ? 0x10b981 : biome === 'quantum_void' ? 0xa855f7 : biome === 'celestial_core' ? 0xfacc15 : 0x00f0ff;
 
-    const pylonGeo = new THREE.CylinderGeometry(0.12, 0.18, 2.2, 6);
+    // Зоны трибун — в них НЕ ставим пилоны/орбы/кольца/биом, чтобы не загораживать
+    // зрителей. Совпадает с зонами в buildTribunesAndSpectators.
+    const isTribuneZone = (z: number): boolean => {
+      const zones: Array<[number, number]> = [
+        [0, 48],
+        [Math.floor(length * 0.4) - 4, Math.floor(length * 0.4) + 34],
+        [Math.floor(length * 0.7) - 4, Math.floor(length * 0.7) + 34],
+        [Math.max(0, length - 65), length + 10],
+      ];
+      return zones.some(([z0, z1]) => z >= z0 && z <= z1);
+    };
+
+    // Пилоны — низкие столбики разметки на самом краю дорожки (x = trackHalfWidth),
+    // ниже голов зрителей, вне линии трибун. В зонах трибун не ставим.
+    const pylonGeo = new THREE.CylinderGeometry(0.12, 0.18, 1.4, 6);
     const pylonMat = new THREE.MeshStandardMaterial({
       color: 0x1e293b,
       metalness: 0.85,
@@ -651,28 +682,30 @@ export class GameEngine {
       emissive: accent,
       emissiveIntensity: 0.5,
     });
-    const capGeo = new THREE.SphereGeometry(0.16, 8, 8);
+    const capGeo = new THREE.SphereGeometry(0.14, 8, 8);
     const capMat = new THREE.MeshBasicMaterial({ color: accent });
 
     const half = width / 2 + 1.2;
     const step = 18;
     for (let z = 10; z < length; z += step) {
+      if (isTribuneZone(z)) continue;
       for (const side of [-1, 1]) {
         const pylon = new THREE.Mesh(pylonGeo, pylonMat);
-        pylon.position.set(side * half, 1.1, z);
+        pylon.position.set(side * half, 0.7, z);
         group.add(pylon);
         const cap = new THREE.Mesh(capGeo, capMat);
-        cap.position.set(side * half, 2.3, z);
+        cap.position.set(side * half, 1.45, z);
         group.add(cap);
       }
     }
 
     // Floating energy orbs drifting ALONGSIDE the track (outside the lane) —
-    // decorative elements must NOT sit on the playable surface.
+    // decorative elements must NOT sit on the playable surface. В зонах трибун не ставим.
     const orbGeo = new THREE.SphereGeometry(0.18, 8, 8);
     const orbMat = new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.85 });
     const orbSide = width / 2 + 1.6;
     for (let z = 20; z < length; z += 26) {
+      if (isTribuneZone(z)) continue;
       const orb = new THREE.Mesh(orbGeo, orbMat);
       const baseY = 2.6 + Math.random() * 1.2;
       const side = Math.random() < 0.5 ? -1 : 1;
@@ -686,7 +719,9 @@ export class GameEngine {
     // Большие силуэты по бокам (здания / скалы / кристаллы / колонны) — дают ощущение
     // полноценного мира вокруг трассы, а не пустоты. Материалы emissive/Basic — 0 новых
     // PointLight, чтобы не прожечь мобильный GPU-бюджет.
+    // Ставим ДАЛЕКО за трибунами (x >= 15.7), чтобы не загораживать зрителей.
     const sceneryStep = 30;
+    const sceneryX = 15.7; // внешний край трибун (~14.2) + зазор
     // Детерминированный PRNG на основе биома — окружение стабильно между перезапусками уровня.
     const prng = (seed: number) => {
       let s = seed;
@@ -701,8 +736,8 @@ export class GameEngine {
       seed = (seed * 1103515245 + 12345) | 0;
       const rnd = prng(seed);
       const side = rnd() < 0.5 ? -1 : 1;
-      const off = 0.5 + rnd() * 4; // вариация расстояния от края
-      const x = side * (half + off);
+      const off = 1.0 + rnd() * 6; // вариация расстояния за трибунами
+      const x = side * (sceneryX + off);
       const obj = this.makeBiomeScenery(biome, accent, rnd);
       obj.position.set(x, 0, z);
       obj.scale.setScalar(0.6 + rnd() * 0.9);
@@ -715,11 +750,13 @@ export class GameEngine {
     }
 
     // ==== ОБЪЕКТЫ-ЗАГОЛОВКИ ====
-    // Прожекторные кольца ПО БОКАМ дорожки (вне игровой зоны) — вращаются (анимация)
+    // Прожекторные кольца ПО БОКАМ дорожки (вне игровой зоны) — вращаются (анимация).
+    // В зонах трибун не ставим.
     const ringGeo = new THREE.TorusGeometry(1.6, 0.08, 6, 20);
     const ringMat = new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.6 });
     const ringSide = width / 2 + 2.2;
     for (let z = 30; z < length; z += 44) {
+      if (isTribuneZone(z)) continue;
       const ring = new THREE.Mesh(ringGeo, ringMat);
       const side = Math.random() < 0.5 ? -1 : 1;
       ring.position.set(side * ringSide, 3.2 + Math.random() * 1.5, z);
@@ -784,9 +821,9 @@ export class GameEngine {
         // Зрители на ступенях (кроме самого нижнего ряда — там барьер)
         for (let tier = 1; tier < tiers; tier++) {
           const rowZ = z0 + 1.5;
-          const rowCount = Math.floor((z1 - z0 - 3) / 0.9);
+          const rowCount = Math.floor((z1 - z0 - 3) / 0.7); // плотнее (0.7 вместо 0.9)
           for (let i = 0; i < rowCount; i++) {
-            const z = rowZ + i * 0.9 + (Math.random() - 0.5) * 0.3;
+            const z = rowZ + i * 0.7 + (Math.random() - 0.5) * 0.3;
             const x = side * (tribuneX + tier * stepDepth + (Math.random() - 0.5) * 0.4);
             const y = stepHeight * tier + 0.1;
             seats.push(x, y, z);
@@ -796,11 +833,21 @@ export class GameEngine {
     }
 
     // ==== InstancedMesh зрителей ====
-    const humanoidGeo = createHumanoidGeometry();
+    // Специальная геометрия зрителя БЕЗ статичных рук (иначе «3 руки»: две из
+    // createHumanoidGeometry + отдельная машущая). Руки анимируются отдельными
+    // InstancedMesh. Ориентация: зрители смотрят ВНУТРЬ на трассу (X=0), а не вдоль Z.
+    const humanoidGeo = createSpectatorGeometry();
     const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7, metalness: 0.1 });
     const armGeo = new THREE.CylinderGeometry(0.05, 0.045, 0.5, 6);
     armGeo.translate(0, 0.25, 0); // ось вращения у плеча
     const armMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7, metalness: 0.1 });
+    // Голова — отдельный InstancedMesh (телесный/контрастный цвет), читается как «человечки».
+    const headGeo = new THREE.SphereGeometry(0.2, 8, 8);
+    const headMat = new THREE.MeshStandardMaterial({ color: 0xd9a066, roughness: 0.6, metalness: 0.05 });
+    // Лайтстик (светящаяся палочка) на кончике машущей руки — «концертный» вид.
+    const glowGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.3, 6);
+    glowGeo.translate(0, 0.15, 0);
+    const glowMat = new THREE.MeshBasicMaterial({ color: accent });
 
     const count = seats.length / 3;
     this.spectatorCount = count;
@@ -815,6 +862,18 @@ export class GameEngine {
     this.spectatorArmMesh = new THREE.InstancedMesh(armGeo, armMat, count);
     this.spectatorArmMesh.frustumCulled = false;
     this.spectatorArmMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+
+    this.spectatorArm2Mesh = new THREE.InstancedMesh(armGeo, armMat, count);
+    this.spectatorArm2Mesh.frustumCulled = false;
+    this.spectatorArm2Mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+
+    this.spectatorHeadMesh = new THREE.InstancedMesh(headGeo, headMat, count);
+    this.spectatorHeadMesh.frustumCulled = false;
+    this.spectatorHeadMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+
+    this.spectatorGlowMesh = new THREE.InstancedMesh(glowGeo, glowMat, count);
+    this.spectatorGlowMesh.frustumCulled = false;
+    this.spectatorGlowMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
 
     // Яркая палитра одежды зрителей.
     const palette = [0xff3b30, 0xff9500, 0xffcc00, 0x34c759, 0x00c7be, 0x007aff, 0xaf52de, 0xff2d55, 0x5ac8fa, 0xffd60a, 0xffffff, 0x8e8e93];
@@ -847,9 +906,12 @@ export class GameEngine {
       this.spectatorData[o + 10] = armBaseX;
       this.spectatorData[o + 11] = armBaseY;
 
+      // Ориентация к трассе: левая трибуна (x<0) смотрит на +X, правая (x>0) на -X.
+      const faceYaw = side < 0 ? Math.PI / 2 : -Math.PI / 2;
+
       // Начальная матрица тела
       this.spectatorDummy.position.set(bx, by, bz);
-      this.spectatorDummy.rotation.set(0, side > 0 ? Math.PI : 0, baseRotZ);
+      this.spectatorDummy.rotation.set(0, faceYaw, baseRotZ);
       this.spectatorDummy.scale.setScalar(0.9);
       this.spectatorDummy.updateMatrix();
       this.spectatorMesh.setMatrixAt(i, this.spectatorDummy.matrix);
@@ -858,19 +920,46 @@ export class GameEngine {
       this.spectatorColorDummy.setHex(palette[(Math.random() * palette.length) | 0]);
       this.spectatorMesh.setColorAt(i, this.spectatorColorDummy);
 
-      // Начальная матрица руки (одна рука на зрителя — машет)
+      // Голова (на теле, чуть выше)
+      this.spectatorHeadDummy.position.set(bx, by + 1.35 * 0.9, bz);
+      this.spectatorHeadDummy.rotation.set(0, faceYaw, 0);
+      this.spectatorHeadDummy.scale.setScalar(0.9);
+      this.spectatorHeadDummy.updateMatrix();
+      this.spectatorHeadMesh.setMatrixAt(i, this.spectatorHeadDummy.matrix);
+
+      // Рука 1 (машет)
       this.spectatorArmDummy.position.set(bx + armBaseX, by + armBaseY, bz);
-      this.spectatorArmDummy.rotation.set(0, side > 0 ? Math.PI : 0, 0);
+      this.spectatorArmDummy.rotation.set(0, faceYaw, 0);
       this.spectatorArmDummy.scale.setScalar(0.9);
       this.spectatorArmDummy.updateMatrix();
       this.spectatorArmMesh.setMatrixAt(i, this.spectatorArmDummy.matrix);
+
+      // Рука 2 (зеркальная, машет в противофазе)
+      this.spectatorArm2Dummy.position.set(bx - armBaseX, by + armBaseY, bz);
+      this.spectatorArm2Dummy.rotation.set(0, faceYaw, 0);
+      this.spectatorArm2Dummy.scale.setScalar(0.9);
+      this.spectatorArm2Dummy.updateMatrix();
+      this.spectatorArm2Mesh.setMatrixAt(i, this.spectatorArm2Dummy.matrix);
+
+      // Лайтстик на кончике руки 1
+      this.spectatorGlowDummy.position.set(bx + armBaseX, by + armBaseY + 0.5 * 0.9, bz);
+      this.spectatorGlowDummy.rotation.set(0, faceYaw, 0);
+      this.spectatorGlowDummy.scale.setScalar(0.9);
+      this.spectatorGlowDummy.updateMatrix();
+      this.spectatorGlowMesh.setMatrixAt(i, this.spectatorGlowDummy.matrix);
     }
     this.spectatorMesh.instanceMatrix.needsUpdate = true;
     this.spectatorMesh.instanceColor!.needsUpdate = true;
     this.spectatorArmMesh.instanceMatrix.needsUpdate = true;
+    this.spectatorArm2Mesh.instanceMatrix.needsUpdate = true;
+    this.spectatorHeadMesh.instanceMatrix.needsUpdate = true;
+    this.spectatorGlowMesh.instanceMatrix.needsUpdate = true;
 
     group.add(this.spectatorMesh);
     group.add(this.spectatorArmMesh);
+    group.add(this.spectatorArm2Mesh);
+    group.add(this.spectatorHeadMesh);
+    group.add(this.spectatorGlowMesh);
   }
 
   // Объёмные световые лучи (additive конусы) по бокам — покачиваются в update.
@@ -884,7 +973,7 @@ export class GameEngine {
       depthWrite: false,
       side: THREE.DoubleSide,
     });
-    const beamX = width / 2 + 3.5;
+    const beamX = 15.7 + 1.0; // за внешним краем трибун (~14.2) — зенитные прожекторы
     for (let z = 25; z < length; z += 40) {
       for (const side of [-1, 1]) {
         const beam = new THREE.Mesh(beamGeo, beamMat);
@@ -901,35 +990,36 @@ export class GameEngine {
   // Фонари (Г-образные, emissive-плафон), рекламные щиты (CanvasTexture),
   // флаги (покачивание sin) и дроны (дрейф по X) за дальним краем.
   private buildStreetFurniture(group: THREE.Group, length: number, width: number, accent: number, biome: BiomeType): void {
-    const half = width / 2 + 1.2;
-    const lampX = half + 0.4;
+    // Фонари — низкое придорожное освещение на самом краю дорожки (x = trackHalfWidth),
+    // ниже голов зрителей, вне линии трибун.
+    const lampX = width / 2;
 
     // Фонари каждые ~12м
-    const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 3.2, 6);
+    const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 2.2, 6);
     const poleMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.3 });
-    const armGeo = new THREE.BoxGeometry(0.9, 0.06, 0.06);
+    const armGeo = new THREE.BoxGeometry(0.7, 0.06, 0.06);
     const armMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.3 });
-    const lampGeo = new THREE.SphereGeometry(0.14, 8, 8);
+    const lampGeo = new THREE.SphereGeometry(0.12, 8, 8);
     const lampMat = new THREE.MeshBasicMaterial({ color: accent });
 
     for (let z = 6; z < length; z += 12) {
       for (const side of [-1, 1]) {
         const pole = new THREE.Mesh(poleGeo, poleMat);
-        pole.position.set(side * lampX, 1.6, z);
+        pole.position.set(side * lampX, 1.1, z);
         group.add(pole);
         const arm = new THREE.Mesh(armGeo, armMat);
-        arm.position.set(side * (lampX + 0.45), 3.2, z);
+        arm.position.set(side * (lampX + 0.35), 2.2, z);
         arm.rotation.y = side > 0 ? Math.PI : 0;
         group.add(arm);
         const lamp = new THREE.Mesh(lampGeo, lampMat);
-        lamp.position.set(side * (lampX + 0.9), 3.2, z);
+        lamp.position.set(side * (lampX + 0.7), 2.2, z);
         group.add(lamp);
       }
     }
 
-    // Рекламные щиты каждые ~40м (CanvasTexture, как createGateTexture)
+    // Рекламные щиты каждые ~40м (CanvasTexture, как createGateTexture) — за трибунами.
     const billboardGeo = new THREE.PlaneGeometry(3.2, 2.0);
-    const billboardX = half + 2.2;
+    const billboardX = 15.7 + 1.5;
     for (let z = 20; z < length; z += 40) {
       for (const side of [-1, 1]) {
         const canvas = document.createElement('canvas');
@@ -965,12 +1055,12 @@ export class GameEngine {
       }
     }
 
-    // Флаги (покачивание sin) за дальним краем
+    // Флаги (покачивание sin) за дальним краем (за трибунами)
     const flagPoleGeo = new THREE.CylinderGeometry(0.04, 0.05, 2.6, 6);
     const flagPoleMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.7, roughness: 0.4 });
     const flagGeo = new THREE.PlaneGeometry(0.9, 0.55);
     const flagMat = new THREE.MeshBasicMaterial({ color: accent, side: THREE.DoubleSide });
-    const flagX = half + 4.5;
+    const flagX = 15.7 + 2.5;
     for (let z = 15; z < length; z += 22) {
       for (const side of [-1, 1]) {
         const pole = new THREE.Mesh(flagPoleGeo, flagPoleMat);
@@ -985,10 +1075,10 @@ export class GameEngine {
       }
     }
 
-    // Дроны/транспорт (дрейф по X) за дальним краем
+    // Дроны/транспорт (дрейф по X) за дальним краем (за трибунами)
     const droneGeo = new THREE.BoxGeometry(0.5, 0.12, 0.7);
     const droneMat = new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.7 });
-    const droneX = half + 6.0;
+    const droneX = 15.7 + 3.5;
     for (let z = 30; z < length; z += 50) {
       const drone = new THREE.Mesh(droneGeo, droneMat);
       drone.position.set(droneX, 4.0 + Math.random() * 2.0, z);
@@ -1519,16 +1609,20 @@ export class GameEngine {
   }
 
   // Анимация зрителей: прыжки (sin по Y), качание (rotation.z), махание руками
-  // (отдельный InstancedMesh рук). При приближении толпы игрока (leaderZ близко к
-  // трибуне) частота/амплитуда удваиваются. 0-GC: только предаллоцированные dummy.
+  // (отдельные InstancedMesh рук), голова и лайтстик. При приближении толпы игрока
+  // (leaderZ близко к трибуне) частота/амплитуда удваиваются. Эффект «стадионной
+  // волны» (Mexican Wave) — фазовый сдвиг по Z. 0-GC: только предаллоцированные dummy.
   private animateSpectators(dt: number): void {
-    if (!this.spectatorMesh || !this.spectatorArmMesh || this.spectatorCount === 0) return;
+    if (!this.spectatorMesh || !this.spectatorArmMesh || !this.spectatorArm2Mesh || !this.spectatorHeadMesh || !this.spectatorGlowMesh || this.spectatorCount === 0) return;
     const t = performance.now() * 0.001;
     const leaderZ = this.crowd.leaderZ;
     const count = this.spectatorCount;
     const data = this.spectatorData;
     let bodyChanged = false;
     let armChanged = false;
+    let arm2Changed = false;
+    let headChanged = false;
+    let glowChanged = false;
 
     for (let i = 0; i < count; i++) {
       const o = i * 12;
@@ -1549,29 +1643,61 @@ export class GameEngine {
       const dz = Math.abs(bz - leaderZ);
       const hype = dz < 14 ? 2.0 : 1.0;
 
-      const jump = Math.sin(t * freq * hype + phase) * amp * hype;
-      const sway = Math.sin(t * freq * 0.5 + phase) * 0.12 * hype;
+      // «Стадионная волна» — фазовый сдвиг по Z, бегущая вдоль трибуны.
+      const wave = bz * 0.35 + t * 2.5;
+
+      const jump = Math.sin(t * freq * hype + phase + wave) * amp * hype;
+      const sway = Math.sin(t * freq * 0.5 + phase + wave) * 0.12 * hype;
+      const faceYaw = side < 0 ? Math.PI / 2 : -Math.PI / 2;
 
       // Тело: прыжок по Y + лёгкое качание вокруг Z.
       this.spectatorDummy.position.set(bx, by + jump, bz);
-      this.spectatorDummy.rotation.set(0, side > 0 ? Math.PI : 0, baseRotZ + sway);
+      this.spectatorDummy.rotation.set(0, faceYaw, baseRotZ + sway);
       this.spectatorDummy.scale.setScalar(0.9);
       this.spectatorDummy.updateMatrix();
       this.spectatorMesh.setMatrixAt(i, this.spectatorDummy.matrix);
       bodyChanged = true;
 
-      // Рука: машет вверх-вниз вокруг Z (ось у плеча).
-      const armSwing = Math.sin(t * armFreq * hype + armPhase) * 1.1 * hype;
+      // Голова (следует за телом)
+      this.spectatorHeadDummy.position.set(bx, by + 1.35 * 0.9 + jump, bz);
+      this.spectatorHeadDummy.rotation.set(0, faceYaw, 0);
+      this.spectatorHeadDummy.scale.setScalar(0.9);
+      this.spectatorHeadDummy.updateMatrix();
+      this.spectatorHeadMesh.setMatrixAt(i, this.spectatorHeadDummy.matrix);
+      headChanged = true;
+
+      // Рука 1: машет вверх-вниз вокруг Z (ось у плеча).
+      const armSwing = Math.sin(t * armFreq * hype + armPhase + wave) * 1.1 * hype;
       this.spectatorArmDummy.position.set(bx + armBaseX, by + armBaseY + jump, bz);
-      this.spectatorArmDummy.rotation.set(0, side > 0 ? Math.PI : 0, armSwing);
+      this.spectatorArmDummy.rotation.set(0, faceYaw, armSwing);
       this.spectatorArmDummy.scale.setScalar(0.9);
       this.spectatorArmDummy.updateMatrix();
       this.spectatorArmMesh.setMatrixAt(i, this.spectatorArmDummy.matrix);
       armChanged = true;
+
+      // Рука 2: зеркальная, машет в противофазе.
+      const armSwing2 = Math.sin(t * armFreq * hype + armPhase + Math.PI + wave) * 1.1 * hype;
+      this.spectatorArm2Dummy.position.set(bx - armBaseX, by + armBaseY + jump, bz);
+      this.spectatorArm2Dummy.rotation.set(0, faceYaw, armSwing2);
+      this.spectatorArm2Dummy.scale.setScalar(0.9);
+      this.spectatorArm2Dummy.updateMatrix();
+      this.spectatorArm2Mesh.setMatrixAt(i, this.spectatorArm2Dummy.matrix);
+      arm2Changed = true;
+
+      // Лайтстик на кончике руки 1 (следует за рукой).
+      this.spectatorGlowDummy.position.set(bx + armBaseX, by + armBaseY + 0.5 * 0.9 + jump, bz);
+      this.spectatorGlowDummy.rotation.set(0, faceYaw, armSwing);
+      this.spectatorGlowDummy.scale.setScalar(0.9);
+      this.spectatorGlowDummy.updateMatrix();
+      this.spectatorGlowMesh.setMatrixAt(i, this.spectatorGlowDummy.matrix);
+      glowChanged = true;
     }
 
     if (bodyChanged) this.spectatorMesh.instanceMatrix.needsUpdate = true;
     if (armChanged) this.spectatorArmMesh.instanceMatrix.needsUpdate = true;
+    if (arm2Changed) this.spectatorArm2Mesh.instanceMatrix.needsUpdate = true;
+    if (headChanged) this.spectatorHeadMesh.instanceMatrix.needsUpdate = true;
+    if (glowChanged) this.spectatorGlowMesh.instanceMatrix.needsUpdate = true;
   }
 
   // Световые лучи (покачивание), флаги (sin-волна) и дроны (дрейф по X). 0-GC.

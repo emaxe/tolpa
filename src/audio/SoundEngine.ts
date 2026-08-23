@@ -15,10 +15,17 @@ export class SoundEngine {
 
   // Поля для непрерывного процедурного звука криков толпы (crowd cheer).
   // Создаются лениво в playCrowdCheer() и освобождаются в stopCrowdCheer().
+  // Трёхслойный синтезатор стадиона: рёв (шум + быстрое тремоло), голоса «Ура»
+  // (расстроенный formant-хор) и аплодисменты (ритмичные импульсы шума).
   private crowdNoiseSource: AudioBufferSourceNode | null = null;
   private crowdFilter: BiquadFilterNode | null = null;
   private crowdGain: GainNode | null = null;
   private crowdLfo: OscillatorNode | null = null;
+  private crowdLfoGain: GainNode | null = null;
+  private crowdVoices: OscillatorNode[] = [];
+  private crowdVoiceGain: GainNode | null = null;
+  private crowdClapSource: AudioBufferSourceNode | null = null;
+  private crowdClapGain: GainNode | null = null;
 
   private constructor() {
     // Lazy initialize on first user interaction
@@ -671,8 +678,12 @@ export class SoundEngine {
 
   /**
    * Непрерывный процедурный звук криков толпы (crowd cheer).
-   * Строится из зацикленного белого шума, пропущенного через bandpass-фильтр
-   * (200–1200 Гц) и gain-узел с LFO (~0.3–0.5 Гц) для волнообразного «крика».
+   * Трёхслойный синтезатор стадиона вместо «шума прибоя»:
+   *   1) Рёв толпы — зацикленный шум через bandpass (голосовой диапазон) с
+   *      БЫСТРЫМ тремоло (5-7 Гц) — живое «бормотание», а не медленная волна.
+   *   2) Голоса «Ура» — расстроенный formant-хор из 4 осцилляторов (как в
+   *      одноразовом crowd_cheer), дающий «человеческий» сигнал.
+   *   3) Аплодисменты — ритмичные короткие импульсы шума (хлопки).
    * Громкость пропорциональна intensity (0..1).
    *
    * Throttle: если звук уже играет, ноды НЕ пересоздаются — обновляется только
@@ -689,14 +700,17 @@ export class SoundEngine {
 
     // Если звук уже играет — просто обновляем громкость (throttle).
     if (this.crowdGain && this.crowdNoiseSource) {
-      this.crowdGain.gain.setTargetAtTime(clamped * 0.5, this.ctx.currentTime, 0.05);
+      const now = this.ctx.currentTime;
+      this.crowdGain.gain.setTargetAtTime(clamped * 0.35, now, 0.05);
+      if (this.crowdVoiceGain) this.crowdVoiceGain.gain.setTargetAtTime(clamped * 0.25, now, 0.05);
+      if (this.crowdClapGain) this.crowdClapGain.gain.setTargetAtTime(clamped * 0.18, now, 0.05);
       return;
     }
 
     const ctx = this.ctx;
     const t = ctx.currentTime;
 
-    // 1. Зацикленный белый шум (~1.5 сек буфер).
+    // ==== Слой 1: Рёв толпы (шум + быстрое тремоло) ====
     const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 1.5), ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < data.length; i++) {
@@ -706,37 +720,82 @@ export class SoundEngine {
     source.buffer = buffer;
     source.loop = true;
 
-    // 2. Bandpass-фильтр для «голосового» диапазона толпы.
+    // Bandpass в голосовом диапазоне (не 200-1200, а 800-2500 — «гул» толпы).
     const filter = ctx.createBiquadFilter();
     filter.type = 'bandpass';
-    filter.frequency.value = 200 + clamped * 1000; // 200..1200 Гц
-    filter.Q.value = 0.5;
+    filter.frequency.value = 800 + clamped * 1700; // 800..2500 Гц
+    filter.Q.value = 0.8;
 
-    // 3. Gain-узел с LFO для волнообразного «крика».
     const gain = ctx.createGain();
-    gain.gain.value = clamped * 0.5;
+    gain.gain.value = clamped * 0.35;
 
+    // Быстрое тремоло (5-7 Гц) — «живое бормотание», а не медленный прибой.
     const lfo = ctx.createOscillator();
     lfo.type = 'sine';
-    lfo.frequency.value = 0.3 + Math.random() * 0.2; // 0.3..0.5 Гц
+    lfo.frequency.value = 5.0 + Math.random() * 2.0; // 5..7 Гц
     const lfoGain = ctx.createGain();
-    lfoGain.gain.value = clamped * 0.2;
+    lfoGain.gain.value = clamped * 0.25;
     lfo.connect(lfoGain);
     lfoGain.connect(gain.gain);
 
-    // Сборка цепочки: source -> filter -> gain -> sfxGain.
     source.connect(filter);
     filter.connect(gain);
     gain.connect(this.sfxGain!);
-
     source.start(t);
     lfo.start(t);
+
+    // ==== Слой 2: Голоса «Ура» (расстроенный formant-хор) ====
+    const voiceGain = ctx.createGain();
+    voiceGain.gain.value = clamped * 0.25;
+    voiceGain.connect(this.sfxGain!);
+    const voiceFrequencies = [330, 440, 554, 659]; // E4, A4, C#5, E5
+    const voices: OscillatorNode[] = [];
+    voiceFrequencies.forEach((baseFreq, idx) => {
+      const osc = ctx.createOscillator();
+      const vFilter = ctx.createBiquadFilter();
+      const detune = (idx - 1.5) * 10 + (Math.random() * 8 - 4);
+      osc.type = idx % 2 === 0 ? 'sawtooth' : 'triangle';
+      osc.frequency.value = (baseFreq + detune) * (0.9 + clamped * 0.1);
+      vFilter.type = 'bandpass';
+      vFilter.frequency.value = 700 + idx * 200;
+      vFilter.Q.value = 2.5;
+      osc.connect(vFilter);
+      vFilter.connect(voiceGain);
+      osc.start(t);
+      voices.push(osc);
+    });
+
+    // ==== Слой 3: Аплодисменты (ритмичные импульсы шума) ====
+    const clapGain = ctx.createGain();
+    clapGain.gain.value = clamped * 0.18;
+    clapGain.connect(this.sfxGain!);
+    const clapBuffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.5), ctx.sampleRate);
+    const clapData = clapBuffer.getChannelData(0);
+    for (let i = 0; i < clapData.length; i++) {
+      // Короткие импульсы (хлопки) с быстрым спадом.
+      const env = Math.exp(-(i % Math.floor(ctx.sampleRate * 0.08)) / (ctx.sampleRate * 0.02));
+      clapData[i] = (Math.random() * 2 - 1) * env;
+    }
+    const clapSource = ctx.createBufferSource();
+    clapSource.buffer = clapBuffer;
+    clapSource.loop = true;
+    const clapFilter = ctx.createBiquadFilter();
+    clapFilter.type = 'highpass';
+    clapFilter.frequency.value = 2000;
+    clapSource.connect(clapFilter);
+    clapFilter.connect(clapGain);
+    clapSource.start(t);
 
     // Сохраняем ссылки для stopCrowdCheer().
     this.crowdNoiseSource = source;
     this.crowdFilter = filter;
     this.crowdGain = gain;
     this.crowdLfo = lfo;
+    this.crowdLfoGain = lfoGain;
+    this.crowdVoices = voices;
+    this.crowdVoiceGain = voiceGain;
+    this.crowdClapSource = clapSource;
+    this.crowdClapGain = clapGain;
   }
 
   /** Останавливает и освобождает все ноды криков толпы. */
@@ -747,6 +806,12 @@ export class SoundEngine {
     if (this.crowdGain) {
       // Плавно затухаем, чтобы не было щелчка.
       this.crowdGain.gain.setTargetAtTime(0, t, 0.05);
+    }
+    if (this.crowdVoiceGain) {
+      this.crowdVoiceGain.gain.setTargetAtTime(0, t, 0.05);
+    }
+    if (this.crowdClapGain) {
+      this.crowdClapGain.gain.setTargetAtTime(0, t, 0.05);
     }
     if (this.crowdNoiseSource) {
       try {
@@ -764,17 +829,49 @@ export class SoundEngine {
       }
       this.crowdLfo.disconnect();
     }
+    if (this.crowdLfoGain) {
+      this.crowdLfoGain.disconnect();
+    }
     if (this.crowdFilter) {
       this.crowdFilter.disconnect();
     }
     if (this.crowdGain) {
       this.crowdGain.disconnect();
     }
+    // Голоса «Ура»
+    for (const v of this.crowdVoices) {
+      try {
+        v.stop(t + 0.2);
+      } catch {
+        // Узел уже остановлен — игнорируем.
+      }
+      v.disconnect();
+    }
+    if (this.crowdVoiceGain) {
+      this.crowdVoiceGain.disconnect();
+    }
+    // Аплодисменты
+    if (this.crowdClapSource) {
+      try {
+        this.crowdClapSource.stop(t + 0.2);
+      } catch {
+        // Узел уже остановлен — игнорируем.
+      }
+      this.crowdClapSource.disconnect();
+    }
+    if (this.crowdClapGain) {
+      this.crowdClapGain.disconnect();
+    }
 
     this.crowdNoiseSource = null;
     this.crowdFilter = null;
     this.crowdGain = null;
     this.crowdLfo = null;
+    this.crowdLfoGain = null;
+    this.crowdVoices = [];
+    this.crowdVoiceGain = null;
+    this.crowdClapSource = null;
+    this.crowdClapGain = null;
   }
 
   public playMusic(theme: MusicTheme = 'cyber'): void {

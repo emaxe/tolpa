@@ -204,6 +204,64 @@ export function createHumanoidGeometry(): THREE.BufferGeometry {
   return merged;
 }
 
+/**
+ * Геометрия зрителя на трибуне — упрощённый человечек БЕЗ статичных рук
+ * (руки анимируются отдельными InstancedMesh в GameEngine, чтобы не было
+ * «3 рук»). Чуть шире плечи и явная голова, чтобы силуэт читался издали.
+ */
+export function createSpectatorGeometry(): THREE.BufferGeometry {
+  const geometries: THREE.BufferGeometry[] = [];
+
+  // Голова (чуть крупнее для читаемости с трибуны)
+  const headGeo = new THREE.SphereGeometry(0.26, 10, 10);
+  headGeo.translate(0, 1.35, 0);
+  geometries.push(headGeo);
+
+  // Торс — широкие плечи, сужение к талии
+  const torsoGeo = new THREE.CylinderGeometry(0.24, 0.16, 0.62, 10);
+  torsoGeo.translate(0, 0.85, 0);
+  geometries.push(torsoGeo);
+
+  // Наплечники (кибер-броня) — шире, чтобы силуэт читался
+  const shoulderGeo = new THREE.SphereGeometry(0.12, 8, 8);
+  shoulderGeo.scale(1, 0.7, 1.2);
+  shoulderGeo.translate(-0.24, 1.16, 0);
+  geometries.push(shoulderGeo);
+  const shoulderGeoR = new THREE.SphereGeometry(0.12, 8, 8);
+  shoulderGeoR.scale(1, 0.7, 1.2);
+  shoulderGeoR.translate(0.24, 1.16, 0);
+  geometries.push(shoulderGeoR);
+
+  // Ноги
+  const legGeoL = new THREE.CylinderGeometry(0.075, 0.065, 0.6, 8);
+  legGeoL.translate(-0.11, 0.3, 0);
+  geometries.push(legGeoL);
+  const legGeoR = new THREE.CylinderGeometry(0.075, 0.065, 0.6, 8);
+  legGeoR.translate(0.11, 0.3, 0);
+  geometries.push(legGeoR);
+
+  // Ступни
+  const footGeo = new THREE.BoxGeometry(0.13, 0.08, 0.2);
+  footGeo.translate(-0.11, 0.04, 0.05);
+  geometries.push(footGeo);
+  const footGeoR = new THREE.BoxGeometry(0.13, 0.08, 0.2);
+  footGeoR.translate(0.11, 0.04, 0.05);
+  geometries.push(footGeoR);
+
+  // Визор / кибер-маска — светящаяся полоса через лицо
+  const visorGeo = new THREE.BoxGeometry(0.28, 0.1, 0.15);
+  visorGeo.translate(0, 1.38, 0.16);
+  geometries.push(visorGeo);
+
+  // Нагрудный эмблема-пластина
+  const emblemGeo = new THREE.BoxGeometry(0.13, 0.11, 0.03);
+  emblemGeo.translate(0, 0.92, 0.21);
+  geometries.push(emblemGeo);
+
+  const merged = mergeBufferGeometries(geometries);
+  return merged;
+}
+
 // Helper to merge buffer geometries manually without heavy external modules
 function mergeBufferGeometries(geometries: THREE.BufferGeometry[]): THREE.BufferGeometry {
   let posCount = 0;
