@@ -205,6 +205,7 @@ export interface GameStats {
   totalGemsEarned: number;
   highestCombo: number;
   maxCrowdReached: number;
+  totalAdrenalineActivations: number;
   gamesPlayed: number;
   levelsCompleted: number;
 }

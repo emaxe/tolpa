@@ -375,4 +375,18 @@ describe('Skin Rewards (бонусные скины)', () => {
     expect(ok).toBe(true);
     expect(mgr.getState().unlockedSkins.includes('glitch_zombie')).toBe(true);
   });
+
+  it('achievement adrenaline_god прогрессирует и клеймится после 20 активаций Гипер-режима', () => {
+    const mgr = StateManager.getInstance();
+    mgr.resetProgress();
+    expect(mgr.getState().achievements['adrenaline_god']).toBeUndefined();
+    // 19 активаций — достижение ещё не готово к клейму.
+    for (let i = 0; i < 19; i++) mgr.recordAdrenalineActivation();
+    expect(mgr.getState().achievements['adrenaline_god']?.progress).toBe(19);
+    expect(mgr.claimAchievement('adrenaline_god')).toBe(false);
+    // 20-я активация доводит до цели — достижение можно забрать.
+    mgr.recordAdrenalineActivation();
+    expect(mgr.getState().achievements['adrenaline_god']?.progress).toBe(20);
+    expect(mgr.claimAchievement('adrenaline_god')).toBe(true);
+  });
 });

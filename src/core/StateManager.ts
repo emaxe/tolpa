@@ -38,6 +38,7 @@ export const INITIAL_STATS: GameStats = {
   totalGemsEarned: 0,
   highestCombo: 0,
   maxCrowdReached: 0,
+  totalAdrenalineActivations: 0,
   gamesPlayed: 0,
   levelsCompleted: 0,
 };
@@ -754,6 +755,12 @@ export class StateManager {
     if (crowd > this.state.stats.maxCrowdReached) {
       this.state.stats.maxCrowdReached = crowd;
     }
+  }
+
+  /** Считает активации Гипер-режима и продвигает достижение adrenaline_god. */
+  public recordAdrenalineActivation(): void {
+    this.state.stats.totalAdrenalineActivations += 1;
+    this.updateAchievementProgress('adrenaline_god', this.state.stats.totalAdrenalineActivations);
   }
 
   // Settings

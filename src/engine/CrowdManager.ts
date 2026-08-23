@@ -172,6 +172,8 @@ export class CrowdManager {
     this.isHyperMode = true;
     this.hyperTimer = totalDuration;
     soundEngine.playSound('adrenaline_activate');
+    // Прогресс достижения adrenaline_god — единая точка активации (кнопка + адреналиновые ворота).
+    stateManager.recordAdrenalineActivation();
     eventBus.emit('adrenalineTriggered', { duration: totalDuration });
   }
 
