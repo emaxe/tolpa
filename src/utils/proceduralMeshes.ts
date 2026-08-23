@@ -548,6 +548,64 @@ export function createLavaPitMesh(): THREE.Group {
   return group;
 }
 
+// Procedural Barrier Gate Mesh — запирающий шлагбаум-стену: две опорные стойки и
+// горизонтальная плита-ворота, которая периодически опускается (блокирует полосу) и
+// поднимается (пропускает толпу). Опасно только когда плита внизу (проверяется в
+// isHazardActive по Y позиции плиты).
+export function createBarrierGateMesh(): THREE.Group {
+  const group = new THREE.Group();
+
+  // Опорные стойки по краям
+  const postGeo = new THREE.CylinderGeometry(0.15, 0.15, 3.4, 8);
+  const postMat = new THREE.MeshStandardMaterial({
+    color: 0x1e293b,
+    metalness: 0.85,
+    roughness: 0.3,
+  });
+  const postL = new THREE.Mesh(postGeo, postMat);
+  postL.position.set(-1.6, 1.7, 0);
+  group.add(postL);
+  const postR = new THREE.Mesh(postGeo, postMat);
+  postR.position.set(1.6, 1.7, 0);
+  group.add(postR);
+
+  // Верхняя перекладина
+  const topGeo = new THREE.BoxGeometry(3.4, 0.2, 0.25);
+  const topMat = new THREE.MeshStandardMaterial({
+    color: 0x334155,
+    metalness: 0.85,
+    roughness: 0.3,
+  });
+  const top = new THREE.Mesh(topGeo, topMat);
+  top.position.y = 3.3;
+  group.add(top);
+
+  // Горизонтальная плита-ворота (светящаяся, съезжает вниз/вверх по циклу).
+  // Индекс 3 — дочерний меш, чью Y-позицию читает isHazardActive и update().
+  const gateGeo = new THREE.BoxGeometry(3.3, 0.35, 0.3);
+  const gateMat = new THREE.MeshStandardMaterial({
+    color: 0x0f172a,
+    metalness: 0.9,
+    roughness: 0.15,
+    emissive: 0xef4444,
+    emissiveIntensity: 0.35,
+  });
+  const gate = new THREE.Mesh(gateGeo, gateMat);
+  gate.position.y = 0.5;
+  group.add(gate);
+
+  // Предупреждающие жёлтые полосы на плите
+  const warnMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+  for (let i = -1; i <= 1; i += 2) {
+    const stripeGeo = new THREE.BoxGeometry(0.18, 0.05, 0.32);
+    const stripe = new THREE.Mesh(stripeGeo, warnMat);
+    stripe.position.set(i * 1.0, 0, 0.16);
+    gate.add(stripe);
+  }
+
+  return group;
+}
+
 // Procedural Boss Mesh Generator
 export function createBossMesh(boss: BossData): THREE.Group {
   const group = new THREE.Group();

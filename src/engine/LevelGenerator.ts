@@ -170,7 +170,7 @@ export class LevelGenerator {
       z = Math.min(trackLength - 15, Math.max(50, z));
       if (gates.some((gate) => Math.abs(gate.z - z) < GATE_CLEARANCE)) continue; // не нашли места — пропускаем
 
-      const types: ('saw_blade' | 'axe_pendulum' | 'crusher' | 'spike_trap' | 'laser_grid' | 'wrecking_ball' | 'lava_pit')[] = [
+      const types: ('saw_blade' | 'axe_pendulum' | 'crusher' | 'spike_trap' | 'laser_grid' | 'wrecking_ball' | 'lava_pit' | 'barrier_gate')[] = [
         'saw_blade',
         'axe_pendulum',
         'crusher',
@@ -178,6 +178,7 @@ export class LevelGenerator {
         'laser_grid',
         'wrecking_ball',
         'lava_pit',
+        'barrier_gate',
       ];
       const type = types[Math.floor(rng() * types.length)];
       const playableHalf = trackWidth / 2 - TRACK_RAIL_MARGIN; // совпадает с клампом лидера в CrowdManager.update
@@ -202,6 +203,11 @@ export class LevelGenerator {
         // Лавовая лужа — статична, занимает заметную площадь, неразрушаема.
         obsWidth = 2.4;
         x = (rng() * 2 - 1) * (playableHalf - 1.2);
+        range = 0;
+      } else if (type === 'barrier_gate') {
+        // Запирающий шлагбаум — широкая плита поперёк полосы, циклично опускается вниз.
+        obsWidth = 3.3;
+        x = (rng() * 2 - 1) * (playableHalf - 1.5);
         range = 0;
       } else {
         const maxHalfX = Math.max(0.5, (trackWidth / 2 - 0.6) - 2 / 2);
@@ -400,7 +406,7 @@ export class LevelGenerator {
     }
 
     // 4 Obstacles
-    const endlessTypes: ('saw_blade' | 'axe_pendulum' | 'crusher' | 'spike_trap' | 'laser_grid' | 'wrecking_ball' | 'lava_pit')[] = [
+    const endlessTypes: ('saw_blade' | 'axe_pendulum' | 'crusher' | 'spike_trap' | 'laser_grid' | 'wrecking_ball' | 'lava_pit' | 'barrier_gate')[] = [
       'saw_blade',
       'axe_pendulum',
       'crusher',
@@ -408,19 +414,21 @@ export class LevelGenerator {
       'laser_grid',
       'wrecking_ball',
       'lava_pit',
+      'barrier_gate',
     ];
     for (let o = 0; o < 4; o++) {
       const z = currentZ + 15 + o * 25;
       const type = endlessTypes[Math.floor(Math.random() * endlessTypes.length)];
       const isWrecking = type === 'wrecking_ball';
       const isLava = type === 'lava_pit';
+      const isBarrier = type === 'barrier_gate';
       obstacles.push({
         id: `endless_obs_${segmentIndex}_${o}`,
         type,
         x: (Math.random() - 0.5) * (trackWidth - 3),
         y: 0,
         z,
-        width: isWrecking || isLava ? 2.4 : 2,
+        width: isWrecking || isLava ? 2.4 : isBarrier ? 3.3 : 2,
         height: 2,
         depth: 2,
         speed: 2.5,

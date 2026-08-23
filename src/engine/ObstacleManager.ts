@@ -8,6 +8,7 @@ import {
   createSpikeTrapMesh,
   createWreckingBallMesh,
   createLavaPitMesh,
+  createBarrierGateMesh,
 } from '../utils/proceduralMeshes';
 import { CrowdManager } from './CrowdManager';
 import { ParticleSystem } from './ParticleSystem';
@@ -71,6 +72,9 @@ export class ObstacleManager {
         break;
       case 'lava_pit':
         mesh = createLavaPitMesh();
+        break;
+      case 'barrier_gate':
+        mesh = createBarrierGateMesh();
         break;
       default:
         mesh = createSawBladeMesh();
@@ -164,6 +168,19 @@ export class ObstacleManager {
             (lavaMesh.material as THREE.MeshStandardMaterial).emissiveIntensity = pulse;
           }
           break;
+
+        case 'barrier_gate':
+          // Плита-ворота (child 3) опускается (блокирует полосу) и поднимается
+          // (пропускает толпу) по синусоидальному циклу. Группа стоит на y=0.5,
+          // поэтому мировая Y плиты = 0.5 + gate.position.y. Опасно когда она внизу.
+          const barrierGate = obsVis.mesh.children[3] as THREE.Mesh;
+          if (barrierGate) {
+            const gateY = 1.4 + 1.15 * Math.sin(t * 1.6);
+            barrierGate.position.y = gateY;
+            const intensity = 0.3 + Math.max(0, 1 - gateY / 2.6) * 0.6;
+            (barrierGate.material as THREE.MeshStandardMaterial).emissiveIntensity = intensity;
+          }
+          break;
       }
 
       // Check collision with crowd
@@ -211,6 +228,11 @@ export class ObstacleManager {
         return obsVis.mesh.position.y <= 1.2;
       case 'axe_pendulum':
         return Math.abs(obsVis.mesh.rotation.z) < 0.55;
+      case 'barrier_gate':
+        // Плита-ворота опасна только когда опущена вниз (мировая Y < ~2.4),
+        // когда поднята — толпа проходит под ней.
+        const bg = obsVis.mesh.children[3] as THREE.Mesh;
+        return bg ? obsVis.mesh.position.y + bg.position.y < 2.4 : true;
       default:
         return true;
     }
