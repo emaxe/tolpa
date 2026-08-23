@@ -311,7 +311,7 @@ export class ObstacleManager {
           // Сломать препятствие!
           obs.isDead = true;
           this.scene.remove(obsVis.mesh);
-          soundEngine.playSound('obstacle_hit');
+          soundEngine.playSound('obstacle_smash');
           particles.emitBurst(obs.x, 1.0, obs.z, 30, 0xf97316, 6.0);
           stateManager.runRecordObstacleSmash();
           eventBus.emit('obstacleSmashed', { type: obs.type });

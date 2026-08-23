@@ -545,6 +545,41 @@ export class SoundEngine {
         break;
       }
 
+      case 'gem_pickup': {
+        // Подбор кристалла — короткий искристый "звон"
+        const notes = [1046.5, 1318.5, 1568.0];
+        notes.forEach((freq, idx) => {
+          const osc = this.ctx!.createOscillator();
+          const gain = this.ctx!.createGain();
+          const start = t + idx * 0.05;
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq * pitchShift, start);
+          gain.gain.setValueAtTime(0.18, start);
+          gain.gain.exponentialRampToValueAtTime(0.001, start + 0.22);
+          osc.connect(gain);
+          gain.connect(this.sfxGain!);
+          osc.start(start);
+          osc.stop(start + 0.22);
+        });
+        break;
+      }
+
+      case 'obstacle_smash': {
+        // Сломанное препятствие — тяжёлый низкий удар с треском
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180 * pitchShift, t);
+        osc.frequency.exponentialRampToValueAtTime(40, t + 0.2);
+        gain.gain.setValueAtTime(0.35, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+        osc.connect(gain);
+        gain.connect(this.sfxGain!);
+        osc.start(t);
+        osc.stop(t + 0.25);
+        break;
+      }
+
       default:
         break;
     }

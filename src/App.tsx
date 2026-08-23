@@ -114,7 +114,10 @@ export const App: React.FC = () => {
       const gemsEarned = activeLevel % 10 === 0 ? 10 : 2;
 
       stateManager.addCoins(coinsEarned);
-      if (gemsEarned > 0) stateManager.addGems(gemsEarned);
+      if (gemsEarned > 0) {
+        stateManager.addGems(gemsEarned);
+        soundEngine.playSound('gem_pickup');
+      }
       stateManager.completeLevel(activeLevel, score, remainingMobs, stars);
 
       setEndResult({
