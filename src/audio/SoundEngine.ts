@@ -587,6 +587,67 @@ export class SoundEngine {
         break;
       }
 
+      case 'crowd_cheer': {
+        // Радостный победный возглас толпы — одноразовый всплеск (в отличие от
+        // непрерывного фонового playCrowdCheer). Два слоя:
+        // 1) полосно-фильтрованный белый шум (аплодисменты/выдох массы);
+        // 2) восходящий многоголосный хор расстроенных тонов (коллективное «Ура!»).
+        const dur = 0.9;
+
+        // Слой шума (аплодисменты)
+        const noiseBuffer = this.ctx.createBuffer(
+          1,
+          Math.floor(this.ctx.sampleRate * dur),
+          this.ctx.sampleRate
+        );
+        const noiseData = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < noiseData.length; i++) {
+          noiseData[i] = Math.random() * 2 - 1;
+        }
+        const noiseSrc = this.ctx.createBufferSource();
+        noiseSrc.buffer = noiseBuffer;
+        const noiseFilter = this.ctx.createBiquadFilter();
+        noiseFilter.type = 'bandpass';
+        noiseFilter.frequency.setValueAtTime(900 * pitchShift, t);
+        noiseFilter.Q.setValueAtTime(1.0, t);
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.001, t);
+        noiseGain.gain.linearRampToValueAtTime(0.2, t + 0.05);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        noiseSrc.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(this.sfxGain!);
+        noiseSrc.start(t);
+        noiseSrc.stop(t + dur);
+
+        // 2. Многоголосный восходящий хор («Ура!»)
+        const voiceFrequencies = [330, 440, 554, 659]; // E4, A4, C#5, E5
+        voiceFrequencies.forEach((baseFreq, idx) => {
+          const osc = this.ctx!.createOscillator();
+          const vGain = this.ctx!.createGain();
+          const vFilter = this.ctx!.createBiquadFilter();
+          const detune = (idx - 1.5) * 10 + (Math.random() * 8 - 4);
+          const startFreq = (baseFreq + detune) * pitchShift;
+          const endFreq = startFreq * 1.25;
+          osc.type = idx % 2 === 0 ? 'sawtooth' : 'triangle';
+          osc.frequency.setValueAtTime(startFreq, t);
+          osc.frequency.exponentialRampToValueAtTime(endFreq, t + dur * 0.5);
+          osc.frequency.exponentialRampToValueAtTime(endFreq * 0.95, t + dur);
+          vFilter.type = 'bandpass';
+          vFilter.frequency.setValueAtTime(700 + idx * 200, t);
+          vFilter.Q.setValueAtTime(2.0, t);
+          vGain.gain.setValueAtTime(0.001, t);
+          vGain.gain.linearRampToValueAtTime(0.07, t + 0.08);
+          vGain.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.9);
+          osc.connect(vFilter);
+          vFilter.connect(vGain);
+          vGain.connect(this.sfxGain!);
+          osc.start(t);
+          osc.stop(t + dur);
+        });
+        break;
+      }
+
       default:
         break;
     }

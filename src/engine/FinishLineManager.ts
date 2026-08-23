@@ -137,6 +137,8 @@ export class FinishLineManager {
     this.isCelebrating = true;
 
     soundEngine.playSound('level_win');
+    // Радостный победный возглас толпы — разовая ликующая «волна» в момент победы.
+    soundEngine.playSound('crowd_cheer');
     confetti({
       particleCount: 120,
       spread: 80,
