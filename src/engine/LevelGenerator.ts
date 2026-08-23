@@ -76,7 +76,7 @@ export class LevelGenerator {
     // -------------------------------------------------------------
     // ЭТАП 3: ТАКТИЧЕСКИЕ ВОРОТА И КАСКАДНЫЕ ПАРЫ
     // -------------------------------------------------------------
-    const gateCount = Math.min(30, 12 + Math.floor(levelNum / 3));
+    const gateCount = Math.min(40, 16 + Math.floor(levelNum / 2));
     const baseGateSpacing = (trackLength - 120) / Math.max(1, gateCount);
 
     // Определяем индексы для каскадных пар (начиная с уровня 6)
@@ -176,25 +176,30 @@ export class LevelGenerator {
             rightVal = addVal;
           }
         } else if (phase.phaseName === 'ramp') {
-          if (rand < 0.35) {
+          if (rand < 0.25) {
             leftOp = 'add';
             leftVal = addVal;
             rightOp = 'multiply';
             rightVal = multVal;
-          } else if (rand < 0.70) {
+          } else if (rand < 0.55) {
             leftOp = 'multiply';
             leftVal = multVal;
             rightOp = 'subtract';
             rightVal = subVal;
-          } else {
+          } else if (rand < 0.80) {
             leftOp = 'conditional';
             leftVal = 0;
             leftCondition = conditionalData;
+            rightOp = 'subtract';
+            rightVal = subVal;
+          } else {
+            leftOp = 'divide';
+            leftVal = 2;
             rightOp = 'add';
             rightVal = addVal;
           }
         } else if (phase.phaseName === 'peak') {
-          if (rand < 0.30) {
+          if (rand < 0.35) {
             leftOp = 'conditional';
             leftVal = 0;
             leftCondition = conditionalData;
@@ -205,11 +210,16 @@ export class LevelGenerator {
             leftVal = 0;
             rightOp = 'multiply';
             rightVal = multVal;
-          } else if (rand < 0.85) {
+          } else if (rand < 0.80) {
             leftOp = 'adrenaline';
             leftVal = 0;
             rightOp = 'subtract';
             rightVal = subVal;
+          } else if (rand < 0.90) {
+            leftOp = 'divide';
+            leftVal = 2;
+            rightOp = 'multiply';
+            rightVal = multVal;
           } else {
             leftOp = 'multiply';
             leftVal = multVal;
@@ -218,12 +228,12 @@ export class LevelGenerator {
             rightCondition = conditionalData;
           }
         } else if (phase.phaseName === 'corridor') {
-          if (rand < 0.40) {
+          if (rand < 0.35) {
             leftOp = 'multiply';
             leftVal = multVal;
             rightOp = 'add';
             rightVal = addVal + 6;
-          } else if (rand < 0.75) {
+          } else if (rand < 0.70) {
             leftOp = 'add';
             leftVal = addVal + 8;
             rightOp = 'conditional';
@@ -237,23 +247,28 @@ export class LevelGenerator {
           }
         } else {
           // climax phase
-          if (rand < 0.35) {
+          if (rand < 0.30) {
             leftOp = 'adrenaline';
             leftVal = 0;
             rightOp = 'conditional';
             rightVal = 0;
             rightCondition = conditionalData;
-          } else if (rand < 0.70) {
+          } else if (rand < 0.60) {
             leftOp = 'conditional';
             leftVal = 0;
             leftCondition = conditionalData;
             rightOp = 'subtract';
             rightVal = subVal;
-          } else {
+          } else if (rand < 0.80) {
             leftOp = 'mystery';
             leftVal = 0;
             rightOp = 'multiply';
             rightVal = multVal;
+          } else {
+            leftOp = 'divide';
+            leftVal = 2;
+            rightOp = 'subtract';
+            rightVal = subVal;
           }
         }
       }
@@ -277,11 +292,11 @@ export class LevelGenerator {
         rightOp,
         rightVal,
         rightCondition,
-        isDynamic: g > 0 && levelNum > 5 && rng() < 0.35,
+        isDynamic: g > 0 && levelNum > 5 && rng() < 0.5,
         flipTimer: 0,
         driftAmplitude:
-          g > 0 && levelNum > 3 && rng() < 0.4 ? Math.min(2.2, 0.8 + levelNum * 0.05) : undefined,
-        driftSpeed: g > 0 && levelNum > 3 && rng() < 0.4 ? 0.8 + rng() * 0.8 : undefined,
+          g > 0 && levelNum > 3 && rng() < 0.6 ? Math.min(2.6, 1.0 + levelNum * 0.06) : undefined,
+        driftSpeed: g > 0 && levelNum > 3 && rng() < 0.6 ? 0.9 + rng() * 0.9 : undefined,
       });
     }
 
@@ -303,10 +318,10 @@ export class LevelGenerator {
     ];
 
     let obsIndex = 0;
-    const baseObstacleTarget = Math.min(90, Math.floor(trackLength / 34));
+    const baseObstacleTarget = Math.min(120, Math.floor(trackLength / 26));
 
     // Проходим по трассе с шагом и генерируем тактические паттерны с учетом safe corridors
-    const sectionStep = 34;
+    const sectionStep = 26;
     const numSections = Math.floor((trackLength - 140) / sectionStep);
 
     for (let s = 0; s < numSections && obsIndex < baseObstacleTarget; s++) {

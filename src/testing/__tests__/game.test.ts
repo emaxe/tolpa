@@ -264,11 +264,11 @@ describe('Level Generator Enhanced Tests', () => {
     }
   });
 
-  it('cap производительности: gates<=30, obstacles<=90, coins<=360', () => {
+  it('cap производительности: gates<=40, obstacles<=120, coins<=360', () => {
     for (let lvl = 1; lvl <= 50; lvl++) {
       const config = LevelGenerator.generateLevel(lvl);
-      expect(config.gates.length).toBeLessThanOrEqual(30);
-      expect(config.obstacles.length).toBeLessThanOrEqual(90);
+      expect(config.gates.length).toBeLessThanOrEqual(40);
+      expect(config.obstacles.length).toBeLessThanOrEqual(120);
       expect(config.coins.length).toBeLessThanOrEqual(360);
     }
   });
