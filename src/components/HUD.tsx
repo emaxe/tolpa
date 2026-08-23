@@ -158,41 +158,45 @@ export const HUD: React.FC<HUDProps> = ({
         </div>
       )}
 
-      {/* Progress bar to finish — раньше игрок не видел, сколько ещё бежать */}
+      {/* Progress bar to finish — тонкая полоска в самом верху экрана, не перекрывает
+          центр (раньше висела по центру и мешала обзору/свайпам). pointer-events-none. */}
       {!isEndless && (
-        <div className="w-full max-w-xl mx-auto mt-2">
-          <div className="relative h-2.5 bg-slate-950/80 rounded-full border border-slate-800 overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-slate-950/80 pointer-events-none">
+          <div
+            className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-[width] duration-200"
+            style={{ width: `${Math.round(progress * 100)}%` }}
+          />
+          {bossProgress >= 0 && (
             <div
-              className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-[width] duration-200"
-              style={{ width: `${Math.round(progress * 100)}%` }}
+              className="absolute top-0 bottom-0 w-0.5 bg-red-500"
+              style={{ left: `${Math.round(bossProgress * 100)}%` }}
+              title="Boss"
             />
-            {bossProgress >= 0 && (
-              <div
-                className="absolute top-0 bottom-0 w-0.5 bg-red-500"
-                style={{ left: `${Math.round(bossProgress * 100)}%` }}
-                title="Boss"
-              />
-            )}
-          </div>
-          <div className="flex justify-between items-center mt-1 px-0.5">
+          )}
+        </div>
+      )}
+
+      {/* Компактная строка дистанции/босса/препятствия — внизу слева, pointer-events-none,
+          чтобы не перехватывать свайпы. На мобильном скрыта (инфа не критична в бою). */}
+      {!isEndless && (
+        <div className="absolute bottom-24 left-4 max-sm:hidden pointer-events-none flex items-center gap-3">
+          {metersLeft >= 0 && (
             <span className="text-[10px] font-orbitron text-slate-400">
-              {metersLeft >= 0 ? `${metersLeft} м до финиша` : ''}
+              {metersLeft} м до финиша
             </span>
-            {nextHazardDistance >= 0 && nextHazardDistance < 25 && (
-              <span className="text-[10px] font-orbitron text-amber-400 flex items-center gap-1 animate-pulse">
-                <TriangleAlert className="w-3 h-3" />
-                {Math.round(nextHazardDistance)} м
-              </span>
-            )}
-            {/* Счётчик приближения босса: показывается, когда босс на уровне, бой ещё не начался,
-                и до арены осталось не больше 400 м. */}
-            {!bossInfo && bossDistance >= 0 && bossDistance > 35 && bossDistance <= 400 && (
-              <span className="text-[10px] font-orbitron text-red-400 flex items-center gap-1 animate-pulse">
-                <Skull className="w-3 h-3" />
-                {i18n.t('bossApproach', 'БОСС')} {bossDistance} м
-              </span>
-            )}
-          </div>
+          )}
+          {nextHazardDistance >= 0 && nextHazardDistance < 25 && (
+            <span className="text-[10px] font-orbitron text-amber-400 flex items-center gap-1 animate-pulse">
+              <TriangleAlert className="w-3 h-3" />
+              {Math.round(nextHazardDistance)} м
+            </span>
+          )}
+          {!bossInfo && bossDistance >= 0 && bossDistance > 35 && bossDistance <= 400 && (
+            <span className="text-[10px] font-orbitron text-red-400 flex items-center gap-1 animate-pulse">
+              <Skull className="w-3 h-3" />
+              {i18n.t('bossApproach', 'БОСС')} {bossDistance} м
+            </span>
+          )}
         </div>
       )}
 
@@ -217,22 +221,26 @@ export const HUD: React.FC<HUDProps> = ({
         </div>
       )}
 
-      {/* Bottom Action Controls */}
-      <div className="flex flex-col gap-3 max-w-xl mx-auto w-full">
+      {/* Bottom Action Controls.
+          Десктоп: широкая панель по центру низа (адреналин + 4 формации).
+          Мобильный (max-sm): компактные кнопки по УГЛАМ — адреналин справа внизу,
+          формации вертикальной колонкой слева внизу. Центр экрана полностью свободен
+          (pointer-events-none), чтобы свайпы влево-вправо шли на canvas, а не на кнопки. */}
+      <div className="flex flex-col gap-3 max-w-xl mx-auto w-full max-sm:flex-row max-sm:max-w-none max-sm:justify-between max-sm:items-end max-sm:gap-0 max-sm:px-3 max-sm:pb-2">
         {/* Adrenaline Bar & Button */}
-        <div className="pointer-events-auto">
+        <div className="pointer-events-auto max-sm:order-2">
           <button
             onClick={handleAdrenalineClick}
             disabled={adrenalineCharge < 100 && !isHyperActive}
-            className={`w-full relative overflow-hidden rounded-xl border p-3 font-orbitron font-extrabold uppercase tracking-wider transition-all duration-300 flex items-center justify-between shadow-lg ${
+            className={`relative overflow-hidden rounded-xl border font-orbitron font-extrabold uppercase tracking-wider transition-all duration-300 flex items-center justify-between shadow-lg ${
               isHyperActive
                 ? 'bg-gradient-to-r from-yellow-500 via-amber-400 to-orange-500 text-slate-950 border-yellow-300 animate-pulse scale-[1.02]'
                 : adrenalineCharge >= 100
                 ? 'bg-gradient-to-r from-cyan-600 via-cyan-500 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white border-cyan-300 shadow-cyan-500/50 cursor-pointer animate-bounce'
                 : 'bg-slate-900/80 text-slate-400 border-slate-700 opacity-90 cursor-not-allowed'
-            }`}
+            } w-full p-3 max-sm:w-16 max-sm:h-16 max-sm:p-0 max-sm:justify-center max-sm:rounded-full max-sm:border-2`}
           >
-            <div className="flex items-center gap-2 relative z-10 text-sm md:text-base">
+            <div className="flex items-center gap-2 relative z-10 text-sm md:text-base max-sm:hidden">
               <Zap className={`w-5 h-5 ${isHyperActive ? 'fill-slate-950' : 'fill-cyan-400'}`} />
               <span>
                 {isHyperActive
@@ -242,6 +250,8 @@ export const HUD: React.FC<HUDProps> = ({
                   : `${i18n.t('adrenaline')} (${Math.round(adrenalineCharge)}%)`}
               </span>
             </div>
+            {/* Мобильная иконка-молния */}
+            <Zap className={`w-7 h-7 max-sm:block hidden ${isHyperActive ? 'fill-slate-950' : 'fill-cyan-400'}`} />
 
             {/* Progress Fill Indicator */}
             {!isHyperActive && (
@@ -254,57 +264,57 @@ export const HUD: React.FC<HUDProps> = ({
         </div>
 
         {/* Formation Switcher Buttons */}
-        <div className="pointer-events-auto grid grid-cols-4 gap-2 bg-slate-950/80 backdrop-blur-md p-1.5 rounded-xl border border-slate-800">
+        <div className="pointer-events-auto grid grid-cols-4 gap-2 bg-slate-950/80 backdrop-blur-md p-1.5 rounded-xl border border-slate-800 max-sm:order-1 max-sm:grid-cols-1 max-sm:gap-1 max-sm:p-1 max-sm:rounded-2xl">
           <button
             onClick={() => onFormationChange('wedge')}
-            className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer ${
+            className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
               currentFormation === 'wedge'
                 ? 'bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/40'
                 : 'bg-slate-900/60 text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
             title={i18n.t('wedgeDesc')}
           >
-            <Shield className="w-4 h-4 mb-0.5" />
-            <span className="text-[10px] uppercase">1: {i18n.t('formationWedge').split(' ')[0]}</span>
+            <Shield className="w-4 h-4 mb-0.5 max-sm:mb-0 max-sm:w-5 max-sm:h-5" />
+            <span className="text-[10px] uppercase max-sm:hidden">1: {i18n.t('formationWedge').split(' ')[0]}</span>
           </button>
 
           <button
             onClick={() => onFormationChange('wide')}
-            className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer ${
+            className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
               currentFormation === 'wide'
                 ? 'bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/40'
                 : 'bg-slate-900/60 text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
             title={i18n.t('wideDesc')}
           >
-            <MoveHorizontal className="w-4 h-4 mb-0.5" />
-            <span className="text-[10px] uppercase">2: {i18n.t('formationWide').split(' ')[0]}</span>
+            <MoveHorizontal className="w-4 h-4 mb-0.5 max-sm:mb-0 max-sm:w-5 max-sm:h-5" />
+            <span className="text-[10px] uppercase max-sm:hidden">2: {i18n.t('formationWide').split(' ')[0]}</span>
           </button>
 
           <button
             onClick={() => onFormationChange('circle')}
-            className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer ${
+            className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
               currentFormation === 'circle'
                 ? 'bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/40'
                 : 'bg-slate-900/60 text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
             title={i18n.t('circleDesc')}
           >
-            <CircleDot className="w-4 h-4 mb-0.5" />
-            <span className="text-[10px] uppercase">3: {i18n.t('formationCircle').split(' ')[0]}</span>
+            <CircleDot className="w-4 h-4 mb-0.5 max-sm:mb-0 max-sm:w-5 max-sm:h-5" />
+            <span className="text-[10px] uppercase max-sm:hidden">3: {i18n.t('formationCircle').split(' ')[0]}</span>
           </button>
 
           <button
             onClick={() => onFormationChange('arrow')}
-            className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer ${
+            className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
               currentFormation === 'arrow'
                 ? 'bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/40'
                 : 'bg-slate-900/60 text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
             title={i18n.t('arrowDesc')}
           >
-            <ArrowUp className="w-4 h-4 mb-0.5" />
-            <span className="text-[10px] uppercase">4: {i18n.t('formationArrow').split(' ')[0]}</span>
+            <ArrowUp className="w-4 h-4 mb-0.5 max-sm:mb-0 max-sm:w-5 max-sm:h-5" />
+            <span className="text-[10px] uppercase max-sm:hidden">4: {i18n.t('formationArrow').split(' ')[0]}</span>
           </button>
         </div>
       </div>
