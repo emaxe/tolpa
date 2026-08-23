@@ -121,6 +121,16 @@ export function createHumanoidGeometry(): THREE.BufferGeometry {
   headGeo.translate(0, 1.3, 0);
   geometries.push(headGeo);
 
+  // Шлем-гребень / тактический плавник (читаемый силуэт сверху и сзади)
+  const crestGeo = new THREE.BoxGeometry(0.04, 0.12, 0.28);
+  crestGeo.translate(0, 1.54, 0.02);
+  geometries.push(crestGeo);
+
+  // Шейный переход (связывает голову с плечами)
+  const neckGeo = new THREE.CylinderGeometry(0.08, 0.1, 0.12, 8);
+  neckGeo.translate(0, 1.18, 0);
+  geometries.push(neckGeo);
+
   // Torso (Capsule/Cylinder) — tapered chest with shoulder mass
   const torsoGeo = new THREE.CylinderGeometry(0.2, 0.15, 0.6, 12);
   torsoGeo.translate(0, 0.82, 0);
@@ -166,6 +176,16 @@ export function createHumanoidGeometry(): THREE.BufferGeometry {
   armGeoR.translate(0.28, 0.85, 0);
   geometries.push(armGeoR);
 
+  // Наручи / броня предплечий (заполняют пустоту между локтем и кулаком)
+  const bracerGeoL = new THREE.BoxGeometry(0.08, 0.16, 0.09);
+  bracerGeoL.rotateZ(0.2);
+  bracerGeoL.translate(-0.30, 0.72, 0);
+  geometries.push(bracerGeoL);
+  const bracerGeoR = new THREE.BoxGeometry(0.08, 0.16, 0.09);
+  bracerGeoR.rotateZ(-0.2);
+  bracerGeoR.translate(0.30, 0.72, 0);
+  geometries.push(bracerGeoR);
+
   // Hands (fists)
   const handGeo = new THREE.SphereGeometry(0.06, 6, 6);
   handGeo.translate(-0.3, 0.6, 0);
@@ -184,10 +204,28 @@ export function createHumanoidGeometry(): THREE.BufferGeometry {
   packGeo.translate(0, 0.95, -0.2);
   geometries.push(packGeo);
 
+  // Двойные дюзы джетпака (вид со спины)
+  const thrusterGeoL = new THREE.CylinderGeometry(0.035, 0.045, 0.10, 6);
+  thrusterGeoL.translate(-0.06, 0.82, -0.25);
+  geometries.push(thrusterGeoL);
+  const thrusterGeoR = new THREE.CylinderGeometry(0.035, 0.045, 0.10, 6);
+  thrusterGeoR.translate(0.06, 0.82, -0.25);
+  geometries.push(thrusterGeoR);
+
   // Chest emblem — glowing core plate on the torso
   const emblemGeo = new THREE.BoxGeometry(0.12, 0.1, 0.03);
   emblemGeo.translate(0, 0.9, 0.2);
   geometries.push(emblemGeo);
+
+  // Грудное ядро (объёмный октаэдр под общее свечение)
+  const coreGeo = new THREE.OctahedronGeometry(0.08);
+  coreGeo.translate(0, 0.92, 0.22);
+  geometries.push(coreGeo);
+
+  // Тактический бронепояс (разграничивает торс и ноги)
+  const beltGeo = new THREE.BoxGeometry(0.34, 0.06, 0.22);
+  beltGeo.translate(0, 0.58, 0);
+  geometries.push(beltGeo);
 
   // Knee pads — armored shin guards
   const kneeGeo = new THREE.SphereGeometry(0.05, 6, 6);

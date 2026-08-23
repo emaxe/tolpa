@@ -669,20 +669,28 @@ export class CrowdManager {
         continue;
       }
 
-      // Procedural running hop & tilt — forward lean + natural stride
-      const hop = Math.abs(Math.sin(this.animTime + mob.animOffset)) * 0.25;
-      mob.y = hop;
+      // Процедурная анимация бега: трёхосевой шаговый цикл
+      const phase = this.animTime + mob.animOffset;
+      const stride = Math.sin(phase);                     // -1..1, цикл шага
+      // Двухфазный подскок-шаг: 2 отрыва от земли за цикл (abs → двойная частота)
+      const bounce = Math.abs(Math.sin(phase)) * 0.28;
+      mob.y = bounce;
 
       // Setup 3D transform
       this.dummy.position.set(mob.x, mob.y, mob.z);
 
+      // Покачивание корпуса (pitch вперёд), сильнее на толчке
+      const lean = 0.14 + Math.max(0, stride) * 0.07;
+      // Лёгкое качание по X (roll вокруг Z) + реакция на поворот строя
       const tilt = (mob.targetX - mob.x) * 0.3;
-      // Forward lean (pitch) makes the run read as dynamic; slight roll from steering.
-      const lean = 0.12 + Math.abs(Math.sin(this.animTime + mob.animOffset)) * 0.08;
-      this.dummy.rotation.set(lean, 0, -tilt);
-
+      const sway = -tilt * 0.3 + Math.sin(phase) * 0.09;
+      // Едва заметное рысканье (yaw) для "живости"
+      const yaw = Math.sin(phase * 0.5) * 0.05;
+      // Лёгкий squash при приземлении (ZERO-alloc: dummy.scale переиспользуется)
+      const sq = 1.0 - bounce * 0.12;
       const s = mob.scale * (this.isHyperMode ? 1.15 : 1.0);
-      this.dummy.scale.set(s, s, s);
+      this.dummy.rotation.set(lean, yaw, sway);
+      this.dummy.scale.set(s, s * sq, s);
       this.dummy.updateMatrix();
 
       this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
