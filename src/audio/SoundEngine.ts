@@ -191,7 +191,7 @@ export class SoundEngine {
         osc.frequency.setValueAtTime(140, t);
         osc.frequency.exponentialRampToValueAtTime(40, t + 0.12);
 
-        gain.gain.setValueAtTime(0.2, t);
+        gain.gain.setValueAtTime(0.14, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
 
         osc.connect(gain);
@@ -209,7 +209,7 @@ export class SoundEngine {
         osc.frequency.setValueAtTime(900 * pitchShift, t);
         osc.frequency.exponentialRampToValueAtTime(180 * pitchShift, t + 0.25);
 
-        gain.gain.setValueAtTime(0.12, t);
+        gain.gain.setValueAtTime(0.07, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
 
         osc.connect(gain);
@@ -509,13 +509,13 @@ export class SoundEngine {
       }
 
       case 'obstacle_hit': {
-        // Удар по препятствию — резкий металлический лязг
+        // Удар по препятствию — резкий металлический лязг (приглушён, чтобы не перекрикивал музыку)
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'square';
         osc.frequency.setValueAtTime(220 * pitchShift, t);
         osc.frequency.exponentialRampToValueAtTime(60, t + 0.12);
-        gain.gain.setValueAtTime(0.3, t);
+        gain.gain.setValueAtTime(0.16, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
         osc.connect(gain);
         gain.connect(this.sfxGain!);
@@ -595,13 +595,13 @@ export class SoundEngine {
       }
 
       case 'obstacle_smash': {
-        // Сломанное препятствие — тяжёлый низкий удар с треском
+        // Сломанное препятствие — тяжёлый низкий удар с треском (приглушён)
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(180 * pitchShift, t);
         osc.frequency.exponentialRampToValueAtTime(40, t + 0.2);
-        gain.gain.setValueAtTime(0.35, t);
+        gain.gain.setValueAtTime(0.22, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
         osc.connect(gain);
         gain.connect(this.sfxGain!);
@@ -699,11 +699,12 @@ export class SoundEngine {
     const clamped = Math.max(0, Math.min(1, intensity));
 
     // Если звук уже играет — просто обновляем громкость (throttle).
+    // Приглушённый фоновый шум стадиона, чтобы не перекрикивать музыку и SFX.
     if (this.crowdGain && this.crowdNoiseSource) {
       const now = this.ctx.currentTime;
-      this.crowdGain.gain.setTargetAtTime(clamped * 0.35, now, 0.05);
-      if (this.crowdVoiceGain) this.crowdVoiceGain.gain.setTargetAtTime(clamped * 0.25, now, 0.05);
-      if (this.crowdClapGain) this.crowdClapGain.gain.setTargetAtTime(clamped * 0.18, now, 0.05);
+      this.crowdGain.gain.setTargetAtTime(clamped * 0.14, now, 0.05);
+      if (this.crowdVoiceGain) this.crowdVoiceGain.gain.setTargetAtTime(clamped * 0.1, now, 0.05);
+      if (this.crowdClapGain) this.crowdClapGain.gain.setTargetAtTime(clamped * 0.07, now, 0.05);
       return;
     }
 
@@ -727,14 +728,14 @@ export class SoundEngine {
     filter.Q.value = 0.8;
 
     const gain = ctx.createGain();
-    gain.gain.value = clamped * 0.35;
+    gain.gain.value = clamped * 0.14;
 
     // Быстрое тремоло (5-7 Гц) — «живое бормотание», а не медленный прибой.
     const lfo = ctx.createOscillator();
     lfo.type = 'sine';
     lfo.frequency.value = 5.0 + Math.random() * 2.0; // 5..7 Гц
     const lfoGain = ctx.createGain();
-    lfoGain.gain.value = clamped * 0.25;
+    lfoGain.gain.value = clamped * 0.1;
     lfo.connect(lfoGain);
     lfoGain.connect(gain.gain);
 
@@ -746,7 +747,7 @@ export class SoundEngine {
 
     // ==== Слой 2: Голоса «Ура» (расстроенный formant-хор) ====
     const voiceGain = ctx.createGain();
-    voiceGain.gain.value = clamped * 0.25;
+    voiceGain.gain.value = clamped * 0.1;
     voiceGain.connect(this.sfxGain!);
     const voiceFrequencies = [330, 440, 554, 659]; // E4, A4, C#5, E5
     const voices: OscillatorNode[] = [];
@@ -767,7 +768,7 @@ export class SoundEngine {
 
     // ==== Слой 3: Аплодисменты (ритмичные импульсы шума) ====
     const clapGain = ctx.createGain();
-    clapGain.gain.value = clamped * 0.18;
+    clapGain.gain.value = clamped * 0.07;
     clapGain.connect(this.sfxGain!);
     const clapBuffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.5), ctx.sampleRate);
     const clapData = clapBuffer.getChannelData(0);
@@ -892,6 +893,11 @@ export class SoundEngine {
       crystal: [146.83, 174.61, 196.0, 220.0, 174.61, 196.0, 220.0, 261.63], // D minor ethereal
       void: [98.0, 98.0, 116.54, 130.81, 98.0, 87.31, 98.0, 116.54], // G minor deep
       celestial: [164.81, 196.0, 220.0, 246.94, 220.0, 196.0, 164.81, 146.83], // E minor epic
+      tension: [103.83, 116.54, 130.81, 116.54, 103.83, 138.59, 130.81, 92.5], // G# minor — нарастающее напряжение
+      pulse: [146.83, 146.83, 174.61, 196.0, 146.83, 174.61, 196.0, 220.0], // D major — энергичный моторный бит
+      echo: [87.31, 98.0, 110.0, 123.47, 98.0, 116.54, 130.81, 110.0], // F minor — мечтательная глубина
+      spark: [174.61, 220.0, 261.63, 293.66, 261.63, 220.0, 174.61, 196.0], // F major — светлый «эклектичный» подъём
+      titan: [98.0, 123.47, 130.81, 146.83, 98.0, 110.0, 130.81, 164.81], // G minor — эпично-масштабный
       boss_battle: [82.41, 82.41, 98.0, 82.41, 110.0, 82.41, 123.47, 110.0], // E low intense
       menu: [130.81, 164.81, 196.0, 246.94, 220.0, 196.0, 164.81, 130.81],
     };
@@ -902,6 +908,11 @@ export class SoundEngine {
       crystal: [587.33, 698.46, 880.0, 1174.66, 880.0, 698.46, 587.33, 880.0],
       void: [392.0, 466.16, 587.33, 783.99, 587.33, 466.16, 392.0, 587.33],
       celestial: [659.25, 783.99, 987.77, 1318.51, 987.77, 783.99, 659.25, 987.77],
+      tension: [415.3, 466.16, 523.25, 622.25, 523.25, 466.16, 415.3, 523.25],
+      pulse: [587.33, 698.46, 880.0, 1046.5, 880.0, 698.46, 587.33, 880.0],
+      echo: [349.23, 415.3, 466.16, 523.25, 466.16, 415.3, 349.23, 466.16],
+      spark: [698.46, 880.0, 1046.5, 1318.51, 1046.5, 880.0, 698.46, 1046.5],
+      titan: [392.0, 493.88, 587.33, 783.99, 587.33, 493.88, 392.0, 587.33],
       boss_battle: [329.63, 392.0, 493.88, 659.25, 493.88, 392.0, 329.63, 493.88],
       menu: [523.25, 659.25, 783.99, 987.77, 783.99, 659.25, 523.25, 659.25],
     };

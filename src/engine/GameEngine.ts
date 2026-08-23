@@ -11,6 +11,7 @@ import { ParticleSystem } from './ParticleSystem';
 import { LevelGenerator, DEFAULT_TRACK_WIDTH } from './LevelGenerator';
 import { stateManager, RunStats } from '../core/StateManager';
 import { soundEngine } from '../audio/SoundEngine';
+import { MusicTheme } from '../types/audio';
 import { eventBus } from '../core/EventBus';
 import { perfMonitor } from '../core/Performance';
 import { clamp } from '../utils/math';
@@ -516,18 +517,32 @@ export class GameEngine {
     this.resetEventState();
     this.pendingEvents = (levelConfig.events || []).slice();
 
-    // Start background music
-    soundEngine.playMusic(
-      levelConfig.biome === 'magma_citadel'
-        ? 'magma'
-        : levelConfig.biome === 'crystal_cavern'
-        ? 'crystal'
-        : levelConfig.biome === 'quantum_void'
-        ? 'void'
-        : levelConfig.biome === 'celestial_core'
-        ? 'celestial'
-        : 'cyber'
-    );
+    // Start background music — разные мелодии под уровень (ротация внутри биома)
+    soundEngine.playMusic(this.getMusicThemeForLevel(levelNum, levelConfig.biome));
+  }
+
+  /**
+   * Выбор фоновой мелодии под уровень. Внутри одного биома уровни получают
+   * разные мелодии (ротация из базовой темы биома + 2 дополнительные), чтобы
+   * геймплей не звучал одинаково на всём пролёте биома. Боссовые уровни всё
+   * равно переключаются на boss_battle (см. BossManager).
+   */
+  private getMusicThemeForLevel(levelNum: number, biome: BiomeType): MusicTheme {
+    const cycle = levelNum % 3;
+    switch (biome) {
+      case 'cyber_city':
+        return cycle === 0 ? 'cyber' : cycle === 1 ? 'pulse' : 'tension';
+      case 'magma_citadel':
+        return cycle === 0 ? 'magma' : cycle === 1 ? 'tension' : 'pulse';
+      case 'crystal_cavern':
+        return cycle === 0 ? 'crystal' : cycle === 1 ? 'echo' : 'spark';
+      case 'quantum_void':
+        return cycle === 0 ? 'void' : cycle === 1 ? 'echo' : 'spark';
+      case 'celestial_core':
+        return cycle === 0 ? 'celestial' : cycle === 1 ? 'titan' : 'spark';
+      default:
+        return 'cyber';
+    }
   }
 
   public startEndlessMode(onLose: (runStats: RunStats) => void): void {

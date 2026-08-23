@@ -29,4 +29,16 @@ export type SoundEffect =
   | 'combo_ding'
   | 'crowd_cheer';
 
-export type MusicTheme = 'cyber' | 'magma' | 'crystal' | 'void' | 'celestial' | 'boss_battle' | 'menu';
+export type MusicTheme =
+  | 'cyber'
+  | 'magma'
+  | 'crystal'
+  | 'void'
+  | 'celestial'
+  | 'tension'
+  | 'pulse'
+  | 'echo'
+  | 'spark'
+  | 'titan'
+  | 'boss_battle'
+  | 'menu';
