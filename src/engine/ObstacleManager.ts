@@ -38,6 +38,15 @@ interface ObstacleVisual {
   attackCooldown?: number;
   subX?: number;
   subZ?: number;
+  // Состояние кибер-собаки: свободное гуляние / отдых / атака.
+  dogState?: 'wander' | 'idle' | 'attack';
+  // Текущая целевая точка блуждания (локальные координаты вокруг анкера).
+  dogTargetX?: number;
+  dogTargetZ?: number;
+  dogStateTime?: number; // сколько времени в текущем состоянии
+  dogAnimPhase?: number; // фаза анимации шага/хвоста
+  dogFacing?: number; // куда повёрнута собака (радианы, мировой Y)
+  dogLungeT?: number; // прогресс броска при атаке (0..1), -1 когда не атакует
 }
 
 interface CoinVisual {
@@ -127,6 +136,14 @@ export class ObstacleManager {
       attackCooldown: 0,
       subX: obs.x,
       subZ: obs.z,
+      // Кибер-собака стартует в состоянии «гуляет» с текущей целевой точкой.
+      dogState: 'wander',
+      dogTargetX: (Math.random() - 0.5) * 1.5,
+      dogTargetZ: (Math.random() - 0.5) * 1.5,
+      dogStateTime: 0,
+      dogAnimPhase: Math.random() * Math.PI * 2,
+      dogFacing: Math.random() * Math.PI * 2,
+      dogLungeT: -1,
     };
   }
 
@@ -154,6 +171,185 @@ export class ObstacleManager {
     const near = 4;
     if (dz <= near) return 1;
     return Math.max(0, Math.min(1, 1 - (dz - near) / (PROX_RADIUS - near)));
+  }
+
+  /**
+   * Кибер-собака: свободно гуляет по доступному радиусу вокруг анкера,
+   * периодически останавливается отдохнуть (сидит/лежит) и, когда толпа
+   * входит в радиус, бросается в атаку (рывок + укус). Вместо прежнего
+   * «пропеллерного» кружения по синусу — реалистичное поведение с анимацией.
+   * Структура dogGroup (children[2] у группы препятствия):
+   *   [0] body, [1] headPivot (внутри head, eyes, jaw), [2..5] лапы,
+   *   [6] tailPivot, [7] stripeL, [8] stripeR.
+   */
+  private updateGuardDog(vis: ObstacleVisual, crowd: CrowdManager, dt: number): void {
+    const obs = vis.data;
+
+    // Кулдаун между укусами
+    if (vis.attackCooldown && vis.attackCooldown > 0) {
+      vis.attackCooldown -= dt;
+    }
+
+    const dogGroup = vis.mesh.children[2] as THREE.Group;
+    if (!dogGroup) {
+      this.setHazard(vis, obs.x, obs.z, obs.range * 2, obs.range * 2);
+      return;
+    }
+
+    // ---- 1. Определяем целевое состояние на кадр ----
+    // Атака: ближайший живой моб в пределах радиуса цепи (obs.range).
+    let nearestMob: MobInstance | null = null;
+    let bestSq = 1e9;
+    const alive = crowd.getAliveMobs();
+    for (const m of alive) {
+      if (!m.alive) continue;
+      const dx = m.x - obs.x;
+      const dz = m.z - obs.z;
+      const dSq = dx * dx + dz * dz;
+      if (dSq <= obs.range * obs.range && dSq < bestSq) {
+        bestSq = dSq;
+        nearestMob = m;
+      }
+    }
+
+    const attacking = !!nearestMob && vis.attackCooldown && vis.attackCooldown <= 0;
+    vis.dogStateTime = (vis.dogStateTime || 0) + dt;
+
+    if (attacking) {
+      vis.dogState = 'attack';
+    } else if (vis.dogState === 'attack') {
+      // Атака закончилась → кулдаун и возврат к гулянию/отдыху
+      vis.dogState = 'wander';
+      vis.dogStateTime = 0;
+      vis.dogLungeT = -1;
+      vis.attackCooldown = 1.2;
+      // новая случайная цель
+      vis.dogTargetX = (Math.random() - 0.5) * obs.range * 1.5;
+      vis.dogTargetZ = (Math.random() - 0.5) * obs.range * 1.5;
+    } else if (vis.dogState === 'wander') {
+      // Периодически останавливаемся отдохнуть (сидим/лежим ~2-3с)
+      if (vis.dogStateTime > 4 + Math.random() * 2) {
+        vis.dogState = 'idle';
+        vis.dogStateTime = 0;
+      }
+    } else if (vis.dogState === 'idle') {
+      if (vis.dogStateTime > 2 + Math.random() * 1.5) {
+        vis.dogState = 'wander';
+        vis.dogStateTime = 0;
+        vis.dogTargetX = (Math.random() - 0.5) * obs.range * 1.5;
+        vis.dogTargetZ = (Math.random() - 0.5) * obs.range * 1.5;
+      }
+    }
+
+    // ---- 2. Атака: кулак-рывок к ближайшему мобу ----
+    if (vis.dogState === 'attack' && nearestMob) {
+      // Направление к цели (локально, анкер в 0,0)
+      const tx = nearestMob.x - obs.x;
+      const tz = nearestMob.z - obs.z;
+      const dist = Math.sqrt(tx * tx + tz * tz) || 1;
+      // Бросок: держимся на короткой дистанции (не выходим за радиус, но вытягиваемся к цели)
+      const lunge = Math.min(dist, obs.range * 0.92);
+      vis.dogLungeT = Math.min(1, (vis.dogLungeT || 0) + dt * 4);
+      const ease = 1 - Math.pow(1 - vis.dogLungeT, 3); // easeOutCubic
+      const pull = 1 + ease * 0.7;
+      const dogRelX = (tx / dist) * lunge * pull;
+      const dogRelZ = (tz / dist) * lunge * pull;
+      dogGroup.position.set(dogRelX, 0, dogRelZ);
+      vis.dogFacing = Math.atan2(tx, tz);
+      dogGroup.rotation.y = vis.dogFacing;
+      // actual attack happens in resolveDog (механика укуса там); здесь только визуал
+    } else if (vis.dogState === 'wander') {
+      // Двигаемся к цели гулять
+      const gx = vis.dogTargetX ?? 0;
+      const gz = vis.dogTargetZ ?? 0;
+      const dxg = gx - dogGroup.position.x;
+      const dzg = gz - dogGroup.position.z;
+      const dg = Math.sqrt(dxg * dxg + dzg * dzg);
+      const speed = 1.6;
+      if (dg < 0.25) {
+        // дошли до цели — берём новую случайную в радиусе
+        vis.dogTargetX = (Math.random() - 0.5) * obs.range * 1.5;
+        vis.dogTargetZ = (Math.random() - 0.5) * obs.range * 1.5;
+      } else {
+        const step = Math.min(speed * dt, dg);
+        dogGroup.position.x += (dxg / dg) * step;
+        dogGroup.position.z += (dzg / dg) * step;
+        vis.dogFacing = Math.atan2(dxg, dzg);
+        dogGroup.rotation.y = vis.dogFacing;
+      }
+      vis.dogAnimPhase = (vis.dogAnimPhase || 0) + dt * 9; // шаг
+    } else {
+      // idle: стоим / присаживаемся
+      vis.dogAnimPhase = 0;
+    }
+
+    // ---- 3. Анимация частей собаки ----
+    const body = dogGroup.children[0] as THREE.Mesh;
+    const headPivot = dogGroup.children[1] as THREE.Group;
+    const tailPivot = dogGroup.children[6] as THREE.Group;
+    const legPivots = [
+      dogGroup.children[2] as THREE.Group,
+      dogGroup.children[3] as THREE.Group,
+      dogGroup.children[4] as THREE.Group,
+      dogGroup.children[5] as THREE.Group,
+    ];
+    const phase = vis.dogAnimPhase || 0;
+
+    // Пасть: открывается в атаке (нужно разжать нижнюю челюсть)
+    const jaw = headPivot ? headPivot.children[2] as THREE.Mesh : null;
+
+    if (vis.dogState === 'attack') {
+      // Атака: тело наклонено вперёд, пасть открыта, хвост прижат, уши назад
+      if (body) body.rotation.x = 0.35;
+      if (headPivot) headPivot.rotation.x = -0.5;
+      if (jaw) jaw.rotation.x = 0.7; // раскрытая пасть
+      if (tailPivot) tailPivot.rotation.y = 0.6; // прижатый хвост
+      // Ноги в прыжке согнуты
+      legPivots.forEach((lp) => { if (lp) lp.rotation.x = 0.4 * Math.sin(phase); });
+    } else if (vis.dogState === 'wander') {
+      // Гуляние: перебор лап (противофаза перед/зад), хвост виляет, голова чуть покачивается
+      if (body) body.rotation.x = 0.05 * Math.sin(phase * 0.5);
+      if (headPivot) headPivot.rotation.x = 0.15 + 0.1 * Math.sin(phase * 0.7);
+      if (jaw) jaw.rotation.x = 0.08;
+      if (tailPivot) tailPivot.rotation.y = Math.sin(phase * 0.8) * 0.6;
+      // шаг: передние и задние противофазно
+      const stepAmp = 0.5;
+      legPivots.forEach((L, i) => {
+        if (!L) return;
+        const side = i % 2 === 0 ? 1 : -1;
+        const front = i < 2 ? 1 : -1;
+        L.rotation.x = Math.sin(phase + front * Math.PI / 2) * stepAmp * side;
+      });
+    } else {
+      // Idle/отдых: собака сидит — зад опущен, корпус наклонён, передние лапы
+      // прямые, задние подогнуты, голова приподнята, хвост лениво виляет.
+      if (body) body.rotation.x = 0.35; // сидя: грудью вверх
+      if (headPivot) headPivot.rotation.x = -0.1 + 0.05 * Math.sin(performance.now() * 0.001 * 1.2);
+      if (jaw) jaw.rotation.x = 0.05;
+      if (tailPivot) tailPivot.rotation.y = Math.sin(performance.now() * 0.001 * 2.5) * 0.3;
+      // Передние лапы (i<2) прямые вниз, задние (i>=2) подогнуты под корпус.
+      legPivots.forEach((L, i) => {
+        if (!L) return;
+        L.rotation.x = i >= 2 ? -1.1 : 0.05; // задние согнуты, передние стоят
+      });
+    }
+
+    // ---- 4. Цепь ----
+    const chain = vis.mesh.children[1] as THREE.Mesh;
+    if (chain) {
+      const dogX = dogGroup.position.x;
+      const dogZ = dogGroup.position.z;
+      const len = Math.sqrt(dogX * dogX + dogZ * dogZ);
+      chain.position.set(dogX * 0.5, 0.25, dogZ * 0.5);
+      chain.scale.set(1, Math.max(0.1, len), 1);
+      chain.quaternion.setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0),
+        new THREE.Vector3(dogX, 0.05, dogZ).normalize()
+      );
+    }
+
+    // Hazard: зона атаки вокруг собаки (смещённая), не статика анкера
+    this.setHazard(vis, obs.x + dogGroup.position.x, obs.z + dogGroup.position.z, obs.range * 1.6, obs.range * 1.6);
   }
 
   public initObstacles(obsData: ObstacleData[], coinData: CoinData[]): void {
@@ -273,38 +469,7 @@ export class ObstacleManager {
           break;
 
         case 'guard_dog':
-          // Кулдаун атаки
-          if (obsVis.attackCooldown && obsVis.attackCooldown > 0) {
-            obsVis.attackCooldown -= dt;
-          }
-          // Анимация пасти и движение собаки (child 2 = dogGroup, внутри неё child 3 = jaw)
-          const dogGroup = obsVis.mesh.children[2] as THREE.Group;
-          if (dogGroup) {
-            const jaw = dogGroup.children[3] as THREE.Mesh;
-            if (jaw) {
-              jaw.rotation.x = Math.sin(t * 6) * 0.25 + 0.15;
-            }
-            // Патрулирование собаки в пределах радиуса цепи
-            const patrolAngle = t * 1.5;
-            const patrolRadius = Math.min(obs.range * 0.6, 1.8);
-            const dogRelX = Math.cos(patrolAngle) * patrolRadius;
-            const dogRelZ = Math.sin(patrolAngle) * patrolRadius;
-            dogGroup.position.set(dogRelX, 0, dogRelZ);
-            dogGroup.rotation.y = -patrolAngle + Math.PI / 2;
-
-            // Обновление ориентации цепи (child 1)
-            const chain = obsVis.mesh.children[1] as THREE.Mesh;
-            if (chain) {
-              const chainLen = Math.sqrt(dogRelX * dogRelX + dogRelZ * dogRelZ);
-              chain.position.set(dogRelX * 0.5, 0.25, dogRelZ * 0.5);
-              chain.scale.set(1, Math.max(0.1, chainLen), 1);
-              chain.quaternion.setFromUnitVectors(
-                new THREE.Vector3(0, 1, 0),
-                new THREE.Vector3(dogRelX, 0.05, dogRelZ).normalize()
-              );
-            }
-          }
-          this.setHazard(obsVis, obs.x, obs.z, obs.range * 2, obs.range * 2);
+          this.updateGuardDog(obsVis, crowd, dt);
           break;
 
         case 'swinging_hammer':
@@ -647,13 +812,19 @@ export class ObstacleManager {
 
     if (vis.attackCooldown && vis.attackCooldown > 0) return;
 
-    // Поиск ближайшего живого моба в радиусе цепи
+    // Позиция собаки (смещена от анкера — она гуляет в радиусе). Укус происходит
+    // от текущего местоположения собаки, а не от статичного анкера.
+    const dogGroup = vis.mesh.children[2] as THREE.Group | undefined;
+    const dogX = obs.x + (dogGroup ? dogGroup.position.x : 0);
+    const dogZ = obs.z + (dogGroup ? dogGroup.position.z : 0);
+
+    // Поиск ближайшего живого моба в радиусе укуса (вокруг собаки)
     let nearest: MobInstance | null = null;
     let bestDistSq = 1e9;
     for (const m of alive) {
       if (!m.alive) continue;
-      const dx = m.x - obs.x;
-      const dz = m.z - obs.z;
+      const dx = m.x - dogX;
+      const dz = m.z - dogZ;
       const dSq = dx * dx + dz * dz;
       if (dSq <= rSq && dSq < bestDistSq) {
         bestDistSq = dSq;

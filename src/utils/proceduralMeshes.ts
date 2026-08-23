@@ -821,9 +821,9 @@ export function createGuardDogMesh(): THREE.Group {
   chain.rotation.x = Math.PI / 2;
   group.add(chain);
 
-  // 2. Корпус собаки (группа)
+  // 2. Корпус собаки (группа) — двигается в update по свободному радиусу
   const dogGroup = new THREE.Group();
-  dogGroup.position.set(0, 0, 1.2);
+  dogGroup.position.set(0, 0, 1.4);
 
   // 2.0. Угловатый торс
   const bodyGeo = new THREE.BoxGeometry(0.55, 0.42, 0.9);
@@ -838,21 +838,24 @@ export function createGuardDogMesh(): THREE.Group {
   body.position.y = 0.45;
   dogGroup.add(body);
 
-  // 2.1. Голова с визором
+  // 2.1. Голова-шарнир (наклоняется вниз-вверх для анимации нюхания/атаки)
+  const headPivot = new THREE.Group();
+  headPivot.position.set(0, 0.62, 0.55);
+
   const headGeo = new THREE.BoxGeometry(0.38, 0.3, 0.42);
   const headMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.2 });
   const head = new THREE.Mesh(headGeo, headMat);
-  head.position.set(0, 0.65, 0.55);
-  dogGroup.add(head);
+  head.position.set(0, 0.03, 0);
+  headPivot.add(head);
 
   // 2.2. Красный визор-глаза
   const eyeGeo = new THREE.BoxGeometry(0.3, 0.07, 0.08);
   const eyeMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
   const eyes = new THREE.Mesh(eyeGeo, eyeMat);
-  eyes.position.set(0, 0.7, 0.75);
-  dogGroup.add(eyes);
+  eyes.position.set(0, 0.08, 0.2);
+  headPivot.add(eyes);
 
-  // 2.3. Подвижная пасть / нижняя челюсть (индекс 3 внутри dogGroup для анимации)
+  // 2.3. Подвижная пасть / нижняя челюсть (открывается при атаке)
   const jawGeo = new THREE.BoxGeometry(0.32, 0.1, 0.32);
   const jawMat = new THREE.MeshStandardMaterial({
     color: 0x0f172a,
@@ -862,30 +865,39 @@ export function createGuardDogMesh(): THREE.Group {
     emissiveIntensity: 0.4,
   });
   const jaw = new THREE.Mesh(jawGeo, jawMat);
-  jaw.position.set(0, 0.52, 0.62);
-  dogGroup.add(jaw);
+  jaw.position.set(0, -0.09, 0.06);
+  headPivot.add(jaw);
 
-  // 2.4..2.7. Кибер-лапы (4 цилиндра)
+  dogGroup.add(headPivot);
+
+  // 2.4..2.7. Кибер-лапы (4 лапы-шарнира, качаются при ходьбе).
+  // Каждая лапа = pivot (вверху) + нога-цилиндр вниз.
   const legGeo = new THREE.CylinderGeometry(0.06, 0.05, 0.35, 6);
   const legMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.85, roughness: 0.2 });
   const legPositions = [
-    [-0.22, 0.18, 0.3],
-    [0.22, 0.18, 0.3],
-    [-0.22, 0.18, -0.3],
-    [0.22, 0.18, -0.3],
+    [-0.24, 0.32, 0.35],
+    [0.24, 0.32, 0.35],
+    [-0.24, 0.32, -0.35],
+    [0.24, 0.32, -0.35],
   ];
   legPositions.forEach(([lx, ly, lz]) => {
+    const legPivot = new THREE.Group();
+    legPivot.position.set(lx, ly, lz);
     const leg = new THREE.Mesh(legGeo, legMat);
-    leg.position.set(lx, ly, lz);
-    dogGroup.add(leg);
+    leg.position.y = -0.17;
+    legPivot.add(leg);
+    dogGroup.add(legPivot);
   });
 
-  // Хвост-антенна
+  // 2.8. Хвост-шарнир (виляет при ходьбе, прижимается при атаке)
+  const tailPivot = new THREE.Group();
+  tailPivot.position.set(0, 0.7, -0.55);
   const tailGeo = new THREE.CylinderGeometry(0.02, 0.03, 0.4, 4);
   const tail = new THREE.Mesh(tailGeo, legMat);
-  tail.position.set(0, 0.7, -0.5);
+  tail.position.y = -0.2;
   tail.rotation.x = -Math.PI / 4;
-  dogGroup.add(tail);
+  tailPivot.add(tail);
+  dogGroup.add(tailPivot);
 
   // Неоновые полосы на боках торса
   const stripeMat = new THREE.MeshBasicMaterial({ color: 0xc084fc });
