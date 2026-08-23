@@ -26,6 +26,11 @@ export class SoundEngine {
   private crowdVoiceGain: GainNode | null = null;
   private crowdClapSource: AudioBufferSourceNode | null = null;
   private crowdClapGain: GainNode | null = null;
+  // Таймер авто-затухания криков толпы: если в течение CROWD_CHEER_DECAY_MS
+  // не было нового вызова playCrowdCheer, звук сам затухает и останавливается.
+  // Это не даёт непрерывному гулу «висеть» до конца забега, как у пилы.
+  private crowdDecayTimer: number | null = null;
+  private static readonly CROWD_CHEER_DECAY_MS = 2200;
 
   private constructor() {
     // Lazy initialize on first user interaction
@@ -80,13 +85,25 @@ export class SoundEngine {
     }
   }
 
-  public playSound(effect: SoundEffect, pitchShift: number = 1.0): void {
+  public playSound(effect: SoundEffect, pitchShift: number = 1.0, volume: number = 1.0): void {
     if (!this.ctx || this.isMuted) return;
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
 
     const t = this.ctx.currentTime;
+
+    // Выходной узел с аттенюацией громкости (для пространственных звуков препятствий).
+    // Если volume == 1 — звук идёт напрямую в sfxGain, без лишнего узла (0-GC).
+    const outGain: GainNode =
+      volume >= 1
+        ? this.sfxGain!
+        : (() => {
+            const g = this.ctx!.createGain();
+            g.gain.value = Math.max(0.0001, volume);
+            g.connect(this.sfxGain!);
+            return g;
+          })();
 
     switch (effect) {
       case 'footstep': {
@@ -101,7 +118,7 @@ export class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
 
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.05);
         break;
@@ -120,7 +137,7 @@ export class SoundEngine {
           gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.07 + 0.25);
 
           osc.connect(gain);
-          gain.connect(this.sfxGain!);
+          gain.connect(outGain);
           osc.start(t + idx * 0.07);
           osc.stop(t + idx * 0.07 + 0.25);
         });
@@ -140,7 +157,7 @@ export class SoundEngine {
           gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.05 + 0.35);
 
           osc.connect(gain);
-          gain.connect(this.sfxGain!);
+          gain.connect(outGain);
           osc.start(t + idx * 0.05);
           osc.stop(t + idx * 0.05 + 0.35);
         });
@@ -159,7 +176,7 @@ export class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
 
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.2);
         break;
@@ -177,7 +194,7 @@ export class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
 
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.08);
         break;
@@ -195,7 +212,7 @@ export class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
 
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.12);
         break;
@@ -213,7 +230,7 @@ export class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
 
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.25);
         break;
@@ -231,7 +248,7 @@ export class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
 
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.15);
         break;
@@ -247,7 +264,7 @@ export class SoundEngine {
         gain.gain.setValueAtTime(0.2, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.3);
         break;
@@ -273,7 +290,7 @@ export class SoundEngine {
 
         osc.connect(filter);
         filter.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.7);
         break;
@@ -291,7 +308,7 @@ export class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
 
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.9);
         break;
@@ -309,7 +326,7 @@ export class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
 
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.5);
         break;
@@ -327,7 +344,7 @@ export class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
 
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.3);
         break;
@@ -347,7 +364,7 @@ export class SoundEngine {
           gain.gain.exponentialRampToValueAtTime(0.001, start + 0.12);
 
           osc.connect(gain);
-          gain.connect(this.sfxGain!);
+          gain.connect(outGain);
           osc.start(start);
           osc.stop(start + 0.12);
         }
@@ -371,7 +388,7 @@ export class SoundEngine {
           gain.gain.exponentialRampToValueAtTime(0.001, start + 0.45);
 
           osc.connect(gain);
-          if (sfx) gain.connect(sfx);
+          if (sfx) gain.connect(outGain);
           osc.start(start);
           osc.stop(start + 0.45);
         });
@@ -389,7 +406,7 @@ export class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
 
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.15);
         break;
@@ -407,7 +424,7 @@ export class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
 
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.25);
         break;
@@ -428,7 +445,7 @@ export class SoundEngine {
           gain.gain.exponentialRampToValueAtTime(0.001, noteStart + noteDur);
 
           osc.connect(gain);
-          gain.connect(this.sfxGain!);
+          gain.connect(outGain);
           osc.start(noteStart);
           osc.stop(noteStart + noteDur);
         });
@@ -449,7 +466,7 @@ export class SoundEngine {
           gain.gain.exponentialRampToValueAtTime(0.001, noteStart + 0.35);
 
           osc.connect(gain);
-          gain.connect(this.sfxGain!);
+          gain.connect(outGain);
           osc.start(noteStart);
           osc.stop(noteStart + 0.35);
         });
@@ -467,7 +484,7 @@ export class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
 
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.04);
         break;
@@ -483,7 +500,7 @@ export class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
 
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.2);
         break;
@@ -501,7 +518,7 @@ export class SoundEngine {
           gain.gain.setValueAtTime(0.22, start);
           gain.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
           osc.connect(gain);
-          gain.connect(this.sfxGain!);
+          gain.connect(outGain);
           osc.start(start);
           osc.stop(start + 0.18);
         });
@@ -518,7 +535,7 @@ export class SoundEngine {
         gain.gain.setValueAtTime(0.16, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.14);
         break;
@@ -534,7 +551,7 @@ export class SoundEngine {
         gain.gain.setValueAtTime(0.2, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.4);
         break;
@@ -550,7 +567,7 @@ export class SoundEngine {
         gain.gain.setValueAtTime(0.18, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.1);
         break;
@@ -568,7 +585,7 @@ export class SoundEngine {
           gain.gain.setValueAtTime(0.22, start);
           gain.gain.exponentialRampToValueAtTime(0.001, start + 0.25);
           osc.connect(gain);
-          gain.connect(this.sfxGain!);
+          gain.connect(outGain);
           osc.start(start);
           osc.stop(start + 0.25);
         });
@@ -587,7 +604,7 @@ export class SoundEngine {
           gain.gain.setValueAtTime(0.18, start);
           gain.gain.exponentialRampToValueAtTime(0.001, start + 0.22);
           osc.connect(gain);
-          gain.connect(this.sfxGain!);
+          gain.connect(outGain);
           osc.start(start);
           osc.stop(start + 0.22);
         });
@@ -604,7 +621,7 @@ export class SoundEngine {
         gain.gain.setValueAtTime(0.22, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.25);
         break;
@@ -620,7 +637,7 @@ export class SoundEngine {
         gain.gain.setValueAtTime(0.35, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.7);
 
@@ -662,7 +679,7 @@ export class SoundEngine {
         gain.gain.setValueAtTime(0.15, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.08);
         break;
@@ -678,7 +695,7 @@ export class SoundEngine {
         gain.gain.setValueAtTime(0.4, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
         osc.connect(gain);
-        gain.connect(this.sfxGain!);
+        gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.35);
 
@@ -785,6 +802,15 @@ export class SoundEngine {
 
     const clamped = Math.max(0, Math.min(1, intensity));
 
+    // Сбрасываем таймер авто-затухания при каждом вызове.
+    if (this.crowdDecayTimer !== null) {
+      clearTimeout(this.crowdDecayTimer);
+    }
+    this.crowdDecayTimer = window.setTimeout(() => {
+      this.crowdDecayTimer = null;
+      this.stopCrowdCheer();
+    }, SoundEngine.CROWD_CHEER_DECAY_MS);
+
     // Если звук уже играет — просто обновляем громкость (throttle).
     // Приглушённый фоновый шум стадиона, чтобы не перекрикивать музыку и SFX.
     if (this.crowdGain && this.crowdNoiseSource) {
@@ -890,6 +916,11 @@ export class SoundEngine {
   public stopCrowdCheer(): void {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
+
+    if (this.crowdDecayTimer !== null) {
+      clearTimeout(this.crowdDecayTimer);
+      this.crowdDecayTimer = null;
+    }
 
     if (this.crowdGain) {
       // Плавно затухаем, чтобы не было щелчка.

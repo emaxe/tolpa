@@ -138,6 +138,24 @@ export class ObstacleManager {
     vis.hazardD = d;
   }
 
+  /**
+   * Громкость звука препятствия в зависимости от расстояния до толпы (0..1).
+   * - Препятствия ПОЗАДИ толпы (leaderZ уже прошла мимо) → 0 (звука нет).
+   * - Впереди в радиусе PROX_RADIUS → громкость растёт линейно с приближением,
+   *   максимум при |dz| < 4 (прямо перед толпой).
+   * Используется для всех SFX, связанных с препятствиями, чтобы ушедшие за спину
+   * объекты не продолжали звучать.
+   */
+  private proximityVolume(obsZ: number, leaderZ: number): number {
+    const dz = obsZ - leaderZ;
+    if (dz < -1) return 0; // позади (или вплотную сзади) — тишина
+    const PROX_RADIUS = 26;
+    if (dz > PROX_RADIUS) return 0;
+    const near = 4;
+    if (dz <= near) return 1;
+    return Math.max(0, Math.min(1, 1 - (dz - near) / (PROX_RADIUS - near)));
+  }
+
   public initObstacles(obsData: ObstacleData[], coinData: CoinData[]): void {
     this.clear();
     this.appendObstacles(obsData, coinData);
@@ -321,7 +339,6 @@ export class ObstacleManager {
       // Check collision with crowd
       this.checkObstacleCollision(obsVis, crowd, particles);
     });
-
     // 2. Update and check coins
     const crowdLeaderX = crowd.leaderX;
     const crowdLeaderZ = crowd.leaderZ;
@@ -448,15 +465,19 @@ export class ObstacleManager {
 
     const obs = obsVis.data;
 
+    // Громкость звуков препятствия зависит от расстояния до толпы:
+    // позади толпы (уже пройдено) — тишина, впереди — растёт с приближением.
+    const vol = this.proximityVolume(obs.z, crowd.leaderZ);
+
     // Кастомная обработка для бомбы (AoE детонация)
     if (obs.type === 'bomb') {
-      this.resolveBomb(obsVis, crowd, particles);
+      this.resolveBomb(obsVis, crowd, particles, vol);
       return;
     }
 
     // Кастомная обработка для кибер-собаки (атака 1 моба с кулдауном)
     if (obs.type === 'guard_dog') {
-      this.resolveDog(obsVis, crowd, particles);
+      this.resolveDog(obsVis, crowd, particles, vol);
       return;
     }
 
@@ -489,7 +510,7 @@ export class ObstacleManager {
           // Сломать препятствие!
           obs.isDead = true;
           this.scene.remove(obsVis.mesh);
-          soundEngine.playSound('obstacle_smash');
+          if (vol > 0) soundEngine.playSound('obstacle_smash', 1, vol);
           particles.emitBurst(obs.x, 1.0, obs.z, 30, 0xf97316, 6.0);
           stateManager.runRecordObstacleSmash();
           eventBus.emit('obstacleSmashed', { type: obs.type, x: obs.x, z: obs.z });
@@ -508,7 +529,7 @@ export class ObstacleManager {
 
     if (anyHit) {
       // Звук смерти и лёгкая тряска камеры. Никакого hitCooldown — каждый коснувшийся гибнет.
-      soundEngine.playSound('mob_death');
+      if (vol > 0) soundEngine.playSound('mob_death', 1, vol);
       eventBus.emit('screenShake', { intensity: 0.3 });
     }
   }
@@ -516,7 +537,8 @@ export class ObstacleManager {
   private resolveBomb(
     vis: ObstacleVisual,
     crowd: CrowdManager,
-    particles: ParticleSystem
+    particles: ParticleSystem,
+    vol: number
   ): void {
     if (vis.exploded || vis.data.isDead) return;
     const obs = vis.data;
@@ -543,7 +565,7 @@ export class ObstacleManager {
         obs.isDead = true;
         vis.exploded = true;
         this.scene.remove(vis.mesh);
-        soundEngine.playSound('obstacle_smash');
+        if (vol > 0) soundEngine.playSound('obstacle_smash', 1, vol);
         particles.emitBurst(obs.x, 1.0, obs.z, 35, 0xf97316, 6.5);
         stateManager.runRecordObstacleSmash();
         eventBus.emit('obstacleSmashed', { type: obs.type, x: obs.x, z: obs.z });
@@ -569,7 +591,7 @@ export class ObstacleManager {
     obs.isDead = true;
     this.scene.remove(vis.mesh);
 
-    soundEngine.playSound('bomb_explode');
+    if (vol > 0) soundEngine.playSound('bomb_explode', 1, vol);
     particles.emitBurst(obs.x, 1.0, obs.z, 50, 0xff4400, 8.5, 3.0);
     eventBus.emit('screenShake', { intensity: 0.7 });
 
@@ -587,7 +609,8 @@ export class ObstacleManager {
   private resolveDog(
     vis: ObstacleVisual,
     crowd: CrowdManager,
-    particles: ParticleSystem
+    particles: ParticleSystem,
+    vol: number
   ): void {
     if (vis.data.isDead) return;
     const obs = vis.data;
@@ -613,7 +636,7 @@ export class ObstacleManager {
       if (touched) {
         obs.isDead = true;
         this.scene.remove(vis.mesh);
-        soundEngine.playSound('obstacle_smash');
+        if (vol > 0) soundEngine.playSound('obstacle_smash', 1, vol);
         particles.emitBurst(obs.x, 1.0, obs.z, 30, 0xa855f7, 6.0);
         stateManager.runRecordObstacleSmash();
         eventBus.emit('obstacleSmashed', { type: obs.type, x: obs.x, z: obs.z });
@@ -643,7 +666,7 @@ export class ObstacleManager {
     crowd.killMobById(nearest.id);
     vis.attackCooldown = 0.9;
     this.playDeathEffect(obs, nearest.x, 0.8, nearest.z, particles);
-    soundEngine.playSound('dog_snap');
+    if (vol > 0) soundEngine.playSound('dog_snap', 1, vol);
     eventBus.emit('screenShake', { intensity: 0.25 });
   }
 
