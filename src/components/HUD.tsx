@@ -3,10 +3,11 @@ import { FormationType } from '../types/game';
 import { i18n } from '../core/Localization';
 import { stateManager } from '../core/StateManager';
 import { eventBus } from '../core/EventBus';
-import { Zap, Users, Shield, ArrowUp, MoveHorizontal, CircleDot, Pause, Skull, TriangleAlert, Route } from 'lucide-react';
+import { Zap, Users, Coins, Shield, ArrowUp, MoveHorizontal, CircleDot, Pause, Skull, TriangleAlert, Route } from 'lucide-react';
 
 interface HUDProps {
   crowdCount: number;
+  coinCount: number; // Собранные за текущий забег монеты (живой счётчик)
   levelNumber: number;
   isEndless?: boolean;
   onPause: () => void;
@@ -30,6 +31,7 @@ interface HUDProps {
 
 export const HUD: React.FC<HUDProps> = ({
   crowdCount,
+  coinCount,
   levelNumber,
   isEndless = false,
   onPause,
@@ -120,6 +122,19 @@ export const HUD: React.FC<HUDProps> = ({
               <Users className="w-5 h-5 text-cyan-400 animate-pulse" />
               <span className="text-2xl font-bold font-orbitron text-white">
                 {crowdCount}
+              </span>
+            </div>
+          </div>
+
+          {/* Live Run Coins Badge — собранные за забег монеты (сырое значение, без множителя экономики) */}
+          <div className="bg-slate-900/80 backdrop-blur-md border border-amber-500/40 rounded-xl px-4 py-2 shadow-lg shadow-amber-950/50">
+            <span className="text-xs uppercase text-amber-400 font-orbitron tracking-wider">
+              {i18n.t('coins')}
+            </span>
+            <div className="flex items-center gap-2 mt-0.5">
+              <Coins className="w-5 h-5 text-amber-400" />
+              <span className="text-2xl font-bold font-orbitron text-amber-300">
+                {coinCount.toLocaleString()}
               </span>
             </div>
           </div>

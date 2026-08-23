@@ -387,6 +387,12 @@ export class StateManager {
     return this.run;
   }
 
+  /** Суммарное число монет, собранных в текущем активном забеге (трасса + награда за босса).
+   *  Сырое значение ДО множителя экономики (incomeMultiplier применяется в commitRun). */
+  public getRunCoins(): number {
+    return this.run ? this.run.coins + this.run.bossCoins : 0;
+  }
+
   public runAddCoins(amount: number): void {
     if (this.run) this.run.coins += amount;
   }

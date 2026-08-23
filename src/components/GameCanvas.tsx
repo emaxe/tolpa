@@ -20,6 +20,7 @@ interface GameCanvasProps {
 
 const EMPTY_SNAPSHOT: HudSnapshot = {
   crowd: 1,
+  coins: 0,
   isHyper: false,
   adrenalineCharge: 0,
   progress: 0,
@@ -134,6 +135,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       {/* In-game HUD */}
       <HUD
         crowdCount={hud.crowd}
+        coinCount={hud.coins}
         levelNumber={levelNumber}
         isEndless={isEndless}
         onPause={onPauseButton}

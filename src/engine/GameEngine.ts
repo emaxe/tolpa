@@ -16,6 +16,7 @@ import { createHumanoidGeometry } from '../utils/proceduralMeshes';
 
 export interface HudSnapshot {
   crowd: number;
+  coins: number; // Собранные за текущий забег монеты (трасса + боссы), сырое значение
   isHyper: boolean;
   adrenalineCharge: number; // 0..100
   progress: number; // 0..1 дистанции до финиша
@@ -1619,6 +1620,7 @@ export class GameEngine {
     const bossArenaZ = this.currentLevel?.boss ? this.currentLevel.trackLength - 20 : -1;
     return {
       crowd: this.crowd.getAliveCount(),
+      coins: stateManager.getRunCoins(),
       isHyper: this.crowd.isHyperMode,
       adrenalineCharge: this.adrenalineCharge,
       progress: this.isEndless ? 0 : clamp(this.crowd.leaderZ / len, 0, 1),
