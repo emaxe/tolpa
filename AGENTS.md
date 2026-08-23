@@ -2,6 +2,8 @@
 
 > **Purpose**: This guide provides AI agents and pair-programming assistants with full architectural context, coordinate systems, mathematical models, design patterns, physics rules, and conventions for modifying or expanding the **TOLPA (Crowd Evolution 3D: Cyber Legion)** codebase.
 
+> **Global rules for AI agents:** `~/.hermes/agents/rules.md` (code style, Russian comments, zero-asset/WebAudio, commits, host limits, model selection, fallback). Here — only this project's specifics. Cascade: global rules → this file → call instruction.
+
 ---
 
 ## 1. Project Overview & Tech Stack
