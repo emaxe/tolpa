@@ -480,14 +480,39 @@ export class CrowdManager {
     return killed;
   }
 
-  /** Делит ТОЛЬКО группу створки на divisor (убивает лишних из группы). */
-  public divideMobsGroup(group: MobInstance[], divisor: number): number {
-    if (divisor <= 1) return 0;
+  /** «Разделить ÷N»: из мобов, прошедших ворота, пропускается каждый N-й (по очереди),
+   *  остальные убираются. Например ÷2 → каждый второй проходит, ÷3 → каждый третий.
+   *  Возвращает число убранных. divisor — целое >= 2. */
+  public divideMobsByStep(group: MobInstance[], divisor: number, reason: string = 'gate'): number {
+    if (divisor < 2) return 0;
     const alive = group.filter((m) => m.alive);
-    const target = Math.max(1, Math.floor(alive.length / divisor));
-    const toKill = alive.length - target;
-    if (toKill <= 0) return 0;
-    return this.killMobsFromGroup(alive, toKill, 'gate');
+    if (alive.length <= 1) return 0;
+    const toRemove: MobInstance[] = [];
+    // Счётчик: 1,2,...,N — пропускаем, когда счётчик достигает N (каждый N-й проходит).
+    let step = 0;
+    for (const mob of alive) {
+      step++;
+      if (step === divisor) {
+        step = 0; // этот моб проходит — сбрасываем отсчёт
+      } else {
+        toRemove.push(mob); // не N-й — убираем
+      }
+    }
+    if (toRemove.length === 0) return 0;
+    return this.killMobsFromGroup(toRemove, toRemove.length, reason);
+  }
+
+  /** Убивает ровно одного моба из группы (для стены со счётчиком −N). Возвращает true,
+   *  если кого-то убрали. Стена вызывает это по мере прохода каждого моба. */
+  public killOneFromGroup(group: MobInstance[], reason: string = 'wall'): boolean {
+    if (this.isHyperMode) return false;
+    const alive = group.filter((m) => m.alive);
+    if (alive.length === 0) return false;
+    const defenseAuraLvl = stateManager.getState().upgrades.defenseAura;
+    const damageReduction = defenseAuraLvl * 0.1;
+    const finalCount = Math.max(1, Math.round(1 * (1 - damageReduction)));
+    const killed = this.killMobsFromGroup(alive, finalCount, reason);
+    return killed > 0;
   }
 
   public update(dt: number, speed: number, steerInput: number, trackWidth: number): void {

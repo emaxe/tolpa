@@ -2,6 +2,8 @@ import {
   BiomeType,
   LevelConfig,
   GateData,
+  WallData,
+  GateMotion,
   BonusData,
   BonusType,
   ObstacleData,
@@ -68,6 +70,7 @@ export class LevelGenerator {
     const isBossLevel = levelNum % 10 === 0;
 
     const rawGates: GateData[] = [];
+    const rawWalls: WallData[] = [];
     const rawObstacles: ObstacleData[] = [];
     const coins: CoinData[] = [];
     const bonuses: BonusData[] = [];
@@ -77,84 +80,99 @@ export class LevelGenerator {
     const targetMobsToWin = Math.min(100, 8 + Math.floor(levelNum * 1.8));
 
     // -------------------------------------------------------------
-    // ЭТАП 3: ТАКТИЧЕСКИЕ ВОРОТА (только арифметика +−×÷, без условных/мистери/адреналина)
+    // ЭТАП 3: НЕЗАВИСИМЫЕ ВОРОТА (add/multiply/divide) и СТЕНЫ (−N со счётчиком)
     // -------------------------------------------------------------
+    // Ворота теперь независимые: 1..3 на ряд, могут быть уступами, занимать часть ширины
+    // или всю, и могут двигаться/вращаться. Операции только позитивные (add/multiply/divide).
+    // subtract (−N) вынесен в отдельные стены со счётчиком.
+    const motionTypes: GateMotion[] = ['none', 'none', 'none', 'horizontal', 'vertical', 'rotate'];
     const gateCount = Math.min(40, 16 + Math.floor(levelNum / 2));
     const baseGateSpacing = (trackLength - 120) / Math.max(1, gateCount);
 
     let currentGateZ = 32;
     for (let g = 0; g < gateCount; g++) {
-      const z = g === 0
-        ? 32 + rng() * 2
-        : currentGateZ + baseGateSpacing + (rng() * 4 - 2);
+      const z = g === 0 ? 32 + rng() * 2 : currentGateZ + baseGateSpacing + (rng() * 4 - 2);
       currentGateZ = z;
 
-      const gateId = `gate_${levelNum}_${g}`;
-      const phase = this.getPhaseInfo(z, trackLength);
-      // Множитель >= 2, чтобы multiply всегда давал прирост (дробная часть даёт шанс на
-      // дополнительного моба). Падал до 1.4 раньше — ворота "не срабатывали".
-      const multVal = Math.max(2.0, 2.4 - levelNum * 0.015);
-      const subVal = Math.max(3, 5 + Math.floor(rng() * 8) - Math.floor(levelNum * 0.15));
-      const addVal = 6 + Math.floor(rng() * 8) + Math.floor(levelNum * 0.12);
+      const addVal = Math.max(3, Math.round(6 + Math.floor(rng() * 8) + Math.floor(levelNum * 0.12)));
+      const multVal = Math.max(2, Math.round(2.2 - levelNum * 0.015)); // целое, >=2
+      const divVal = 2 + Math.floor(rng() * 2); // 2 или 3
 
-      let leftOp: GateOp = 'add';
-      let leftVal = addVal;
-      let rightOp: GateOp = 'multiply';
-      let rightVal = multVal;
-
-      if (g === 0 || g === 1) {
-        // Обучающие ворота: безопасная пара (add + multiply)
-        leftOp = 'add';
-        leftVal = 8 + Math.floor(rng() * 8);
-        rightOp = 'multiply';
-        rightVal = multVal;
+      // Выбор операции: на старте безопасные add/multiply, дальше может быть divide.
+      let op: GateOp;
+      let value: number;
+      if (g < 2) {
+        op = 'add';
+        value = addVal;
       } else {
-        // Фазовое распределение только арифметических операций
-        const rand = rng();
-        const opPair = (): [GateOp, number, GateOp, number] => {
-          const table: [GateOp, number, GateOp, number][] = [
-            ['add', addVal, 'multiply', multVal],
-            ['multiply', multVal, 'add', addVal],
-            ['add', addVal, 'subtract', subVal],
-            ['subtract', subVal, 'add', addVal],
-            ['multiply', multVal, 'subtract', subVal],
-            ['subtract', subVal, 'multiply', multVal],
-            ['divide', 2, 'add', addVal],
-            ['add', addVal, 'divide', 2],
-            ['multiply', multVal, 'divide', 2],
-            ['divide', 2, 'multiply', multVal],
-          ];
-          const idx = Math.floor(rand * table.length) % table.length;
-          return table[idx];
-        };
-        const [lo, lv, ro, rv] = opPair();
-        leftOp = lo;
-        leftVal = lv;
-        rightOp = ro;
-        rightVal = rv;
+        const r = rng();
+        if (r < 0.45) { op = 'add'; value = addVal; }
+        else if (r < 0.75) { op = 'multiply'; value = multVal; }
+        else { op = 'divide'; value = divVal; }
       }
 
-      // Гарантия выбора створки: створки не дублируются
-      if (leftOp === rightOp) {
-        rightOp = leftOp === 'multiply' ? 'add' : 'multiply';
-        rightVal = rightOp === 'multiply' ? multVal : addVal;
+      // 1..3 ворот на ряд уступами: каждое занимает часть ширины, расставляем по X.
+      const rowCount = 1 + Math.floor(rng() * 3); // 1..3
+      const slot = g % 3;
+      const totalWidth = trackWidth - 2.4;
+      let x: number;
+      let width: number;
+      if (rowCount === 1) {
+        x = (rng() * 2 - 1) * (trackWidth / 2 - 3);
+        width = 3.5 + rng() * 4;
+      } else {
+        const segW = totalWidth / rowCount;
+        x = -totalWidth / 2 + segW * (slot + 0.5);
+        width = Math.min(segW - 0.6, 4.2);
       }
+      // Не даём воротам выйти за трассу.
+      x = Math.max(-(trackWidth / 2 - width / 2 - 0.4), Math.min(trackWidth / 2 - width / 2 - 0.4, x));
+
+      const motion = motionTypes[Math.floor(rng() * motionTypes.length)];
+      const motionSpeed = motion === 'none' ? 0 : 0.8 + rng() * 1.0;
+      const motionRange = motion === 'horizontal' || motion === 'vertical'
+        ? 1.2 + rng() * 1.6
+        : motion === 'rotate' ? 0.5 + rng() * 0.6 : 0;
 
       rawGates.push({
-        id: gateId,
+        id: `gate_${levelNum}_${g}`,
         z,
-        xLeft: -trackWidth / 4,
-        xRight: trackWidth / 4,
-        width: trackWidth / 2 - 0.4,
-        leftOp,
-        leftVal,
-        rightOp,
-        rightVal,
+        x,
+        width,
+        op,
+        value,
+        motion,
+        motionSpeed,
+        motionRange,
       });
     }
 
-    // Строгое упорядочение ворот по Z
+    // СТЕНЫ (−N со счётчиком): появляются с уровня 3, не на старте и не впритык к воротам.
+    const wallCount = levelNum >= 3 ? Math.min(12, 2 + Math.floor(levelNum / 8)) : 0;
+    for (let w = 0; w < wallCount; w++) {
+      const wallZ = 80 + w * ((trackLength - 160) / Math.max(1, wallCount)) + (rng() * 8 - 4);
+      // Не ставим стену вплотную к воротам и к босс-арене.
+      if (Math.abs(wallZ - currentGateZ) < 8) continue;
+      if (wallZ > trackLength - 60) continue;
+      const wallWidth = Math.min(trackWidth - 2.4, 3.5 + rng() * 3.5);
+      const wallX = (rng() * 2 - 1) * (trackWidth / 2 - wallWidth / 2 - 0.4);
+      rawWalls.push({
+        id: `wall_${levelNum}_${w}`,
+        z: wallZ,
+        x: wallX,
+        width: wallWidth,
+        count: 5 + Math.floor(rng() * 6) + Math.floor(levelNum * 0.25),
+        killsRemaining: 0, // перезапишем ниже одним значением
+      });
+    }
+    // Синхронизируем killsRemaining = count одним числом (два отдельных rng давали разные значения).
+    for (const w of rawWalls) {
+      w.killsRemaining = w.count;
+    }
+
+    // Строгое упорядочение ворот и стен по Z
     rawGates.sort((a, b) => a.z - b.z);
+    rawWalls.sort((a, b) => a.z - b.z);
 
     // -------------------------------------------------------------
     // ЭТАП 2: РИТМ УРОВНЯ, ПАТТЕРНЫ ПРЕПЯТСТВИЙ И SAFE CORRIDORS
@@ -489,6 +507,7 @@ export class LevelGenerator {
       startingMobs,
       targetMobsToWin,
       gates,
+      walls: rawWalls,
       bonuses,
       obstacles,
       coins,
@@ -777,6 +796,7 @@ export class LevelGenerator {
     currentZ: number
   ): {
     gates: GateData[];
+    walls: WallData[];
     bonuses: BonusData[];
     obstacles: ObstacleData[];
     coins: CoinData[];
@@ -784,6 +804,7 @@ export class LevelGenerator {
   } {
     const length = 120;
     const rawGates: GateData[] = [];
+    const rawWalls: WallData[] = [];
     const rawObstacles: ObstacleData[] = [];
     const coins: CoinData[] = [];
     const bonuses: BonusData[] = [];
@@ -793,52 +814,57 @@ export class LevelGenerator {
     // Детерминированный PRNG для бесконечного режима
     const rng = createRng(segmentIndex * 7919 + 9973);
 
-    // 2-3 Ворот в сегменте (только арифметика +−×÷)
+    // 2-3 независимых ворот в сегменте (add/multiply/divide)
+    const motionTypes: GateMotion[] = ['none', 'none', 'none', 'horizontal', 'vertical', 'rotate'];
     const gateCount = 2 + (rng() < 0.5 ? 1 : 0);
     const gateSpacing = (length - 40) / Math.max(1, gateCount);
     for (let i = 0; i < gateCount; i++) {
       const z = currentZ + 20 + i * gateSpacing + (rng() * 4 - 2);
-      const leftIsMult = rng() < 0.5;
-      const leftOp: GateOp = leftIsMult ? 'multiply' : 'add';
-      const leftVal = leftIsMult ? 2.0 : 10 + Math.floor(rng() * 8);
+      const r = rng();
+      let op: GateOp;
+      let value: number;
+      if (r < 0.45) { op = 'add'; value = 10 + Math.floor(rng() * 8); }
+      else if (r < 0.75) { op = 'multiply'; value = 2 + Math.floor(rng() * 2); }
+      else { op = 'divide'; value = 2 + Math.floor(rng() * 2); }
 
-      let rightOp: GateOp;
-      let rightVal = 0;
-      const randR = rng();
-      if (randR < 0.35) {
-        rightOp = leftOp === 'add' ? 'multiply' : 'add';
-        rightVal = rightOp === 'multiply' ? 2.0 : 12;
-      } else if (randR < 0.65) {
-        rightOp = 'subtract';
-        rightVal = 5 + Math.floor(rng() * 6);
-      } else if (randR < 0.82) {
-        rightOp = 'divide';
-        rightVal = 2;
-      } else {
-        rightOp = 'multiply';
-        rightVal = 2.0;
-      }
+      // Ширина и позиция ворот.
+      const width = Math.min(4.5, 2.5 + rng() * 2.5);
+      const x = Math.max(-(trackWidth / 2 - width / 2 - 0.4), Math.min(trackWidth / 2 - width / 2 - 0.4, (rng() * 2 - 1) * (trackWidth / 2 - 2)));
 
-      if (rightOp === leftOp) {
-        rightOp = leftOp === 'add' ? 'multiply' : 'add';
-        rightVal = rightOp === 'multiply' ? 2.0 : 8;
-      }
+      const motion = motionTypes[Math.floor(rng() * motionTypes.length)];
+      const motionSpeed = motion === 'none' ? 0 : 0.8 + rng() * 1.0;
+      const motionRange = motion === 'horizontal' || motion === 'vertical'
+        ? 1.0 + rng() * 1.4
+        : motion === 'rotate' ? 0.4 + rng() * 0.5 : 0;
 
       rawGates.push({
         id: `endless_gate_${segmentIndex}_${i}`,
         z,
-        xLeft: -trackWidth / 4,
-        xRight: trackWidth / 4,
-        width: trackWidth / 2 - 0.4,
-        leftOp,
-        leftVal,
-        rightOp,
-        rightVal,
+        x,
+        width,
+        op,
+        value,
+        motion,
+        motionSpeed,
+        motionRange,
       });
     }
 
     rawGates.sort((a, b) => a.z - b.z);
     const gates = rawGates;
+
+    // 1 стена (−N со счётчиком) в сегменте.
+    const wallZ = currentZ + 30 + rng() * (length - 50);
+    const wallWidth = Math.min(trackWidth - 2.4, 3.5 + rng() * 3.5);
+    const wallCount = 5 + Math.floor(rng() * 6);
+    rawWalls.push({
+      id: `endless_wall_${segmentIndex}`,
+      z: wallZ,
+      x: (rng() * 2 - 1) * (trackWidth / 2 - wallWidth / 2 - 0.4),
+      width: wallWidth,
+      count: wallCount,
+      killsRemaining: wallCount,
+    });
 
     // 4-5 Препятствий в сегменте
     const endlessTypes: ObstacleType[] = [
@@ -962,6 +988,6 @@ export class LevelGenerator {
       });
     }
 
-    return { gates, bonuses, obstacles, coins, length };
+    return { gates, walls: rawWalls, bonuses, obstacles, coins, length };
   }
 }

@@ -4,7 +4,6 @@ import { BiomeType, BossData, GateData } from '../types/game';
 // Canvas texture generator for Math Gates
 export function createGateTexture(
   gate: GateData,
-  side: 'left' | 'right',
   _theme: BiomeType = 'cyber_city'
 ): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -12,23 +11,20 @@ export function createGateTexture(
   canvas.height = 512;
   const ctx = canvas.getContext('2d')!;
 
-  const op = side === 'left' ? gate.leftOp : gate.rightOp;
-  const val = side === 'left' ? gate.leftVal : gate.rightVal;
+  const op = gate.op;
+  const val = gate.value;
 
   const isPositive = op === 'add' || op === 'multiply';
-  const isDanger = op === 'subtract' || op === 'divide';
+  const isDanger = op === 'divide';
 
   // Base background gradient
   const bgGrad = ctx.createLinearGradient(0, 0, 0, 512);
   if (isPositive) {
     bgGrad.addColorStop(0, 'rgba(6, 182, 212, 0.85)'); // Cyan / Blue
     bgGrad.addColorStop(1, 'rgba(16, 185, 129, 0.75)'); // Emerald
-  } else if (isDanger) {
+  } else {
     bgGrad.addColorStop(0, 'rgba(239, 68, 68, 0.85)'); // Crimson Red
     bgGrad.addColorStop(1, 'rgba(185, 28, 28, 0.75)');
-  } else {
-    bgGrad.addColorStop(0, 'rgba(168, 85, 247, 0.85)'); // Purple Mystery
-    bgGrad.addColorStop(1, 'rgba(126, 34, 206, 0.75)');
   }
 
   ctx.fillStyle = bgGrad;
@@ -36,7 +32,7 @@ export function createGateTexture(
 
   // Outer glowing border
   ctx.lineWidth = 24;
-  ctx.strokeStyle = isPositive ? '#67e8f9' : isDanger ? '#fca5a5' : '#f472b6';
+  ctx.strokeStyle = isPositive ? '#67e8f9' : '#fca5a5';
   ctx.strokeRect(12, 12, 488, 488);
 
   // Tech grid lines
@@ -55,10 +51,9 @@ export function createGateTexture(
   ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
   ctx.shadowBlur = 12;
 
-  // Normal Math gate: +10, ×2, −5, ÷2
+  // Math gate: +N, ×N, ÷N (все целые)
   let symbol = '+';
   if (op === 'multiply') symbol = '×';
-  if (op === 'subtract') symbol = '−';
   if (op === 'divide') symbol = '÷';
 
   ctx.fillStyle = '#ffffff';
@@ -67,7 +62,50 @@ export function createGateTexture(
 
   ctx.font = 'bold 44px Orbitron, sans-serif';
   ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-  ctx.fillText(isPositive ? 'БОНУС' : 'ОПАСНОСТЬ', 256, 380);
+  ctx.fillText(isPositive ? 'БОНУС' : 'КВОТА', 256, 380);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
+
+// Текстура стены со счётчиком: −N, где N — сколько мобов надо убить, пока стена не падёт.
+export function createWallTexture(count: number): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d')!;
+
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, 512);
+  bgGrad.addColorStop(0, 'rgba(185, 28, 28, 0.9)');
+  bgGrad.addColorStop(1, 'rgba(127, 29, 29, 0.85)');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Красный контур.
+  ctx.lineWidth = 24;
+  ctx.strokeStyle = '#fca5a5';
+  ctx.strokeRect(12, 12, 488, 488);
+
+  // Внутренние «плашки» — стена-шлагбаум.
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  for (let y = 60; y < 512; y += 100) {
+    ctx.fillRect(40, y, 432, 28);
+  }
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,0,0,0.9)';
+  ctx.shadowBlur = 12;
+
+  // Большой «−N» (сколько мобов сожрёт).
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 150px Orbitron, sans-serif';
+  ctx.fillText(`−${count}`, 256, 240);
+
+  ctx.font = 'bold 46px Orbitron, sans-serif';
+  ctx.fillStyle = '#fca5a5';
+  ctx.fillText('СТЕНА', 256, 380);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;

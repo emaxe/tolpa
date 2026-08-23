@@ -2,7 +2,13 @@ export type MobType = 'regular' | 'tank' | 'ninja' | 'mage';
 
 export type FormationType = 'wedge' | 'wide' | 'circle' | 'arrow' | 'oval';
 
-export type GateOp = 'add' | 'multiply' | 'subtract' | 'divide';
+// Ворота применяют только позитивные операции к толпе (целые числа).
+// subtract (−N) вынесен в отдельные СТЕНЫ (см. WallData) со счётчиком.
+export type GateOp = 'add' | 'multiply' | 'divide';
+
+// Тип движения ворот: могут стоять, ездить влево/вправо, подниматься/опускаться,
+// вращаться — или комбинироваться.
+export type GateMotion = 'none' | 'horizontal' | 'vertical' | 'rotate';
 
 // Бонусы — собираемые светящиеся объекты (сферы/звёзды). В отличие от ворот,
 // они не привязаны к арифметике толпы: это одноразовые подбираемые бусты.
@@ -18,17 +24,30 @@ export interface BonusData {
   collected?: boolean;
 }
 
+// Независимые ворота: НЕ пара створок, а одно ворото на своей позиции.
+// Могут стоять, двигаться, вращаться. Применяют одну операцию к проходящим.
 export interface GateData {
   id: string;
   z: number;
-  xLeft: number;
-  xRight: number;
-  width: number;
-  leftOp: GateOp;
-  leftVal: number;
-  rightOp: GateOp;
-  rightVal: number;
+  x: number;        // центр ворот по X
+  width: number;    // ширина проёма (может занимать всю трассу или часть)
+  op: GateOp;
+  value: number;    // целое значение (add:+N, multiply:×N, divide:÷N)
+  motion: GateMotion;
+  motionSpeed: number; // скорость движения/вращения
+  motionRange: number; // размах движения по X (horizontal) или Y (vertical), для rotate — не используется
   passed?: boolean;
+}
+
+// Стена со счётчиком: убивает ровно `count` мобов, затем падает.
+export interface WallData {
+  id: string;
+  z: number;
+  x: number;
+  width: number;
+  count: number;      // сколько мобов должна убить, пока не упадёт
+  killsRemaining: number; // текущий остаток счётчика
+  destroyed?: boolean;
 }
 
 export type ObstacleType = 
@@ -109,6 +128,7 @@ export interface LevelConfig {
   startingMobs: number;
   targetMobsToWin: number;
   gates: GateData[];
+  walls: WallData[];
   bonuses: BonusData[];
   obstacles: ObstacleData[];
   coins: CoinData[];

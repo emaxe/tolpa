@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GateData, GateOp, MobInstance } from '../types/game';
+import { GateData, GateOp, GateMotion, MobInstance } from '../types/game';
 import { createGateTexture } from '../utils/proceduralMeshes';
 import { CrowdManager } from './CrowdManager';
 import { ParticleSystem } from './ParticleSystem';
@@ -10,15 +10,16 @@ import { stateManager } from '../core/StateManager';
 interface GateVisual {
   data: GateData;
   group: THREE.Group;
-  leftMesh: THREE.Mesh;
-  rightMesh: THREE.Mesh;
-  leftMat: THREE.MeshBasicMaterial;
-  rightMat: THREE.MeshBasicMaterial;
-  leftTexture: THREE.CanvasTexture;
-  rightTexture: THREE.CanvasTexture;
+  mesh: THREE.Mesh;
+  mat: THREE.MeshBasicMaterial;
+  texture: THREE.CanvasTexture;
   // Мобы, которые уже прошли через эти ворота — чтобы каждый человечек обрабатывался
-  // воротами независимо (по своей реальной позиции), а не по лидеру толпы.
+  // воротами независимо (по своей реальной позиции и по попаданию в проём по X).
   processedMobs: Set<number>;
+  // Движение: текущее смещение по X и Y (для horizontal/vertical), угол поворота (rotate).
+  motionPhase: number;
+  baseX: number;
+  baseY: number;
 }
 
 export class GateManager {
@@ -26,14 +27,7 @@ export class GateManager {
   private gates: GateVisual[] = [];
   private comboStreak: number = 0;
 
-  // ЭМИ-шторм: переворачивает знаки ещё не пройденных ворот на время события.
-  // originals хранит исходные операции, чтобы clearEmpStorm() их вернул.
-  private empActive: boolean = false;
-  private empOriginals: { gate: GateData; leftOp: GateOp; leftVal: number; rightOp: GateOp; rightVal: number }[] = [];
-
-  // Все ворота уровня используют одну и ту же ширину/высоту, поэтому геометрии рамок
-  // общие на весь набор ворот — раньше их создавали заново под каждые ворота и никогда
-  // не диспозили (clear() чистил только текстуры/материалы створок).
+  // Все ворота уровня используют одну ширину/высоту рамок — общая геометрия.
   private sharedPlaneGeo: THREE.PlaneGeometry | null = null;
   private sharedPillarGeo: THREE.CylinderGeometry | null = null;
   private sharedPillarMat: THREE.MeshStandardMaterial | null = null;
@@ -44,11 +38,11 @@ export class GateManager {
 
   private static readonly GATE_HEIGHT = 3.8;
 
-  private ensureSharedGeometry(referenceWidth: number): void {
+  private ensureSharedGeometry(): void {
     if (this.sharedPlaneGeo) return;
-    const gateHeight = GateManager.GATE_HEIGHT;
-    this.sharedPlaneGeo = new THREE.PlaneGeometry(referenceWidth || 4, gateHeight);
-    this.sharedPillarGeo = new THREE.CylinderGeometry(0.12, 0.12, gateHeight + 0.4, 8);
+    const h = GateManager.GATE_HEIGHT;
+    this.sharedPlaneGeo = new THREE.PlaneGeometry(4, h);
+    this.sharedPillarGeo = new THREE.CylinderGeometry(0.12, 0.12, h + 0.4, 8);
     this.sharedPillarMat = new THREE.MeshStandardMaterial({
       color: 0x334155,
       metalness: 0.9,
@@ -59,176 +53,153 @@ export class GateManager {
   }
 
   private buildGateVisual(gate: GateData): GateVisual {
-    const gateHeight = GateManager.GATE_HEIGHT;
+    const h = GateManager.GATE_HEIGHT;
     const planeGeo = this.sharedPlaneGeo!;
     const pillarGeo = this.sharedPillarGeo!;
     const pillarMat = this.sharedPillarMat!;
 
     const group = new THREE.Group();
     group.position.z = gate.z;
+    group.position.x = gate.x;
+    group.position.y = 0;
 
-    // Textures
-    const leftTexture = createGateTexture(gate, 'left');
-    const rightTexture = createGateTexture(gate, 'right');
-
-    const leftMat = new THREE.MeshBasicMaterial({
-      map: leftTexture,
+    // Один проём — одна текстура с операцией (не пара створок).
+    const texture = createGateTexture(gate);
+    const mat = new THREE.MeshBasicMaterial({
+      map: texture,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.92,
       side: THREE.DoubleSide,
     });
-    const rightMat = new THREE.MeshBasicMaterial({
-      map: rightTexture,
-      transparent: true,
-      opacity: 0.9,
-      side: THREE.DoubleSide,
-    });
+    const mesh = new THREE.Mesh(planeGeo, mat);
+    mesh.position.set(0, h / 2, 0);
+    mesh.rotation.y = Math.PI;
+    mesh.scale.set(gate.width / 4, 1, 1); // растягиваем текстуру под ширину проёма
+    group.add(mesh);
 
-    const leftMesh = new THREE.Mesh(planeGeo, leftMat);
-    leftMesh.position.set(gate.xLeft, gateHeight / 2, 0);
-    leftMesh.rotation.y = Math.PI;
-
-    const rightMesh = new THREE.Mesh(planeGeo, rightMat);
-    rightMesh.position.set(gate.xRight, gateHeight / 2, 0);
-    rightMesh.rotation.y = Math.PI;
-
-    group.add(leftMesh);
-    group.add(rightMesh);
-
-    // Frame pillars (Left post, Center post, Right post) — общая геометрия/материал
-    const p1 = new THREE.Mesh(pillarGeo, pillarMat);
-    p1.position.set(gate.xLeft - gate.width / 2, gateHeight / 2, 0);
-    const p2 = new THREE.Mesh(pillarGeo, pillarMat);
-    p2.position.set(0, gateHeight / 2, 0);
-    const p3 = new THREE.Mesh(pillarGeo, pillarMat);
-    p3.position.set(gate.xRight + gate.width / 2, gateHeight / 2, 0);
-
-    group.add(p1);
-    group.add(p2);
-    group.add(p3);
+    // Рамка: два столба по краям проёма.
+    const halfW = gate.width / 2;
+    const pL = new THREE.Mesh(pillarGeo, pillarMat);
+    pL.position.set(-halfW, h / 2, 0);
+    const pR = new THREE.Mesh(pillarGeo, pillarMat);
+    pR.position.set(halfW, h / 2, 0);
+    group.add(pL);
+    group.add(pR);
 
     this.scene.add(group);
 
-    return { data: gate, group, leftMesh, rightMesh, leftMat, rightMat, leftTexture, rightTexture, processedMobs: new Set<number>() };
+    return {
+      data: gate,
+      group,
+      mesh,
+      mat,
+      texture,
+      processedMobs: new Set<number>(),
+      motionPhase: Math.random() * Math.PI * 2,
+      baseX: gate.x,
+      baseY: 0,
+    };
   }
 
   public initGates(gatesData: GateData[]): void {
     this.clear();
     this.comboStreak = 0;
-    this.ensureSharedGeometry(gatesData[0]?.width || 4);
+    this.ensureSharedGeometry();
     gatesData.forEach((gate) => this.gates.push(this.buildGateVisual(gate)));
   }
 
-  /** Добавляет ворота к уже существующим, не очищая уровень — используется endless-режимом. */
+  /** Добавляет ворота к уже существующим — используется endless-режимом. */
   public appendGates(gatesData: GateData[]): void {
-    this.ensureSharedGeometry(gatesData[0]?.width || 4);
+    this.ensureSharedGeometry();
     gatesData.forEach((gate) => this.gates.push(this.buildGateVisual(gate)));
   }
 
-  public update(
-    dt: number,
-    crowd: CrowdManager,
-    particles: ParticleSystem
-  ): void {
+  public update(dt: number, crowd: CrowdManager, particles: ParticleSystem): void {
     this.gates.forEach((gateVisual) => {
       const gate = gateVisual.data;
       if (gate.passed) return;
 
-      // Каждый человечек обрабатывается воротами НЕЗАВИСИМО — по своей реальной позиции,
-      // а не по лидеру толпы. Ворота срабатывают один раз, когда через них проходит
-      // первый моб. Мобы группируются по створке, к которой они ближе по X, и КАЖДАЯ
-      // створка применяет свою операцию ТОЛЬКО к своим мобам (изоляция по створкам).
+      // Движение ворот.
+      this.applyMotion(gateVisual, dt);
+
+      // Текущая позиция проёма (с учётом движения).
+      const cx = gateVisual.group.position.x;
+      const cy = gateVisual.group.position.y;
+      const halfW = gate.width / 2;
+
+      // Per-mob обработка: каждый моб, прошедший через проём этих ворот, обрабатывается
+      // независимо. Мобы, чей X не попадает в проём, этими воротами не затрагиваются.
       const aliveMobs = crowd.getAliveMobs();
-      const leftWing: MobInstance[] = [];
-      const rightWing: MobInstance[] = [];
-      let anyProcessed = false;
+      const through: MobInstance[] = [];
+      let any = false;
       for (const mob of aliveMobs) {
         if (gateVisual.processedMobs.has(mob.id)) continue;
         if (mob.z < gate.z - 0.5) continue;
+        // Проверяем попадание в проём по X (вращение ворот учитываем упрощённо — по центру).
+        if (Math.abs(mob.x - cx) > halfW + 0.4) continue;
         gateVisual.processedMobs.add(mob.id);
-        anyProcessed = true;
-        if (Math.abs(mob.x - gate.xLeft) < Math.abs(mob.x - gate.xRight)) leftWing.push(mob);
-        else rightWing.push(mob);
+        through.push(mob);
+        any = true;
       }
 
-      if (anyProcessed) {
-        const hasMages = crowd.getAliveMobs().some((m) => m.type === 'mage');
-        // Обрабатываем каждую створку, через которую реально прошли мобы, ИЗОЛИРОВАННО.
-        if (leftWing.length > 0) {
-          this.executeGateEffect(
-            gate.leftOp, gate.leftVal,
-            crowd, hasMages, particles, gate.xLeft, gate.z, leftWing
-          );
-        }
-        if (rightWing.length > 0) {
-          this.executeGateEffect(
-            gate.rightOp, gate.rightVal,
-            crowd, hasMages, particles, gate.xRight, gate.z, rightWing
-          );
-        }
-
+      if (any && through.length > 0) {
+        this.executeGateEffect(gate.op, gate.value, crowd, particles, cx, gate.z, through, cy);
         gate.passed = true;
-        // Visual fade out
-        gateVisual.leftMat.opacity = 0.3;
-        gateVisual.rightMat.opacity = 0.3;
+        gateVisual.mat.opacity = 0.3;
       }
     });
+  }
+
+  private applyMotion(gv: GateVisual, dt: number): void {
+    const gate = gv.data;
+    if (gate.motion === 'none') return;
+    gv.motionPhase += dt * gate.motionSpeed;
+
+    if (gate.motion === 'horizontal') {
+      const off = Math.sin(gv.motionPhase) * gate.motionRange;
+      gv.group.position.x = gv.baseX + off;
+    } else if (gate.motion === 'vertical') {
+      const off = Math.sin(gv.motionPhase) * gate.motionRange;
+      gv.group.position.y = gv.baseY + off;
+    } else if (gate.motion === 'rotate') {
+      // Вращение вокруг Y — проём поворачивается, что меняет фактическую ширину по X.
+      gv.group.rotation.y = Math.sin(gv.motionPhase) * gate.motionRange * 0.5;
+    }
   }
 
   private executeGateEffect(
     op: GateOp,
     val: number,
     crowd: CrowdManager,
-    hasMages: boolean,
     particles: ParticleSystem,
     gateX: number,
     gateZ: number,
-    wing: MobInstance[]
+    wing: MobInstance[],
+    gateY: number
   ): void {
-    const wingCount = wing.length;
     let isPositive = false;
-    let netChange = 0; // фактическое изменение числа мобов — для флоатинг-текста в HUD
+    let netChange = 0;
 
-    // Все операции применяются ИЗОЛИРОВАННО к группе `wing` — мобам, реально прошедшим
-    // через эту створку. Остальная толпа (другая створка) не затрагивается.
     if (op === 'add') {
+      // +N: добавляет N мобов к толпе у ворот (на всех прошедших).
       netChange = crowd.addMobsNear(val, gateX, gateZ);
       if (netChange > 0) soundEngine.playSound('gate_pass_positive');
-      particles.emitBurst(gateX, 1.5, gateZ, netChange > 0 ? 25 : 6, 0x10b981, netChange > 0 ? 5.0 : 2.0);
+      particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 25 : 6, 0x10b981, netChange > 0 ? 5.0 : 2.0);
       isPositive = true;
     } else if (op === 'multiply') {
+      // ×N: каждый прошедший моб порождает (N-1) копий (N — целое).
       netChange = crowd.multiplyGroup(wing, val, gateX, gateZ);
       if (netChange > 0) soundEngine.playSound('gate_pass_multiplier');
-      particles.emitBurst(gateX, 1.5, gateZ, netChange > 0 ? 35 : 6, 0x00f0ff, netChange > 0 ? 6.0 : 2.0);
+      particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 35 : 6, 0x00f0ff, netChange > 0 ? 6.0 : 2.0);
       isPositive = true;
-    } else if (op === 'subtract') {
-      if (hasMages) {
-        // Transmute negative gate to bonus!
-        netChange = crowd.addMobsNear(val, gateX, gateZ);
-        soundEngine.playSound('gate_pass_positive');
-        particles.emitBurst(gateX, 1.5, gateZ, 30, 0xa855f7, 5.0);
-        isPositive = true;
-      } else {
-        netChange = -crowd.killMobsFromGroup(wing, val, 'gate');
-        soundEngine.playSound('gate_pass_negative');
-        particles.emitBurst(gateX, 1.5, gateZ, 20, 0xef4444, 4.0);
-        eventBus.emit('screenShake', { intensity: 0.3 });
-      }
     } else if (op === 'divide') {
-      if (hasMages) {
-        netChange = crowd.multiplyGroup(wing, val, gateX, gateZ);
-        soundEngine.playSound('gate_pass_multiplier');
-        particles.emitBurst(gateX, 1.5, gateZ, 30, 0xa855f7, 5.0);
-        isPositive = true;
-      } else {
-        netChange = -crowd.divideMobsGroup(wing, val);
-        soundEngine.playSound('gate_pass_negative');
-        particles.emitBurst(gateX, 1.5, gateZ, 20, 0xef4444, 4.0);
-        eventBus.emit('screenShake', { intensity: 0.3 });
-      }
+      // ÷N: пропускает каждого N-го по очереди, остальных убирает.
+      netChange = -crowd.divideMobsByStep(wing, val, 'gate');
+      soundEngine.playSound('gate_pass_negative');
+      particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 20, 0xef4444, 4.0);
+      eventBus.emit('screenShake', { intensity: 0.3 });
     }
 
-    // Handle combo streak
     if (isPositive) {
       this.comboStreak++;
       if (this.comboStreak > 1) {
@@ -247,24 +218,26 @@ export class GateManager {
     return this.comboStreak;
   }
 
-  /** ЭМИ-шторм: переворачивает знаки ещё не пройденных ворот (add↔subtract, multiply↔divide)
-   *  и тонирует створки в фиолетовый цвет на время события. Сбрасывается clearEmpStorm(). */
+  // ---------------------------------------------------------------------------
+  // EMP-шторм: на время события позитивные ворота (add/multiply) превращаются в
+  // ÷2 — то есть начинают прореживать толпу. divide остаётся divide. Сброс по clearEmpStorm.
+  // ---------------------------------------------------------------------------
+  private empActive: boolean = false;
+  private empOriginals: { gate: GateData; op: GateOp; value: number }[] = [];
+
   public applyEmpStorm(): void {
     if (this.empActive) return;
     this.empActive = true;
     this.empOriginals = [];
-    for (const gateVisual of this.gates) {
-      const gate = gateVisual.data;
+    for (const gv of this.gates) {
+      const gate = gv.data;
       if (gate.passed) continue;
-      // Сохраняем оригиналы для последующего восстановления.
-      this.empOriginals.push({ gate, leftOp: gate.leftOp, leftVal: gate.leftVal, rightOp: gate.rightOp, rightVal: gate.rightVal });
-      gate.leftOp = this.flipGateOp(gate.leftOp);
-      gate.rightOp = this.flipGateOp(gate.rightOp);
-      // Тонировка створок в фиолетовый — визуальный сигнал "искажения".
-      gateVisual.leftMat.color.setHex(0xa855f7);
-      gateVisual.rightMat.color.setHex(0xa855f7);
-      gateVisual.leftMat.needsUpdate = true;
-      gateVisual.rightMat.needsUpdate = true;
+      this.empOriginals.push({ gate, op: gate.op, value: gate.value });
+      gate.op = 'divide';
+      gate.value = 2;
+      // Тонировка в фиолетовый — визуальный сигнал искажения.
+      gv.mat.color.setHex(0xa855f7);
+      gv.mat.needsUpdate = true;
     }
   }
 
@@ -272,17 +245,13 @@ export class GateManager {
     if (!this.empActive) return;
     this.empActive = false;
     for (const orig of this.empOriginals) {
-      orig.gate.leftOp = orig.leftOp;
-      orig.gate.leftVal = orig.leftVal;
-      orig.gate.rightOp = orig.rightOp;
-      orig.gate.rightVal = orig.rightVal;
+      orig.gate.op = orig.op;
+      orig.gate.value = orig.value;
     }
     this.empOriginals = [];
-    for (const gateVisual of this.gates) {
-      gateVisual.leftMat.color.setHex(0xffffff);
-      gateVisual.rightMat.color.setHex(0xffffff);
-      gateVisual.leftMat.needsUpdate = true;
-      gateVisual.rightMat.needsUpdate = true;
+    for (const gv of this.gates) {
+      gv.mat.color.setHex(0xffffff);
+      gv.mat.needsUpdate = true;
     }
   }
 
@@ -290,24 +259,11 @@ export class GateManager {
     return this.empActive;
   }
 
-  /** Переворачивает знак операции ворот: add↔subtract, multiply↔divide. */
-  private flipGateOp(op: GateOp): GateOp {
-    if (op === 'add') return 'subtract';
-    if (op === 'subtract') return 'add';
-    if (op === 'multiply') return 'divide';
-    if (op === 'divide') return 'multiply';
-    return op;
-  }
-
   public clear(): void {
-    this.empActive = false;
-    this.empOriginals = [];
     this.gates.forEach((g) => {
       this.scene.remove(g.group);
-      g.leftTexture.dispose();
-      g.rightTexture.dispose();
-      g.leftMat.dispose();
-      g.rightMat.dispose();
+      g.texture.dispose();
+      g.mat.dispose();
     });
     this.gates = [];
 

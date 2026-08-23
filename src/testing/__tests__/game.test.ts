@@ -178,6 +178,7 @@ describe('Level Generator Enhanced Tests', () => {
     const a = LevelGenerator.generateLevel(5);
     const b = LevelGenerator.generateLevel(5);
     expect(a.gates.length).toBe(b.gates.length);
+    expect(a.walls.length).toBe(b.walls.length);
     expect(a.obstacles.length).toBe(b.obstacles.length);
     expect(a.coins.length).toBe(b.coins.length);
     expect(a.bonuses.length).toBe(b.bonuses.length);
@@ -198,6 +199,7 @@ describe('Level Generator Enhanced Tests', () => {
     const a = LevelGenerator.generateEndlessSegment(0, 0);
     const b = LevelGenerator.generateEndlessSegment(0, 0);
     expect(a.gates.length).toBe(b.gates.length);
+    expect(a.walls.length).toBe(b.walls.length);
     expect(a.obstacles.length).toBe(b.obstacles.length);
     expect(a.coins.length).toBe(b.coins.length);
     expect(a.bonuses.length).toBe(b.bonuses.length);
@@ -215,7 +217,7 @@ describe('Level Generator Enhanced Tests', () => {
       const config = LevelGenerator.generateLevel(lvl);
       for (const gate of config.gates) {
         const gateHalf = gate.width / 2;
-        const gateCenterX = (gate.xLeft + gate.xRight) / 2;
+        const gateCenterX = gate.x;
         for (const obs of config.obstacles) {
           const dz = Math.abs(gate.z - obs.z);
           // Сильный инвариант: clearance по Z всегда >= 10.
@@ -244,34 +246,47 @@ describe('Level Generator Enhanced Tests', () => {
     }
   });
 
-  it('ворота используют только арифметические операции (+−×÷), без условных/мистери/адреналина', () => {
-    const allowed = ['add', 'subtract', 'multiply', 'divide'];
+  it('ворота используют только позитивные операции (+×÷), все значения целые и >= 2 для ×/÷', () => {
+    const allowed = ['add', 'multiply', 'divide'];
     for (let lvl = 1; lvl <= 50; lvl++) {
       const config = LevelGenerator.generateLevel(lvl);
       for (const g of config.gates) {
-        expect(allowed).toContain(g.leftOp);
-        expect(allowed).toContain(g.rightOp);
-        // Множитель всегда >= 2, чтобы ворота × реально давали прирост.
-        if (g.leftOp === 'multiply') expect(g.leftVal).toBeGreaterThanOrEqual(2);
-        if (g.rightOp === 'multiply') expect(g.rightVal).toBeGreaterThanOrEqual(2);
+        expect(allowed).toContain(g.op);
+        // Значения всегда целые.
+        expect(Number.isInteger(g.value)).toBe(true);
+        // Множитель и делитель >= 2 (иначе нет смысла).
+        if (g.op === 'multiply' || g.op === 'divide') expect(g.value).toBeGreaterThanOrEqual(2);
+        if (g.op === 'add') expect(g.value).toBeGreaterThanOrEqual(1);
       }
     }
   });
 
-  it('на уровнях >= 6, для ворот с индексом > 2, створки не дублируются (leftOp != rightOp)', () => {
-    for (let lvl = 6; lvl <= 50; lvl++) {
+  it('ворота не выходят за границы трассы (по X с учётом ширины)', () => {
+    for (let lvl = 1; lvl <= 50; lvl++) {
       const config = LevelGenerator.generateLevel(lvl);
-      expect(config.gates.length).toBeGreaterThan(2);
-      for (let i = 3; i < config.gates.length; i++) {
-        expect(config.gates[i].leftOp).not.toBe(config.gates[i].rightOp);
+      for (const g of config.gates) {
+        expect(Math.abs(g.x) + g.width / 2).toBeLessThanOrEqual(config.trackWidth / 2 + 0.4);
       }
     }
   });
 
-  it('cap производительности: gates<=40, bonuses<=14, obstacles<=120, coins<=360', () => {
+  it('стены со счётчиком имеют целый count, killsRemaining >= 1 и не выходят за трассу', () => {
+    for (let lvl = 3; lvl <= 50; lvl++) {
+      const config = LevelGenerator.generateLevel(lvl);
+      for (const w of config.walls) {
+        expect(Number.isInteger(w.count)).toBe(true);
+        expect(w.count).toBeGreaterThanOrEqual(1);
+        expect(w.killsRemaining).toBe(w.count); // начинаются с полным счётчиком
+        expect(Math.abs(w.x) + w.width / 2).toBeLessThanOrEqual(config.trackWidth / 2 + 0.4);
+      }
+    }
+  });
+
+  it('cap производительности: gates<=40, walls<=12, bonuses<=14, obstacles<=120, coins<=360', () => {
     for (let lvl = 1; lvl <= 50; lvl++) {
       const config = LevelGenerator.generateLevel(lvl);
       expect(config.gates.length).toBeLessThanOrEqual(40);
+      expect(config.walls.length).toBeLessThanOrEqual(12);
       expect(config.bonuses.length).toBeLessThanOrEqual(14);
       expect(config.obstacles.length).toBeLessThanOrEqual(120);
       expect(config.coins.length).toBeLessThanOrEqual(360);
