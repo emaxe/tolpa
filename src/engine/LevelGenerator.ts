@@ -849,6 +849,20 @@ export class LevelGenerator {
 
     const def = bossMap[levelNum] || bossMap[10];
 
+    // Сложность босса нарастает с уровнем: HP уже растёт через bossMap (maxHp),
+    // но ритм и урон атак были идентичны для ВСЕХ боссов. Теперь босс на L50
+    // бьёт заметно быстрее и больнее, чем на L10, чтобы поздние бои читались
+    // как эскалация, а не как перекраска одного и того же паттерна.
+    // tier = 1..5 (боссы на 10/20/30/40/50). L10 — базовый «обучающий» ритм,
+    // к L50 урон ×2.4, телеграф короче на 0.45с (сложнее уклониться).
+    const tier = Math.max(1, Math.floor(levelNum / 10));
+    const tierScale = 1 + (tier - 1) * 0.35; // 1.0 → 2.4
+    const telegraphBonus = Math.min(0.45, (tier - 1) * 0.12); // 0 → 0.48, клампим
+
+    const slamDamage = Math.round(15 * tierScale);
+    const laserDamage = Math.round(25 * tierScale);
+    const minionDamage = Math.round(10 * tierScale);
+
     return {
       id: def.id || `boss_${levelNum}`,
       nameKey: def.nameKey || 'boss1Name',
@@ -858,9 +872,9 @@ export class LevelGenerator {
       biome,
       modelType: def.modelType || 'iron_golem',
       attacks: [
-        { type: 'slam', telegraphTime: 1.5, duration: 0.8, damage: 15, areaRadius: 3.5 },
-        { type: 'laser', telegraphTime: 2.0, duration: 1.2, damage: 25, direction: 0 },
-        { type: 'minions', telegraphTime: 1.0, duration: 0.5, damage: 10 },
+        { type: 'slam', telegraphTime: Math.max(1.0, 1.5 - telegraphBonus), duration: 0.8, damage: slamDamage, areaRadius: 3.5 },
+        { type: 'laser', telegraphTime: Math.max(1.2, 2.0 - telegraphBonus), duration: 1.2, damage: laserDamage, direction: 0 },
+        { type: 'minions', telegraphTime: Math.max(0.7, 1.0 - telegraphBonus), duration: 0.5, damage: minionDamage },
       ],
     };
   }
