@@ -188,6 +188,16 @@ export const translations = {
     achAdrenalineGodDesc: 'Активируйте Гипер-режим 20 раз',
     achRichBoy: 'Кибер-Магнат',
     achRichBoyDesc: 'Накопите 50,000 монет',
+    achObstacleCrusher: 'Крушитель Препятствий',
+    achObstacleCrusherDesc: 'Разбейте 50 ловушек танками или в гипер-режиме',
+    achGateMaster: 'Врата Эволюции',
+    achGateMasterDesc: 'Пройдите сквозь 100 математических ворот',
+    achMobCloner: 'Квантовый Клонер',
+    achMobClonerDesc: 'Создайте 1,000 кибер-легионеров за всё время',
+    achGemCollector: 'Охотник за Кристаллами',
+    achGemCollectorDesc: 'Заработайте 100 самоцветов за всё время',
+    achBossHunter: 'Охотник на Боссов',
+    achBossHunterDesc: 'Уничтожьте 5 боссов в кампании или бесконечном режиме',
 
     // Скины легиона
     'skins.cyan': 'Кибер-Бирюза',
@@ -420,6 +430,16 @@ export const translations = {
     achAdrenalineGodDesc: 'Trigger Hyper Adrenaline mode 20 times',
     achRichBoy: 'Cyber Tycoon',
     achRichBoyDesc: 'Accumulate 50,000 coins',
+    achObstacleCrusher: 'Obstacle Crusher',
+    achObstacleCrusherDesc: 'Smash 50 traps with Tanks or Hyper Mode',
+    achGateMaster: 'Gate Voyager',
+    achGateMasterDesc: 'Pass through 100 mathematical gates',
+    achMobCloner: 'Quantum Cloner',
+    achMobClonerDesc: 'Spawn 1,000 cyber legionnaires across all runs',
+    achGemCollector: 'Crystal Hoarder',
+    achGemCollectorDesc: 'Collect 100 gems across all runs',
+    achBossHunter: 'Boss Hunter',
+    achBossHunterDesc: 'Defeat 5 bosses in campaign or endless mode',
 
     // Legion skins
     'skins.cyan': 'Cyber Cyan',

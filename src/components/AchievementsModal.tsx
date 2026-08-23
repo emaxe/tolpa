@@ -2,7 +2,7 @@ import React from 'react';
 import { INITIAL_ACHIEVEMENTS, stateManager } from '../core/StateManager';
 import { i18n } from '../core/Localization';
 import { soundEngine } from '../audio/SoundEngine';
-import { X, Award, Coins, Gem, Check, Footprints, Users, ShieldAlert, Swords, Crown, Zap, Flame } from 'lucide-react';
+import { X, Award, Coins, Gem, Check, Footprints, Users, ShieldAlert, Swords, Crown, Zap, Flame, Hammer, DoorOpen, Trophy } from 'lucide-react';
 
 interface AchievementsModalProps {
   onClose: () => void;
@@ -27,6 +27,14 @@ export const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose })
         return <Zap className="w-5 h-5" />;
       case 'Flame':
         return <Flame className="w-5 h-5" />;
+      case 'Hammer':
+        return <Hammer className="w-5 h-5" />;
+      case 'DoorOpen':
+        return <DoorOpen className="w-5 h-5" />;
+      case 'Trophy':
+        return <Trophy className="w-5 h-5" />;
+      case 'Gem':
+        return <Gem className="w-5 h-5" />;
       case 'Coins':
       default:
         return <Coins className="w-5 h-5" />;

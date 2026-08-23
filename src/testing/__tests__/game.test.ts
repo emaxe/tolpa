@@ -409,4 +409,30 @@ describe('Skin Rewards (бонусные скины)', () => {
     expect(mgr.getState().achievements['adrenaline_god']?.progress).toBe(20);
     expect(mgr.claimAchievement('adrenaline_god')).toBe(true);
   });
+
+  it('lifetime-статы продвигают новые достижения через commitRun', () => {
+    const mgr = StateManager.getInstance();
+    mgr.resetProgress();
+    // Накапливаем забег: 60 препятствий, 120 ворот, 1200 мобов, 6 боссов, 120 самоцветов.
+    mgr.beginRun();
+    for (let i = 0; i < 60; i++) mgr.runRecordObstacleSmash();
+    for (let i = 0; i < 120; i++) mgr.runRecordGatePass();
+    for (let i = 0; i < 1200; i++) mgr.runRecordMobSpawn();
+    for (let i = 0; i < 6; i++) mgr.runRecordBossKill(100, 20);
+    mgr.commitRun();
+
+    const st = mgr.getState();
+    expect(st.achievements['obstacle_crusher']?.progress).toBe(60);
+    expect(st.achievements['gate_master']?.progress).toBe(120);
+    expect(st.achievements['mob_cloner']?.progress).toBe(1200);
+    expect(st.achievements['gem_collector']?.progress).toBe(120);
+    expect(st.achievements['boss_hunter']?.progress).toBe(6);
+
+    // Все достижения готовы к клейму.
+    expect(mgr.claimAchievement('obstacle_crusher')).toBe(true);
+    expect(mgr.claimAchievement('gate_master')).toBe(true);
+    expect(mgr.claimAchievement('mob_cloner')).toBe(true);
+    expect(mgr.claimAchievement('gem_collector')).toBe(true);
+    expect(mgr.claimAchievement('boss_hunter')).toBe(true);
+  });
 });

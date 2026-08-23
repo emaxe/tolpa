@@ -350,6 +350,66 @@ export const INITIAL_ACHIEVEMENTS: AchievementItem[] = [
     claimed: false,
     category: 'economy',
   },
+  {
+    id: 'obstacle_crusher',
+    titleKey: 'achObstacleCrusher',
+    descKey: 'achObstacleCrusherDesc',
+    icon: 'Hammer',
+    progress: 0,
+    goal: 50,
+    rewardCoins: 1500,
+    rewardGems: 20,
+    claimed: false,
+    category: 'combat',
+  },
+  {
+    id: 'gate_master',
+    titleKey: 'achGateMaster',
+    descKey: 'achGateMasterDesc',
+    icon: 'DoorOpen',
+    progress: 0,
+    goal: 100,
+    rewardCoins: 1000,
+    rewardGems: 15,
+    claimed: false,
+    category: 'levels',
+  },
+  {
+    id: 'mob_cloner',
+    titleKey: 'achMobCloner',
+    descKey: 'achMobClonerDesc',
+    icon: 'Users',
+    progress: 0,
+    goal: 1000,
+    rewardCoins: 2000,
+    rewardGems: 25,
+    claimed: false,
+    category: 'crowd',
+  },
+  {
+    id: 'gem_collector',
+    titleKey: 'achGemCollector',
+    descKey: 'achGemCollectorDesc',
+    icon: 'Gem',
+    progress: 0,
+    goal: 100,
+    rewardCoins: 3000,
+    rewardGems: 30,
+    claimed: false,
+    category: 'economy',
+  },
+  {
+    id: 'boss_hunter',
+    titleKey: 'achBossHunter',
+    descKey: 'achBossHunterDesc',
+    icon: 'Trophy',
+    progress: 0,
+    goal: 5,
+    rewardCoins: 2500,
+    rewardGems: 40,
+    claimed: false,
+    category: 'combat',
+  },
 ];
 
 export interface RunStats {
@@ -400,6 +460,14 @@ export class StateManager {
   private constructor() {
     this.state = this.loadState();
     i18n.setLanguage(this.state.settings.language);
+
+    // Ретроактивная синхронизация lifetime-достижений по уже накопленным статам
+    // (игроки со старыми сохранениями сразу видят заработанный прогресс).
+    this.updateAchievementProgressSilent('obstacle_crusher', this.state.stats.totalObstaclesSmashed);
+    this.updateAchievementProgressSilent('gate_master', this.state.stats.totalGatesPassed);
+    this.updateAchievementProgressSilent('mob_cloner', this.state.stats.totalMobsSpawned);
+    this.updateAchievementProgressSilent('gem_collector', this.state.stats.totalGemsEarned);
+    this.updateAchievementProgressSilent('boss_hunter', this.state.stats.totalBossesDefeated);
 
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
@@ -535,6 +603,12 @@ export class StateManager {
 
     this.updateAchievementProgressSilent('rich_boy', this.state.stats.totalCoinsEarned);
     this.updateAchievementProgressSilent('combo_10', this.state.stats.highestCombo);
+    // Привязка lifetime-статистики к достижениям (dead-but-supported).
+    this.updateAchievementProgressSilent('obstacle_crusher', this.state.stats.totalObstaclesSmashed);
+    this.updateAchievementProgressSilent('gate_master', this.state.stats.totalGatesPassed);
+    this.updateAchievementProgressSilent('mob_cloner', this.state.stats.totalMobsSpawned);
+    this.updateAchievementProgressSilent('gem_collector', this.state.stats.totalGemsEarned);
+    this.updateAchievementProgressSilent('boss_hunter', this.state.stats.totalBossesDefeated);
 
     this.notify();
     this.flushSave();
