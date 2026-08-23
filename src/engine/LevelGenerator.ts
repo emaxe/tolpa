@@ -76,7 +76,7 @@ export class LevelGenerator {
     // -------------------------------------------------------------
     // ЭТАП 3: ТАКТИЧЕСКИЕ ВОРОТА И КАСКАДНЫЕ ПАРЫ
     // -------------------------------------------------------------
-    const gateCount = Math.min(30, 10 + Math.floor(levelNum / 4));
+    const gateCount = Math.min(30, 12 + Math.floor(levelNum / 3));
     const baseGateSpacing = (trackLength - 120) / Math.max(1, gateCount);
 
     // Определяем индексы для каскадных пар (начиная с уровня 6)
@@ -303,19 +303,19 @@ export class LevelGenerator {
     ];
 
     let obsIndex = 0;
-    const baseObstacleTarget = Math.min(90, Math.floor(trackLength / 45));
+    const baseObstacleTarget = Math.min(90, Math.floor(trackLength / 34));
 
     // Проходим по трассе с шагом и генерируем тактические паттерны с учетом safe corridors
-    const sectionStep = 45;
+    const sectionStep = 34;
     const numSections = Math.floor((trackLength - 140) / sectionStep);
 
     for (let s = 0; s < numSections && obsIndex < baseObstacleTarget; s++) {
       const sectionZ = 55 + s * sectionStep + (rng() * 6 - 3);
       const phase = this.getPhaseInfo(sectionZ, trackLength);
 
-      // Safe Corridor: каждые ~120м гарантированный gap без ловушек
-      const isSafeCorridorGap = s % 3 === 2 || phase.phaseName === 'corridor';
-      if (isSafeCorridorGap && rng() < 0.65) {
+      // Safe Corridor: каждые ~136м гарантированный gap без ловушек (реже, чтобы не было пустых участков)
+      const isSafeCorridorGap = s % 4 === 3;
+      if (isSafeCorridorGap && rng() < 0.45) {
         continue;
       }
 
