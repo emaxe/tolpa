@@ -459,6 +459,73 @@ export class SoundEngine {
         break;
       }
 
+      case 'upgrade_buy': {
+        // Покупка улучшения/скина — короткий восходящий "кассовый" звоночек
+        const notes = [660, 880, 1100];
+        notes.forEach((freq, idx) => {
+          const osc = this.ctx!.createOscillator();
+          const gain = this.ctx!.createGain();
+          const start = t + idx * 0.06;
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq * pitchShift, start);
+          gain.gain.setValueAtTime(0.22, start);
+          gain.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
+          osc.connect(gain);
+          gain.connect(this.sfxGain!);
+          osc.start(start);
+          osc.stop(start + 0.18);
+        });
+        break;
+      }
+
+      case 'obstacle_hit': {
+        // Удар по препятствию — резкий металлический лязг
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(220 * pitchShift, t);
+        osc.frequency.exponentialRampToValueAtTime(60, t + 0.12);
+        gain.gain.setValueAtTime(0.3, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+        osc.connect(gain);
+        gain.connect(this.sfxGain!);
+        osc.start(t);
+        osc.stop(t + 0.14);
+        break;
+      }
+
+      case 'adrenaline_whoosh': {
+        // Адреналин — быстрый восходящий свист (whoosh)
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300 * pitchShift, t);
+        osc.frequency.exponentialRampToValueAtTime(1600 * pitchShift, t + 0.35);
+        gain.gain.setValueAtTime(0.2, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+        osc.connect(gain);
+        gain.connect(this.sfxGain!);
+        osc.start(t);
+        osc.stop(t + 0.4);
+        break;
+      }
+
+      case 'formation_change': {
+        // Смена формации — короткий "щелчок" с лёгким подъёмом тона
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(500 * pitchShift, t);
+        osc.frequency.exponentialRampToValueAtTime(900 * pitchShift, t + 0.08);
+        gain.gain.setValueAtTime(0.18, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+        osc.connect(gain);
+        gain.connect(this.sfxGain!);
+        osc.start(t);
+        osc.stop(t + 0.1);
+        break;
+      }
+
       default:
         break;
     }
