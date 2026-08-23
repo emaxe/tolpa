@@ -480,22 +480,21 @@ export class CrowdManager {
     return killed;
   }
 
-  /** «Разделить ÷N»: из мобов, прошедших ворота, пропускается каждый N-й (по очереди),
-   *  остальные убираются. Например ÷2 → каждый второй проходит, ÷3 → каждый третий.
+  /** «Разделить ÷N»: из мобов, прошедших ворота, умирает каждый N-й (по очереди),
+   *  остальные проходят свободно. Например ÷2 → каждый второй умирает, ÷3 → каждый третий.
    *  Возвращает число убранных. divisor — целое >= 2. */
   public divideMobsByStep(group: MobInstance[], divisor: number, reason: string = 'gate'): number {
     if (divisor < 2) return 0;
     const alive = group.filter((m) => m.alive);
-    if (alive.length <= 1) return 0;
+    if (alive.length === 0) return 0;
     const toRemove: MobInstance[] = [];
-    // Счётчик: 1,2,...,N — пропускаем, когда счётчик достигает N (каждый N-й проходит).
+    // Счётчик: 1,2,...,N — когда счётчик достигает N, этот моб умирает (каждый N-й).
     let step = 0;
     for (const mob of alive) {
       step++;
       if (step === divisor) {
-        step = 0; // этот моб проходит — сбрасываем отсчёт
-      } else {
-        toRemove.push(mob); // не N-й — убираем
+        step = 0;
+        toRemove.push(mob); // каждый N-й умирает
       }
     }
     if (toRemove.length === 0) return 0;
