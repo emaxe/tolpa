@@ -31,6 +31,7 @@ export const App: React.FC = () => {
     crowdCount: number;
     stars: number;
     runStats: RunStats | null;
+    endless?: { distance: number; isNewRecord: boolean; coinsEarned: number };
   } | null>(null);
 
   // Story dialogue lines
@@ -133,17 +134,42 @@ export const App: React.FC = () => {
     [activeLevel]
   );
 
-  const handleLevelLost = useCallback((runStats: RunStats) => {
-    setEndResult({
-      isVictory: false,
-      score: 0,
-      multiplier: 1.0,
-      crowdCount: 0,
-      stars: 0,
-      runStats,
-    });
-    setPhase('level_lost');
-  }, []);
+  const handleLevelLost = useCallback(
+    (runStats: RunStats) => {
+      // Бесконечный режим: забег всегда заканчивается гибелью толпы, но это не «поражение» —
+      // честно подводим итог: пройденная дистанция, новый рекорд (если побили), награда.
+      // runStats.distance уже зафиксирован до commitRun() (см. endRun в GameEngine).
+      if (isEndless) {
+        const distance = runStats?.distance ?? 0;
+        const isNewRecord = distance > stateManager.getState().endlessHighScore;
+        if (isNewRecord) stateManager.setEndlessHighScore(distance);
+        // Награда за дистанцию: ~10 монет за 100 м (масштабируется с экономикой).
+        const coinsEarned = Math.floor(distance / 10);
+        if (coinsEarned > 0) stateManager.addCoins(coinsEarned);
+        setEndResult({
+          isVictory: true,
+          score: distance,
+          multiplier: 1.0,
+          crowdCount: runStats?.maxCrowd ?? 0,
+          stars: 0,
+          runStats,
+          endless: { distance, isNewRecord, coinsEarned },
+        });
+        setPhase('level_lost');
+        return;
+      }
+      setEndResult({
+        isVictory: false,
+        score: 0,
+        multiplier: 1.0,
+        crowdCount: 0,
+        stars: 0,
+        runStats,
+      });
+      setPhase('level_lost');
+    },
+    [isEndless]
+  );
 
   const handleNextLevel = useCallback(() => {
     const nextLvl = Math.min(50, activeLevel + 1);
@@ -235,6 +261,8 @@ export const App: React.FC = () => {
           crowdCount={endResult.crowdCount}
           stars={endResult.stars}
           runStats={endResult.runStats}
+          isEndless={isEndless}
+          endless={endResult.endless}
           onNextLevel={handleNextLevel}
           onRetry={handleRetry}
           onHome={handleToMainMenu}

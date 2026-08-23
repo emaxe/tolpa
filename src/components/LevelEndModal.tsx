@@ -1,7 +1,7 @@
 import React from 'react';
 import { i18n } from '../core/Localization';
 import { RunStats } from '../core/StateManager';
-import { Trophy, Skull, Star, Coins, Gem, ArrowRight, RotateCcw, Home, ShoppingCart, Zap, Users, Shield, Swords, DoorOpen } from 'lucide-react';
+import { Trophy, Skull, Star, Coins, Gem, ArrowRight, RotateCcw, Home, ShoppingCart, Zap, Users, Shield, Swords, DoorOpen, Route, Trophy as RecordIcon } from 'lucide-react';
 
 interface LevelEndModalProps {
   isVictory: boolean;
@@ -11,6 +11,8 @@ interface LevelEndModalProps {
   crowdCount: number;
   stars: number;
   runStats: RunStats | null;
+  isEndless?: boolean;
+  endless?: { distance: number; isNewRecord: boolean; coinsEarned: number };
   onNextLevel: () => void;
   onRetry: () => void;
   onHome: () => void;
@@ -25,6 +27,8 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
   crowdCount,
   stars,
   runStats,
+  isEndless = false,
+  endless,
   onNextLevel,
   onRetry,
   onHome,
@@ -56,18 +60,30 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
 
           <h2
             className={`font-orbitron font-extrabold text-2xl md:text-3xl tracking-wider ${
-              isVictory ? 'text-cyan-400' : 'text-red-400'
+              isEndless ? 'text-cyan-400' : isVictory ? 'text-cyan-400' : 'text-red-400'
             }`}
           >
-            {isVictory ? i18n.t('victory') : i18n.t('defeat')}
+            {isEndless ? i18n.t('endlessRunOver') : isVictory ? i18n.t('victory') : i18n.t('defeat')}
           </h2>
           <p className="text-xs text-slate-400 font-orbitron mt-1">
-            {isVictory ? `${i18n.t('levelCompleted')} (${levelNumber})` : i18n.t('crowdDepleted')}
+            {isEndless
+              ? `${endless?.distance?.toLocaleString() ?? 0} м`
+              : isVictory
+              ? `${i18n.t('levelCompleted')} (${levelNumber})`
+              : i18n.t('crowdDepleted')}
           </p>
         </div>
 
-        {/* Stars Rating (If Victory) */}
-        {isVictory && (
+        {/* Endless: бейдж нового рекорда */}
+        {isEndless && endless?.isNewRecord && (
+          <div className="flex items-center justify-center gap-2 mb-4 text-amber-400 font-orbitron font-extrabold text-sm tracking-wider animate-pulse">
+            <RecordIcon className="w-5 h-5 fill-current" />
+            {i18n.t('newRecord')}
+          </div>
+        )}
+
+        {/* Stars Rating (If Victory, not endless) */}
+        {isVictory && !isEndless && (
           <div className="flex justify-center gap-2 mb-4">
             {[1, 2, 3].map((starIdx) => (
               <Star
@@ -84,7 +100,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
 
         {/* Score and Multiplier stats */}
         <div className="bg-slate-950/80 rounded-2xl p-4 border border-slate-800 space-y-2.5 mb-5 text-sm">
-          {isVictory && (
+          {isVictory && !isEndless && (
             <>
               <div className="flex justify-between items-center text-slate-300">
                 <span className="font-orbitron text-xs">{i18n.t('wallMultiplier')}</span>
@@ -95,6 +111,18 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
                 <span className="font-orbitron font-bold text-cyan-400">{crowdCount}</span>
               </div>
             </>
+          )}
+
+          {/* Endless: дистанция забега как главная метрика */}
+          {isEndless && (
+            <div className="flex justify-between items-center text-slate-300">
+              <span className="flex items-center gap-1.5 font-orbitron text-xs text-slate-400">
+                <Route className="w-4 h-4 text-cyan-400" /> {i18n.t('endlessDistance')}
+              </span>
+              <span className="font-orbitron font-bold text-cyan-400">
+                {endless?.distance?.toLocaleString() ?? 0} м
+              </span>
+            </div>
           )}
 
           {/* Run-detail stats (макс. комбо, макс. толпа, сломанные препятствия, ворота, боссы) */}
@@ -140,9 +168,9 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1 font-orbitron font-bold text-amber-400 text-sm">
                 <Coins className="w-4 h-4" />
-                <span>+{coinsEarned.toLocaleString()}</span>
+                <span>+{(isEndless ? (endless?.coinsEarned ?? 0) : coinsEarned).toLocaleString()}</span>
               </div>
-              {gemsEarned > 0 && (
+              {!isEndless && gemsEarned > 0 && (
                 <div className="flex items-center gap-1 font-orbitron font-bold text-purple-400 text-sm">
                   <Gem className="w-4 h-4" />
                   <span>+{gemsEarned}</span>
@@ -154,7 +182,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
 
         {/* Action Buttons */}
         <div className="space-y-2.5">
-          {isVictory ? (
+          {isVictory && !isEndless ? (
             <button
               onClick={onNextLevel}
               className="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-orbitron font-extrabold text-sm uppercase tracking-wider rounded-xl shadow-lg shadow-cyan-600/40 flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"
@@ -166,7 +194,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
             <div className="flex gap-2">
               <button
                 onClick={onRetry}
-                className="flex-1 py-3 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-orbitron font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                className="flex-1 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-orbitron font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <RotateCcw className="w-4 h-4" />
                 <span>{i18n.t('retry')}</span>
@@ -182,7 +210,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
           )}
 
           <div className="flex gap-2">
-            {isVictory && (
+            {isVictory && !isEndless && (
               <button
                 onClick={onRetry}
                 className="flex-1 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl font-orbitron text-xs flex items-center justify-center gap-1.5 cursor-pointer"

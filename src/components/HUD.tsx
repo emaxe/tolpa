@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { FormationType } from '../types/game';
 import { i18n } from '../core/Localization';
+import { stateManager } from '../core/StateManager';
 import { eventBus } from '../core/EventBus';
-import { Zap, Users, Shield, ArrowUp, MoveHorizontal, CircleDot, Pause, Skull, TriangleAlert } from 'lucide-react';
+import { Zap, Users, Shield, ArrowUp, MoveHorizontal, CircleDot, Pause, Skull, TriangleAlert, Route } from 'lucide-react';
 
 interface HUDProps {
   crowdCount: number;
@@ -22,6 +23,7 @@ interface HUDProps {
   bossProgress: number; // 0..1, -1 если на уровне нет босса
   bossDistance: number; // метров до арены босса, -1 если на уровне нет босса
   nextHazardDistance: number; // метров до ближайшего препятствия, -1 если нет
+  distanceTraveled: number; // метров, пройденных с начала забега (Бесконечный режим)
   fps: number;
   drawCalls: number;
 }
@@ -42,6 +44,7 @@ export const HUD: React.FC<HUDProps> = ({
   bossProgress,
   bossDistance,
   nextHazardDistance,
+  distanceTraveled,
   fps,
   drawCalls,
 }) => {
@@ -195,6 +198,23 @@ export const HUD: React.FC<HUDProps> = ({
             <span className="text-[10px] font-orbitron text-red-400 flex items-center gap-1 animate-pulse">
               <Skull className="w-3 h-3" />
               {i18n.t('bossApproach', 'БОСС')} {bossDistance} м
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Бесконечный режим: живой счётчик пройденной дистанции + рекорд.
+          В endless нет финиша/босса, поэтому metersLeft/boss скрыты — показываем
+          основной core-loop (дистанция) и личный рекорд как цель побить. */}
+      {isEndless && (
+        <div className="absolute bottom-24 left-4 max-sm:hidden pointer-events-none flex items-center gap-3">
+          <span className="text-[11px] font-orbitron text-cyan-400 flex items-center gap-1">
+            <Route className="w-3 h-3" />
+            {distanceTraveled.toLocaleString()} м
+          </span>
+          {stateManager.getState().endlessHighScore > 0 && (
+            <span className="text-[10px] font-orbitron text-slate-400">
+              {i18n.t('endlessRecord')}: {stateManager.getState().endlessHighScore.toLocaleString()} м
             </span>
           )}
         </div>

@@ -281,6 +281,8 @@ export interface RunStats {
   bossGems: number;
   maxCombo: number;
   maxCrowd: number;
+  /** Пройденная дистанция забега в метрах (актуально для Бесконечного режима). */
+  distance: number;
 }
 
 function createEmptyRun(): RunStats {
@@ -294,6 +296,7 @@ function createEmptyRun(): RunStats {
     bossGems: 0,
     maxCombo: 0,
     maxCrowd: 0,
+    distance: 0,
   };
 }
 
@@ -405,6 +408,11 @@ export class StateManager {
 
   public runRecordMaxCrowd(count: number): void {
     if (this.run && count > this.run.maxCrowd) this.run.maxCrowd = count;
+  }
+
+  /** Обновляет пройденную дистанцию забега (метры) — для Бесконечного режима. */
+  public runRecordDistance(meters: number): void {
+    if (this.run && meters > this.run.distance) this.run.distance = meters;
   }
 
   public runRecordBossKill(coins: number, gems: number): void {

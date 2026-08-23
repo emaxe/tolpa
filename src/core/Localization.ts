@@ -98,6 +98,10 @@ export const translations = {
     runObstaclesSmashed: 'Сломано',
     runGatesPassed: 'Ворот пройдено',
     runBossesDefeated: 'Боссов повержено',
+    endlessRunOver: 'ЗАБЕГ ЗАВЕРШЁН!',
+    endlessDistance: 'Дистанция',
+    endlessRecord: 'Рекорд',
+    newRecord: 'НОВЫЙ РЕКОРД!',
 
     // Upgrades
     upgStartingMobs: 'Начальный отряд',
@@ -314,6 +318,10 @@ export const translations = {
     runObstaclesSmashed: 'Smashed',
     runGatesPassed: 'Gates Passed',
     runBossesDefeated: 'Bosses Defeated',
+    endlessRunOver: 'RUN OVER!',
+    endlessDistance: 'Distance',
+    endlessRecord: 'Record',
+    newRecord: 'NEW RECORD!',
 
     // Upgrades
     upgStartingMobs: 'Starting Squad',

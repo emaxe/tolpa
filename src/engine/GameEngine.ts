@@ -23,6 +23,7 @@ export interface HudSnapshot {
   bossProgress: number; // 0..1, -1 если на уровне нет босса
   bossDistance: number; // метров до арены босса, -1 если на уровне нет босса
   nextHazardDistance: number; // метров до ближайшего живого препятствия впереди, -1 если нет
+  distanceTraveled: number; // метров, пройденных с начала забега (Бесконечный режим)
   fps: number;
   drawCalls: number;
 }
@@ -1112,7 +1113,7 @@ export class GameEngine {
     // показать детали (макс. комбо, макс. толпа, сломанные препятствия) на экране итогов.
     const runStats: RunStats = stateManager.getRun() || {
       coins: 0, mobsSpawned: 0, gatesPassed: 0, obstaclesSmashed: 0,
-      bossesDefeated: 0, bossCoins: 0, bossGems: 0, maxCombo: 0, maxCrowd: 0,
+      bossesDefeated: 0, bossCoins: 0, bossGems: 0, maxCombo: 0, maxCrowd: 0, distance: 0,
     };
     // Откатываем активные эффекты событий (ЭМИ-шторм, множители скорости), чтобы они
     // не протекли в следующий забег.
@@ -1303,6 +1304,10 @@ export class GameEngine {
     // Update Crowd. eventSpeedMult — временный множитель скорости от динамических
     // событий (speed_boost ускоряет, ambush замедляет).
     this.crowd.update(dt, this.baseSpeed * this.eventSpeedMult, this.steerInput, trackWidth);
+
+    // Пройденная дистанция забега (метры) — обновляем по leaderZ, чтобы в Бесконечном
+    // режиме было чем побить рекорд. leaderZ монотонно растёт вдоль +Z (1 unit = 1 м).
+    stateManager.runRecordDistance(Math.max(0, Math.round(this.crowd.leaderZ)));
 
     // Speed-trail particles behind the crowd in hyper mode / arrow formation / speed_boost — pure juice
     if (this.crowd.isHyperMode || this.crowd.formation === 'arrow' || this.activeEvent?.event.type === 'speed_boost') {
@@ -1549,6 +1554,7 @@ export class GameEngine {
       bossProgress: bossArenaZ > 0 ? clamp(bossArenaZ / len, 0, 1) : -1,
       bossDistance: bossArenaZ > 0 ? Math.max(0, Math.round(bossArenaZ - this.crowd.leaderZ)) : -1,
       nextHazardDistance: this.obstacles.getNextHazardDistance(this.crowd.leaderZ),
+      distanceTraveled: Math.max(0, Math.round(this.crowd.leaderZ)),
       fps: perfMonitor.getFPS(),
       drawCalls: perfMonitor.getDrawCalls(),
     };

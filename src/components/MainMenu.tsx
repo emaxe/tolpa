@@ -155,6 +155,11 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             >
               <InfinityIcon className="w-4 h-4 text-purple-400" />
               <span>{i18n.t('endlessMode')}</span>
+              {state.endlessHighScore > 0 && (
+                <span className="text-[9px] text-purple-400/70">
+                  {i18n.t('endlessRecord')}: {state.endlessHighScore.toLocaleString()} м
+                </span>
+              )}
             </button>
           </div>
 
