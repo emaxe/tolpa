@@ -1401,3 +1401,367 @@ export function createConfettiGeometry(): THREE.BufferGeometry {
   geo.rotateX(-Math.PI / 2);
   return geo;
 }
+
+// ============================================================================
+// МОДЕЛИ СКИНОВ (уникальные 3D-формы для лидера)
+// ----------------------------------------------------------------------------
+// Каждый скин в INITIAL_SKINS имеет modelStyle. Базовые скины (category:
+// 'humanoid') используют стандартную геометрию бойца createHumanoidGeometry().
+// Экзотические скины (животные, еда, существа, меха) получают уникальную
+// процедурную форму через createLeaderSkinModel(style, colorHex, emissiveHex).
+// Все модели строятся на месте с нулевой GC-нагрузкой во время игрового цикла:
+// геометрии кэшируются в CrowdManager и переиспользуются между забегами.
+// ============================================================================
+
+/**
+ * Уникальная 3D-модель лидера по стилю скина. Возвращает Group с одним или
+ * несколькими мешами (≤ ~400 треугольников). Точка опоры (y=0) — подошва/низ
+ * модели, чтобы лидер стоял на земле вместе с толпой.
+ */
+export function createSkinLeaderModel(style: string, colorHex: string, emissiveHex: string): THREE.Group {
+  const group = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(colorHex),
+    roughness: 0.45,
+    metalness: 0.4,
+    emissive: new THREE.Color(emissiveHex),
+    emissiveIntensity: 0.4,
+  });
+  const make = (geo: THREE.BufferGeometry): THREE.Mesh => {
+    const m = new THREE.Mesh(geo, mat);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    group.add(m);
+    return m;
+  };
+
+  switch (style) {
+    case 'banana': {
+      // Изогнутое тело
+      const body = bananaCylinder(0.26, 1.5, 8, 0.32);
+      make(body);
+      // Черенок сверху
+      const tip = boxGeo(0.09, 0.14, 0.22);
+      tip.translate(0, 1.1, 0);
+      make(tip);
+      // Ножки в кроссовках
+      const leg = boxGeo(0.09, 0.22, 0.12);
+      leg.translate(-0.1, 0.11, 0);
+      make(leg);
+      const leg2 = boxGeo(0.09, 0.22, 0.12);
+      leg2.translate(0.1, 0.11, 0);
+      make(leg2);
+      // Ручки-перчатки
+      const arm = boxGeo(0.07, 0.16, 0.08);
+      arm.translate(-0.32, 0.75, 0);
+      make(arm);
+      const arm2 = boxGeo(0.07, 0.16, 0.08);
+      arm2.translate(0.32, 0.75, 0);
+      make(arm2);
+      // Тёмные очки
+      const glasses = boxGeo(0.3, 0.09, 0.06);
+      glasses.translate(0, 0.95, 0.2);
+      make(glasses);
+      return group;
+    }
+
+    case 'duck': {
+      // Туловище (сплюснутая сфера)
+      const body = sphereGeo(0.4, 10, 8);
+      body.scale(1, 0.9, 1.25);
+      body.translate(0, 0.55, 0);
+      make(body);
+      // Голова
+      const head = sphereGeo(0.26, 8, 8);
+      head.translate(0, 1.1, 0.18);
+      make(head);
+      // Клюв
+      const beak = boxGeo(0.22, 0.06, 0.22);
+      beak.translate(0, 1.02, 0.45);
+      make(beak);
+      // Хвостик
+      const tail = coneGeo(0.12, 0.28, 5);
+      tail.rotateX(-Math.PI / 2);
+      tail.translate(0, 0.75, -0.42);
+      make(tail);
+      // Лапки
+      const foot = boxGeo(0.16, 0.05, 0.26);
+      foot.translate(-0.13, 0.03, 0.05);
+      make(foot);
+      const foot2 = boxGeo(0.16, 0.05, 0.26);
+      foot2.translate(0.13, 0.03, 0.05);
+      make(foot2);
+      return group;
+    }
+
+    case 'panda': {
+      // Пухлое тело
+      const body = sphereGeo(0.46, 10, 10);
+      body.scale(1.1, 1.0, 1.0);
+      body.translate(0, 0.55, 0);
+      make(body);
+      // Голова
+      const head = sphereGeo(0.3, 10, 8);
+      head.translate(0, 1.12, 0);
+      make(head);
+      // Ушки
+      const ear = sphereGeo(0.1, 6, 6);
+      ear.translate(-0.22, 1.38, 0);
+      make(ear);
+      const ear2 = sphereGeo(0.1, 6, 6);
+      ear2.translate(0.22, 1.38, 0);
+      make(ear2);
+      // Тёмные очки вокруг глаз
+      const patch = boxGeo(0.16, 0.12, 0.05);
+      patch.translate(-0.12, 1.15, 0.24);
+      make(patch);
+      const patch2 = boxGeo(0.16, 0.12, 0.05);
+      patch2.translate(0.12, 1.15, 0.24);
+      make(patch2);
+      // Лапы
+      const paw = boxGeo(0.18, 0.5, 0.16);
+      paw.translate(-0.2, 0.25, 0);
+      make(paw);
+      const paw2 = boxGeo(0.18, 0.5, 0.16);
+      paw2.translate(0.2, 0.25, 0);
+      make(paw2);
+      // Бамбук за спиной
+      const bamboo = cylinderGeo(0.06, 0.06, 1.2, 6);
+      bamboo.rotateX(0.5);
+      bamboo.translate(0, 0.7, -0.35);
+      make(bamboo);
+      return group;
+    }
+
+    case 'burger': {
+      // Верхняя булочка (полусфера)
+      const top = sphereGeo(0.44, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2);
+      top.translate(0, 0.92, 0);
+      make(top);
+      // Кунжут
+      const seed = sphereGeo(0.04, 4, 4);
+      seed.translate(0.2, 1.28, 0.15);
+      make(seed);
+      const seed2 = sphereGeo(0.04, 4, 4);
+      seed2.translate(-0.15, 1.32, -0.1);
+      make(seed2);
+      const seed3 = sphereGeo(0.04, 4, 4);
+      seed3.translate(0.05, 1.35, 0.2);
+      make(seed3);
+      // Котлета
+      const patty = cylinderGeo(0.42, 0.42, 0.16, 10);
+      patty.translate(0, 0.75, 0);
+      make(patty);
+      // Сыр
+      const cheese = boxGeo(0.55, 0.04, 0.55);
+      cheese.translate(0, 0.68, 0);
+      make(cheese);
+      // Нижняя булочка
+      const bottom = cylinder(0.4, 0.38, 0.14, 10);
+      bottom.translate(0, 0.5, 0);
+      make(bottom);
+      // Ножки
+      const leg = boxGeo(0.1, 0.42, 0.12);
+      leg.translate(-0.14, 0.18, 0);
+      make(leg);
+      const leg2 = boxGeo(0.1, 0.42, 0.12);
+      leg2.translate(0.14, 0.18, 0);
+      make(leg2);
+      // Ручки
+      const arm = boxGeo(0.08, 0.3, 0.09);
+      arm.translate(-0.3, 0.55, 0);
+      make(arm);
+      const arm2 = boxGeo(0.08, 0.3, 0.09);
+      arm2.translate(0.3, 0.55, 0);
+      make(arm2);
+      return group;
+    }
+
+    case 'dog': {
+      // Тело (горизонтальная капсула вдоль Z)
+      const body = cylinder(0.26, 0.24, 0.75, 8);
+      body.rotateX(Math.PI / 2);
+      body.translate(0, 0.55, 0);
+      make(body);
+      // Голова
+      const head = boxGeo(0.3, 0.28, 0.34);
+      head.translate(0, 0.72, 0.42);
+      make(head);
+      // Нос
+      const nose = boxGeo(0.12, 0.1, 0.14);
+      nose.translate(0, 0.68, 0.62);
+      make(nose);
+      // Уши
+      const ear = coneGeo(0.1, 0.24, 4);
+      ear.translate(-0.16, 0.9, 0.45);
+      make(ear);
+      const ear2 = coneGeo(0.1, 0.24, 4);
+      ear2.translate(0.16, 0.9, 0.45);
+      make(ear2);
+      // Хвост
+      const tail = coneGeo(0.09, 0.3, 5);
+      tail.rotateX(Math.PI / 2);
+      tail.translate(0, 0.72, -0.42);
+      make(tail);
+      // Лапки
+      for (const dx of [-0.14, 0.14]) {
+        for (const dz of [0.16, -0.16]) {
+          const leg = boxGeo(0.1, 0.28, 0.1);
+          leg.translate(dx, 0.15, dz);
+          make(leg);
+        }
+      }
+      return group;
+    }
+
+    case 'demon': {
+      // Торс
+      const body = cylinder(0.24, 0.16, 0.7, 10);
+      body.translate(0, 0.85, 0);
+      make(body);
+      // Голова
+      const head = sphereGeo(0.22, 8, 8);
+      head.translate(0, 1.28, 0);
+      make(head);
+      // Рога
+      const horn = coneGeo(0.08, 0.35, 6);
+      horn.rotateZ(0.6);
+      horn.translate(-0.16, 1.55, 0.05);
+      make(horn);
+      const horn2 = coneGeo(0.08, 0.35, 6);
+      horn2.rotateZ(-0.6);
+      horn2.translate(0.16, 1.55, 0.05);
+      make(horn2);
+      // Крылья за спиной
+      const wing = coneGeo(0.06, 0.5, 4);
+      wing.rotateY(0.4);
+      wing.rotateZ(-0.2);
+      wing.translate(-0.32, 1.0, -0.2);
+      make(wing);
+      const wing2 = coneGeo(0.06, 0.5, 4);
+      wing2.rotateY(-0.4);
+      wing2.rotateZ(0.2);
+      wing2.translate(0.32, 1.0, -0.2);
+      make(wing2);
+      // Хвост
+      const tail = coneGeo(0.05, 0.4, 5);
+      tail.rotateX(Math.PI / 2);
+      tail.translate(0, 0.5, -0.4);
+      make(tail);
+      return group;
+    }
+
+    case 'titan': {
+      // Массивный торс
+      const torso = boxGeo(0.5, 0.7, 0.4);
+      torso.translate(0, 0.85, 0);
+      make(torso);
+      // Плечи
+      const shoulder = boxGeo(0.34, 0.24, 0.24);
+      shoulder.translate(-0.38, 1.2, 0);
+      make(shoulder);
+      const shoulder2 = boxGeo(0.34, 0.24, 0.24);
+      shoulder2.translate(0.38, 1.2, 0);
+      make(shoulder2);
+      // Ракетные блоки на плечах
+      const rocket = boxGeo(0.16, 0.2, 0.3);
+      rocket.translate(-0.38, 1.38, 0);
+      make(rocket);
+      const rocket2 = boxGeo(0.16, 0.2, 0.3);
+      rocket2.translate(0.38, 1.38, 0);
+      make(rocket2);
+      // Голова
+      const head = boxGeo(0.22, 0.22, 0.22);
+      head.translate(0, 1.5, 0);
+      make(head);
+      // Ноги
+      const leg = boxGeo(0.2, 0.55, 0.22);
+      leg.translate(-0.13, 0.28, 0);
+      make(leg);
+      const leg2 = boxGeo(0.2, 0.55, 0.22);
+      leg2.translate(0.13, 0.28, 0);
+      make(leg2);
+      return group;
+    }
+
+    case 'samurai': {
+      // Стандартный гуманоид + шлем кабуто и катана
+      const geo = createHumanoidGeometry();
+      const human = new THREE.Mesh(geo, mat);
+      human.castShadow = true;
+      human.receiveShadow = true;
+      group.add(human);
+      // Шлем с полумесяцем
+      const helm = sphereGeo(0.26, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+      helm.translate(0, 1.35, 0);
+      make(helm);
+      // Полумесяц на лбу
+      const moon = boxGeo(0.3, 0.08, 0.05);
+      moon.translate(0, 1.5, 0.16);
+      make(moon);
+      // Катана за спиной
+      const katana = boxGeo(0.06, 0.9, 0.05);
+      katana.rotateX(0.45);
+      katana.translate(0.3, 1.0, -0.28);
+      make(katana);
+      return group;
+    }
+
+    // Базовые humanoid-скины и всё остальное — стандартная модель бойца.
+    case 'cyber':
+    case 'neon':
+    case 'gold':
+    case 'ghost':
+    case 'clown':
+    case 'zombie':
+    default: {
+      const body = createHumanoidGeo();
+      const m = new THREE.Mesh(body, mat);
+      m.castShadow = true;
+      m.receiveShadow = true;
+      group.add(m);
+      return group;
+    }
+  }
+}
+
+// --- Вспомогательные конструкторы геометрий (короткие псевдонимы) -----------
+
+function boxGeo(w: number, h: number, d: number): THREE.BoxGeometry {
+  return new THREE.BoxGeometry(w, h, d);
+}
+function sphereGeo(
+  r: number,
+  w: number,
+  h: number,
+  phiStart = 0,
+  phiLength = Math.PI * 2,
+  thetaStart = 0,
+  thetaLength = Math.PI
+): THREE.SphereGeometry {
+  return new THREE.SphereGeometry(r, w, h, phiStart, phiLength, thetaStart, thetaLength);
+}
+function cylinderGeo(rt: number, rb: number, height: number, seg: number): THREE.CylinderGeometry {
+  return new THREE.CylinderGeometry(rt, rb, height, seg);
+}
+function coneGeo(r: number, height: number, seg: number): THREE.ConeGeometry {
+  return new THREE.ConeGeometry(r, height, seg);
+}
+function cylinder(rt: number, rb: number, height: number, seg: number): THREE.CylinderGeometry {
+  return new THREE.CylinderGeometry(rt, rb, height, seg);
+}
+// Псевдоним для читаемости (банан)
+function bananaCylinder(rt: number, height: number, seg: number, bend: number): THREE.BufferGeometry {
+  const geo = new THREE.CylinderGeometry(rt, rt, height, seg, 4, false);
+  const pos = geo.attributes.position.array as Float32Array;
+  for (let i = 0; i < pos.length; i += 3) {
+    const z = pos[i + 2];
+    pos[i] += Math.sin((z / height) * Math.PI) * bend;
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+// Псевдоним createHumanoidGeometry для локального использования
+function createHumanoidGeo(): THREE.BufferGeometry {
+  return createHumanoidGeometry();
+}

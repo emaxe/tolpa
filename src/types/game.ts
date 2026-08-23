@@ -195,20 +195,43 @@ export interface UpgradeConfig {
   icon: string;
 }
 
+/** Стиль 3D-модели скина: определяет ФОРМУ/силуэт лидера (не только цвет). */
+export type ModelStyle =
+  | 'cyber'
+  | 'neon'
+  | 'samurai'
+  | 'gold'
+  | 'ghost'
+  | 'demon'
+  | 'titan'
+  | 'clown'
+  | 'banana'
+  | 'dino'
+  | 'zombie'
+  | 'duck'
+  | 'panda'
+  | 'burger'
+  | 'dog';
+
+/** Категория скина — базовый цветовой или уникальная 3D-модель. */
+export type SkinCategory = 'humanoid' | 'animal' | 'food' | 'creature' | 'mecha';
+
 export interface PlayerSkin {
   id: string;
   nameKey: string;
   descKey: string;
   colorHex: string;
   emissiveHex: string;
-  modelStyle: 'cyber' | 'neon' | 'samurai' | 'gold' | 'ghost' | 'demon' | 'titan' | 'clown' | 'banana' | 'dino' | 'zombie';
+  modelStyle: ModelStyle;
   trailType: 'glow' | 'lightning' | 'fire' | 'matrix' | 'rainbow' | 'stars';
   cost: number;
   currency: 'coins' | 'gems';
   unlocked: boolean;
+  /** Категория скина: базовые — цветовой гуманоид, экзотические — уникальная модель. */
+  category: SkinCategory;
   /** Метка бонусного скина: как получить (покупка | награда за уровень | награда за достижение). */
   reward?: 'shop' | 'level' | 'achievement';
-  /** Для reward='level' — номер уровня-босса, после которого скин открывается автоматически. */
+  /** Для reward='level' — номер уровня-босс, после которого скин открывается автоматически. */
   rewardLevel?: number;
   /** Для reward='achievement' — id достижения, дающего скин. */
   rewardAchievement?: string;

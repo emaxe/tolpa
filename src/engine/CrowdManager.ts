@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { MobInstance, MobType, FormationType } from '../types/game';
+import { MobInstance, MobType, FormationType, PlayerSkin } from '../types/game';
 import { calculateFormationOffset, clamp, lerp, TRACK_RAIL_MARGIN } from '../utils/math';
-import { createHumanoidGeometry } from '../utils/proceduralMeshes';
+import { createHumanoidGeometry, createSkinLeaderModel } from '../utils/proceduralMeshes';
 import { stateManager, INITIAL_SKINS } from '../core/StateManager';
 import { eventBus } from '../core/EventBus';
 import { soundEngine } from '../audio/SoundEngine';
@@ -11,6 +11,11 @@ export class CrowdManager {
   private instancedMesh: THREE.InstancedMesh;
   private maxCapacity: number = 400;
   private mobs: MobInstance[] = [];
+  // Выделенная 3D-модель ЛИДЕРА (персонажа игрока) — меняет ФОРМУ по скину.
+  // Толпа остаётся на базовой humanoid-геометрии (InstancedMesh, 1 draw call),
+  // а лидер получает уникальную модель для экзотических скинов.
+  private leaderModel: THREE.Group | null = null;
+  private leaderGeometriesCache: Map<string, THREE.Group> = new Map();
   // Живой счётчик толпы — getAliveCount() раньше сканировал все 200 слотов на каждый
   // вызов (а вызывался по многу раз за кадр из FinishLine/GameEngine/Gate/Boss).
   private aliveCount: number = 0;
@@ -102,6 +107,48 @@ export class CrowdManager {
     this.instancedMesh.instanceMatrix.needsUpdate = true;
   }
 
+  /**
+   * Строит или обновляет выделенную модель лидера по стилю снаряжённого скина.
+   * Экзотические скины (животные/еда/существа/меха) получают уникальную 3D-форму,
+   * базовые (humanoid) — стандартную модель бойца с цветом/эмиссивом скина.
+   * Модель кэшируется по modelStyle, чтобы переснаряжение в середине забега не
+   * аллоцировало новую геометрию.
+   */
+  private buildLeaderModel(skin?: PlayerSkin): void {
+    if (this.leaderModel) {
+      this.scene.remove(this.leaderModel);
+      this.leaderModel = null;
+    }
+
+    if (!skin) return;
+
+    const style = skin.modelStyle || 'cyber';
+    let group = this.leaderGeometriesCache.get(style);
+    if (!group) {
+      group = createSkinLeaderModel(style, skin.colorHex, skin.emissiveHex);
+      this.leaderGeometriesCache.set(style, group);
+    }
+    this.leaderModel = group;
+    this.leaderModel.visible = true;
+    this.scene.add(this.leaderModel);
+  }
+
+  /** Рекурсивно освобождает геометрию и материалы меша (для cleanup при полном dispose). */
+  private disposeGroup(obj: THREE.Object3D): void {
+    obj.traverse((child) => {
+      const mesh = child as THREE.Mesh;
+      if (mesh.geometry) {
+        mesh.geometry.dispose();
+      }
+      const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
+      if (Array.isArray(mat)) {
+        mat.forEach((m) => m.dispose());
+      } else if (mat) {
+        mat.dispose();
+      }
+    });
+  }
+
   public reset(startingCount: number = 1, startZ: number = 0, trackWidth: number = 16): void {
     const upgrades = stateManager.getState().upgrades;
     const totalStart = startingCount + upgrades.startingMobs;
@@ -114,6 +161,8 @@ export class CrowdManager {
     if (skin && this.instancedMesh.material instanceof THREE.MeshStandardMaterial) {
       this.instancedMesh.material.emissive.set(skin.emissiveHex);
     }
+    // Строим/обновляем выделенную модель лидера по стилю скина (уникальная 3D-форма).
+    this.buildLeaderModel(skin);
 
     this.leaderX = 0;
     this.leaderZ = startZ;
@@ -553,6 +602,10 @@ export class CrowdManager {
     this.updateFallingMobs(dt);
     // Проигрываем death-анимацию погибших от препятствий/ловушек мобов
     this.updateDeathMobs(dt);
+    // Когда вся толпа погибла — прячем модель лидера (нет кого вести).
+    if (this.aliveCount === 0 && this.leaderModel) {
+      this.leaderModel.visible = false;
+    }
   }
 
   // Анимация падения мобов, вышедших за край дорожки: ускорение вниз + вращение.
@@ -647,6 +700,12 @@ export class CrowdManager {
       mob.targetX = this.leaderX + offset.x;
       mob.targetZ = this.leaderZ - offset.z;
 
+      // Слот #0 — лидер (персонаж игрока). Его физика и позиция остаются как у обычного
+      // моба (коллизии/формация считаются по mobs[0]), НО визуально он заменяется
+      // выделенной 3D-моделью скина (leaderModel). Скрываем этот инстанс из InstancedMesh,
+      // чтобы не было двойника.
+      const isLeaderSlot = index === 0;
+
       if (instant) {
         mob.x = mob.targetX;
         mob.z = mob.targetZ;
@@ -689,11 +748,24 @@ export class CrowdManager {
       // Лёгкий squash при приземлении (ZERO-alloc: dummy.scale переиспользуется)
       const sq = 1.0 - bounce * 0.12;
       const s = mob.scale * (this.isHyperMode ? 1.15 : 1.0);
-      this.dummy.rotation.set(lean, yaw, sway);
-      this.dummy.scale.set(s, s * sq, s);
-      this.dummy.updateMatrix();
 
-      this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
+      // Лидер (слот #0) визуально представлен отдельной моделью скина.
+      if (isLeaderSlot && this.leaderModel) {
+        // Скрываем инстанс лидера в толпе, чтобы не было двойника на острие.
+        this.dummy.position.set(0, -100, 0);
+        this.dummy.updateMatrix();
+        this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
+
+        // Позиционируем выделенную модель лидера там же, где стоит физический моб.
+        this.leaderModel.position.set(mob.x, mob.y, mob.z);
+        this.leaderModel.rotation.set(lean, yaw, sway);
+        this.leaderModel.scale.set(s, s * sq, s);
+      } else {
+        this.dummy.rotation.set(lean, yaw, sway);
+        this.dummy.scale.set(s, s * sq, s);
+        this.dummy.updateMatrix();
+        this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
+      }
 
       index++;
     }
@@ -708,5 +780,12 @@ export class CrowdManager {
     } else {
       this.instancedMesh.material.dispose();
     }
+    // Освобождаем модель лидера и все кэшированные геометрии скинов.
+    if (this.leaderModel) {
+      this.scene.remove(this.leaderModel);
+      this.leaderModel = null;
+    }
+    this.leaderGeometriesCache.forEach((group) => this.disposeGroup(group));
+    this.leaderGeometriesCache.clear();
   }
 }
