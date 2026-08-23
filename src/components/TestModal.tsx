@@ -39,10 +39,10 @@ export const TestModal: React.FC<TestModalProps> = ({ onClose }) => {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md select-none animate-fade-in">
-      <div className="w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-md select-none animate-fade-in">
+      <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="p-4 bg-slate-950/70 border-b border-slate-800 flex justify-between items-center">
+        <div className="p-4 bg-zinc-950/70 border-b border-zinc-800 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <h2 className="font-orbitron font-extrabold text-lg text-white tracking-wider flex items-center gap-2">
               <FileCheck className="w-5 h-5 text-emerald-400" />
@@ -57,18 +57,18 @@ export const TestModal: React.FC<TestModalProps> = ({ onClose }) => {
 
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 cursor-pointer transition-colors"
+            className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 cursor-pointer transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab Controls */}
-        <div className="grid grid-cols-2 p-2 bg-slate-950/40 gap-2 border-b border-slate-800">
+        <div className="grid grid-cols-2 p-2 bg-zinc-950/40 gap-2 border-b border-zinc-800">
           <button
             onClick={() => setTab('tests')}
             className={`py-2 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
-              tab === 'tests' ? 'bg-emerald-600 text-white shadow' : 'bg-slate-900 text-slate-400'
+              tab === 'tests' ? 'bg-teal-600 text-white shadow shadow-teal-600/30' : 'bg-zinc-900 text-zinc-400 hover:text-white'
             }`}
           >
             <Layers className="w-4 h-4" />
@@ -77,7 +77,7 @@ export const TestModal: React.FC<TestModalProps> = ({ onClose }) => {
           <button
             onClick={() => setTab('checklist')}
             className={`py-2 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
-              tab === 'checklist' ? 'bg-emerald-600 text-white shadow' : 'bg-slate-900 text-slate-400'
+              tab === 'checklist' ? 'bg-teal-600 text-white shadow shadow-teal-600/30' : 'bg-zinc-900 text-zinc-400 hover:text-white'
             }`}
           >
             <CheckSquare className="w-4 h-4" />
@@ -90,11 +90,11 @@ export const TestModal: React.FC<TestModalProps> = ({ onClose }) => {
           {tab === 'tests' ? (
             <>
               <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-orbitron text-slate-400">Автоматизированные тесты движка и логики</span>
+                <span className="text-xs font-orbitron text-zinc-400">Автоматизированные тесты движка и логики</span>
                 <button
                   onClick={executeTests}
                   disabled={isRunning}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-cyan-500/30 rounded-lg text-xs font-orbitron flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-orbitron flex items-center gap-1.5 cursor-pointer"
                 >
                   <Play className="w-3.5 h-3.5" />
                   <span>Перезапустить тесты</span>
@@ -105,7 +105,7 @@ export const TestModal: React.FC<TestModalProps> = ({ onClose }) => {
                 {results.map((r, idx) => (
                   <div
                     key={idx}
-                    className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl flex items-center justify-between gap-3 text-xs"
+                    className="p-3 bg-zinc-950/60 border border-zinc-800 rounded-xl flex items-center justify-between gap-3 text-xs"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       {r.passed ? (
@@ -114,12 +114,12 @@ export const TestModal: React.FC<TestModalProps> = ({ onClose }) => {
                         <XCircle className="w-4 h-4 text-red-400 shrink-0" />
                       )}
                       <div className="min-w-0">
-                        <span className="text-slate-200 font-semibold block truncate">{r.name}</span>
-                        <span className="text-slate-500 text-[11px] block">{r.message}</span>
+                        <span className="text-zinc-200 font-semibold block truncate">{r.name}</span>
+                        <span className="text-zinc-500 text-[11px] block">{r.message}</span>
                       </div>
                     </div>
 
-                    <span className="font-mono text-[11px] text-slate-400 shrink-0">
+                    <span className="font-mono text-[11px] text-zinc-400 shrink-0">
                       {r.durationMs.toFixed(1)} ms
                     </span>
                   </div>
@@ -131,10 +131,10 @@ export const TestModal: React.FC<TestModalProps> = ({ onClose }) => {
               {criteriaChecklist.map((item, idx) => (
                 <div
                   key={idx}
-                  className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl flex items-center gap-3 text-xs"
+                  className="p-3 bg-zinc-950/60 border border-zinc-800/80 rounded-xl flex items-center gap-3 text-xs"
                 >
                   <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span className="text-slate-200 font-sans">{item.text}</span>
+                  <span className="text-zinc-200 font-sans">{item.text}</span>
                 </div>
               ))}
             </div>

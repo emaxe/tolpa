@@ -60,7 +60,7 @@ export const DialogueModal: React.FC<DialogueModalProps> = ({ dialogues, onCompl
   const getAvatarIcon = (speaker: string) => {
     switch (speaker) {
       case 'commander':
-        return <ShieldAlert className="w-8 h-8 text-cyan-400" />;
+        return <ShieldAlert className="w-8 h-8 text-amber-400" />;
       case 'professor':
         return <Cpu className="w-8 h-8 text-amber-400" />;
       case 'echo':
@@ -74,10 +74,10 @@ export const DialogueModal: React.FC<DialogueModalProps> = ({ dialogues, onCompl
   if (!currentLine) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 md:p-8 bg-slate-950/70 backdrop-blur-sm select-none">
-      <div className="w-full max-w-2xl bg-slate-900/95 border-2 border-cyan-500/60 rounded-2xl p-5 shadow-2xl shadow-cyan-950/80 relative flex flex-col md:flex-row gap-4 items-start animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 md:p-8 bg-zinc-950/70 backdrop-blur-sm select-none">
+      <div className="w-full max-w-2xl bg-zinc-900/95 border-2 border-amber-500/60 rounded-2xl p-5 shadow-2xl shadow-amber-950/80 relative flex flex-col md:flex-row gap-4 items-start animate-fade-in">
         {/* Avatar Box */}
-        <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-slate-950 border-2 border-cyan-400/50 flex items-center justify-center shrink-0 shadow-inner">
+        <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-zinc-950 border-2 border-amber-400/50 flex items-center justify-center shrink-0 shadow-inner">
           {getAvatarIcon(currentLine.speaker)}
         </div>
 
@@ -85,20 +85,20 @@ export const DialogueModal: React.FC<DialogueModalProps> = ({ dialogues, onCompl
         <div className="flex-1 flex flex-col justify-between min-h-[100px]">
           <div>
             <div className="flex justify-between items-center mb-1">
-              <span className="font-orbitron font-bold text-cyan-400 text-sm md:text-base uppercase tracking-wider">
+              <span className="font-orbitron font-bold text-amber-400 text-sm md:text-base uppercase tracking-wider">
                 {i18n.t(currentLine.speakerNameKey, currentLine.speaker)}
               </span>
               <button
                 onClick={onComplete}
-                className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-orbitron cursor-pointer"
+                className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 font-orbitron cursor-pointer"
               >
                 <FastForward className="w-3.5 h-3.5" />
                 <span>ПРОПУСК</span>
               </button>
             </div>
-            <p className="text-slate-200 text-sm md:text-base leading-relaxed font-sans">
+            <p className="text-zinc-200 text-sm md:text-base leading-relaxed font-sans">
               {displayedText}
-              {isTyping && <span className="inline-block w-2 h-4 bg-cyan-400 ml-1 animate-pulse" />}
+              {isTyping && <span className="inline-block w-2 h-4 bg-amber-400 ml-1 animate-pulse" />}
             </p>
           </div>
 
@@ -106,7 +106,7 @@ export const DialogueModal: React.FC<DialogueModalProps> = ({ dialogues, onCompl
           <div className="flex justify-end mt-4">
             <button
               onClick={handleNext}
-              className="px-5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-orbitron font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-cyan-600/30 transition-transform active:scale-95 cursor-pointer flex items-center gap-1.5"
+              className="px-5 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-zinc-950 font-orbitron font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/30 transition-transform active:scale-95 cursor-pointer flex items-center gap-1.5"
             >
               <span>{isTyping ? 'ДАЛЕЕ' : currentIndex + 1 < dialogues.length ? 'СЛЕДУЮЩИЙ' : 'В БОЙ'}</span>
               <MessageSquare className="w-4 h-4" />
