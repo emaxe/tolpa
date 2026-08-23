@@ -76,7 +76,9 @@ export class GameEngine {
   private spectatorHeadMesh: THREE.InstancedMesh | null = null;
   private spectatorGlowMesh: THREE.InstancedMesh | null = null;
   private spectatorCount: number = 0;
-  // Per-instance данные зрителей (stride 12): baseX, baseY, baseZ, phase, freq, amp,
+  // Флаг видимости зрителя (1 = активен/в окне обзора, 0 = скрыт scale=0). 0-GC.
+  private spectatorVisibility: Uint8Array = new Uint8Array(0);
+  // Per-instance данные зрителей (per stride 12): baseX, baseY, baseZ, phase, freq, amp,
   // armPhase, armFreq, side, baseRotZ, armBaseX, armBaseY. Предаллоцированы — 0-GC.
   private spectatorData: Float32Array = new Float32Array(0);
   private spectatorDummy: THREE.Object3D = new THREE.Object3D();
@@ -132,6 +134,11 @@ export class GameEngine {
   private static readonly CAMERA_BASE_DISTANCE = 16.0;
   private static readonly CAMERA_LOOKAT_HEIGHT = 2.5;
   private static readonly CAMERA_LOOKAT_LEAD = 6.0;
+  // Окно видимости зрителей по Z вокруг leaderZ: зрители за пределами этого окна
+  // анимируются только при пересечении границы (scale=0), а не каждый кадр. Запас
+  // назад > CAMERA_BASE_DISTANCE + speedLag, вперёд — до предела читаемости силуэта.
+  private static readonly SPECTATOR_WINDOW_BACK = 30.0;
+  private static readonly SPECTATOR_WINDOW_AHEAD = 90.0;
 
   // Adrenaline (перенесено сюда из HUD-таймера — заряд должен стоять на паузе
   // и не быть отвязан от реальной игры)
@@ -639,6 +646,7 @@ export class GameEngine {
     this.spectatorHeadMesh = null;
     this.spectatorGlowMesh = null;
     this.spectatorCount = 0;
+    this.spectatorVisibility = new Uint8Array(0);
     this.spectatorData = new Float32Array(0);
     this.beamMeshes = [];
     this.flagMeshes = [];
@@ -902,9 +910,9 @@ export class GameEngine {
         // Зрители на ступенях (кроме самого нижнего ряда — там барьер)
         for (let tier = 1; tier < tiers; tier++) {
           const rowZ = z0 + 1.5;
-          const rowCount = Math.floor((z1 - z0 - 3) / 0.7); // плотнее (0.7 вместо 0.9)
+          const rowCount = Math.floor((z1 - z0 - 3) / 0.9); // реже (0.9 вместо 0.7) — меньше объектов на экране
           for (let i = 0; i < rowCount; i++) {
-            const z = rowZ + i * 0.7 + (Math.random() - 0.5) * 0.3;
+            const z = rowZ + i * 0.9 + (Math.random() - 0.5) * 0.3;
             const x = side * (tribuneX + tier * stepDepth + (Math.random() - 0.5) * 0.4);
             const y = stepHeight * tier + 0.1;
             seats.push(x, y, z);
@@ -933,6 +941,9 @@ export class GameEngine {
     const count = seats.length / 3;
     this.spectatorCount = count;
     this.spectatorData = new Float32Array(count * 12);
+    // Все зрители изначально «активны» (матрицы уже выставлены видимыми при построении) —
+    // первый кадр animateSpectators скроет тех, кто вне окна обзора.
+    this.spectatorVisibility = new Uint8Array(count).fill(1);
 
     this.spectatorMesh = new THREE.InstancedMesh(humanoidGeo, bodyMat, count);
     this.spectatorMesh.frustumCulled = false;
@@ -1848,6 +1859,7 @@ export class GameEngine {
 
     // Спецэффект декора: периодические «искры» с верхушек биомных объектов.
     // 0-GC: якоря предаллоцированы в decorFxAnchors, эмиссия через ParticleSystem.
+    // Эмитируем только в окне вокруг лидера, чтобы не спавнить невидимые частицы далеко.
     if (this.decorFxAnchors.length >= 3) {
       this.decorFxAccum += dt;
       if (this.decorFxAccum >= 0.35) {
@@ -1858,7 +1870,11 @@ export class GameEngine {
           const ax = this.decorFxAnchors[idx];
           const ay = this.decorFxAnchors[idx + 1];
           const az = this.decorFxAnchors[idx + 2];
-          this.particles.emitBurst(ax, ay, az, 2, 0x67e8f9, 1.6, 1.2);
+          const dzf = Math.abs(az - this.crowd.leaderZ);
+          // Эмитируем только рядом с камерой/толпой (влияние спецэффектов ниже вдали).
+          if (dzf < 80) {
+            this.particles.emitBurst(ax, ay, az, 2, 0x67e8f9, 1.6, 1.2);
+          }
         }
       }
     }
@@ -1886,6 +1902,11 @@ export class GameEngine {
     const leaderZ = this.crowd.leaderZ;
     const count = this.spectatorCount;
     const data = this.spectatorData;
+    const vis = this.spectatorVisibility;
+    // Окно видимости по Z вокруг лидера: зрители вне его не анимируются и скрыты
+    // (scale 0), чтобы не жечь CPU/GPU вдали от камеры. Запас на поворот/рывки.
+    const loZ = leaderZ - GameEngine.SPECTATOR_WINDOW_BACK;
+    const hiZ = leaderZ + GameEngine.SPECTATOR_WINDOW_AHEAD;
     let bodyChanged = false;
     let armChanged = false;
     let arm2Changed = false;
@@ -1897,6 +1918,54 @@ export class GameEngine {
       const bx = data[o];
       const by = data[o + 1];
       const bz = data[o + 2];
+      const inWindow = bz > loZ && bz < hiZ;
+      const wasActive = vis[i] !== 0;
+
+      if (!inWindow) {
+        // Вне окна: анимируем/обновляем только в момент пересечения границы (скрываем).
+        if (wasActive) {
+          // Прячем: scale 0 один раз, дальше кадр не трогаем.
+          this.spectatorDummy.position.set(bx, -100, bz);
+          this.spectatorDummy.rotation.set(0, 0, 0);
+          this.spectatorDummy.scale.setScalar(0);
+          this.spectatorDummy.updateMatrix();
+          this.spectatorMesh.setMatrixAt(i, this.spectatorDummy.matrix);
+          bodyChanged = true;
+
+          this.spectatorHeadDummy.position.set(bx, -100, bz);
+          this.spectatorHeadDummy.rotation.set(0, 0, 0);
+          this.spectatorHeadDummy.scale.setScalar(0);
+          this.spectatorHeadDummy.updateMatrix();
+          this.spectatorHeadMesh.setMatrixAt(i, this.spectatorHeadDummy.matrix);
+          headChanged = true;
+
+          this.spectatorArmDummy.position.set(bx, -100, bz);
+          this.spectatorArmDummy.rotation.set(0, 0, 0);
+          this.spectatorArmDummy.scale.setScalar(0);
+          this.spectatorArmDummy.updateMatrix();
+          this.spectatorArmMesh.setMatrixAt(i, this.spectatorArmDummy.matrix);
+          armChanged = true;
+
+          this.spectatorArm2Dummy.position.set(bx, -100, bz);
+          this.spectatorArm2Dummy.rotation.set(0, 0, 0);
+          this.spectatorArm2Dummy.scale.setScalar(0);
+          this.spectatorArm2Dummy.updateMatrix();
+          this.spectatorArm2Mesh.setMatrixAt(i, this.spectatorArm2Dummy.matrix);
+          arm2Changed = true;
+
+          this.spectatorGlowDummy.position.set(bx, -100, bz);
+          this.spectatorGlowDummy.rotation.set(0, 0, 0);
+          this.spectatorGlowDummy.scale.setScalar(0);
+          this.spectatorGlowDummy.updateMatrix();
+          this.spectatorGlowMesh.setMatrixAt(i, this.spectatorGlowDummy.matrix);
+          glowChanged = true;
+
+          vis[i] = 0;
+        }
+        continue;
+      }
+
+      // Внутри окна — полная анимация (как было).
       const phase = data[o + 3];
       const freq = data[o + 4];
       const amp = data[o + 5];
@@ -1959,8 +2028,11 @@ export class GameEngine {
       this.spectatorGlowDummy.updateMatrix();
       this.spectatorGlowMesh.setMatrixAt(i, this.spectatorGlowDummy.matrix);
       glowChanged = true;
+
+      vis[i] = 1;
     }
 
+    // Выставляем needsUpdate только если в этом кадре реально меняли матрицы.
     if (bodyChanged) this.spectatorMesh.instanceMatrix.needsUpdate = true;
     if (armChanged) this.spectatorArmMesh.instanceMatrix.needsUpdate = true;
     if (arm2Changed) this.spectatorArm2Mesh.instanceMatrix.needsUpdate = true;
