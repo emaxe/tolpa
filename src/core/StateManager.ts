@@ -115,6 +115,60 @@ export const INITIAL_SKINS: PlayerSkin[] = [
     currency: 'gems',
     unlocked: false,
   },
+  {
+    id: 'clown_chaos',
+    nameKey: 'skins.clown',
+    descKey: 'skins.clownDesc',
+    colorHex: '#ff0055',
+    emissiveHex: '#ffcc00',
+    modelStyle: 'clown',
+    trailType: 'rainbow',
+    cost: 3500,
+    currency: 'coins',
+    unlocked: false,
+    reward: 'shop',
+  },
+  {
+    id: 'party_banana',
+    nameKey: 'skins.banana',
+    descKey: 'skins.bananaDesc',
+    colorHex: '#ffe600',
+    emissiveHex: '#a3e635',
+    modelStyle: 'banana',
+    trailType: 'lightning',
+    cost: 75,
+    currency: 'gems',
+    unlocked: false,
+    reward: 'shop',
+  },
+  {
+    id: 'dino_rex',
+    nameKey: 'skins.dino',
+    descKey: 'skins.dinoDesc',
+    colorHex: '#10b981',
+    emissiveHex: '#047857',
+    modelStyle: 'dino',
+    trailType: 'fire',
+    cost: 0,
+    currency: 'coins',
+    unlocked: false,
+    reward: 'level',
+    rewardLevel: 30,
+  },
+  {
+    id: 'glitch_zombie',
+    nameKey: 'skins.zombie',
+    descKey: 'skins.zombieDesc',
+    colorHex: '#06b6d4',
+    emissiveHex: '#7c3aed',
+    modelStyle: 'zombie',
+    trailType: 'matrix',
+    cost: 0,
+    currency: 'coins',
+    unlocked: false,
+    reward: 'achievement',
+    rewardAchievement: 'legion_150',
+  },
 ];
 
 export const INITIAL_ACHIEVEMENTS: AchievementItem[] = [
@@ -153,6 +207,7 @@ export const INITIAL_ACHIEVEMENTS: AchievementItem[] = [
     rewardGems: 25,
     claimed: false,
     category: 'crowd',
+    rewardSkinId: 'glitch_zombie',
   },
   {
     id: 'boss_1',
@@ -532,6 +587,11 @@ export class StateManager {
     if (levelNum >= 10) this.updateAchievementProgress('boss_1', 1);
     if (levelNum >= 50) this.updateAchievementProgress('boss_5', 1);
 
+    // Бонусный скин за прохождение 30 уровня (Босс 3 — Кристальный Змей).
+    if (levelNum >= 30 && !this.state.unlockedSkins.includes('dino_rex')) {
+      this.unlockSkinFree('dino_rex');
+    }
+
     this.notify();
     eventBus.emit('levelCompleted', { levelNum, score, crowdCount, stars });
   }
@@ -592,6 +652,18 @@ export class StateManager {
     return false;
   }
 
+  /**
+   * Бесплатная разблокировка скина (бонус за достижение/уровень-босса).
+   * Не тратит валюту; эмитит событие skinUnlocked для уведомления в UI.
+   */
+  public unlockSkinFree(skinId: string): boolean {
+    if (this.state.unlockedSkins.includes(skinId)) return false;
+    this.state.unlockedSkins.push(skinId);
+    this.notify();
+    eventBus.emit('skinUnlocked', { skinId });
+    return true;
+  }
+
   public equipSkin(skinId: string): void {
     if (this.state.unlockedSkins.includes(skinId)) {
       this.state.equippedSkin = skinId;
@@ -636,6 +708,10 @@ export class StateManager {
       userAch.claimed = true;
       this.addCoins(achDef.rewardCoins);
       this.addGems(achDef.rewardGems);
+      // Бонусный скин за достижение (если задан).
+      if (achDef.rewardSkinId) {
+        this.unlockSkinFree(achDef.rewardSkinId);
+      }
       this.notify();
       return true;
     }

@@ -168,11 +168,17 @@ export interface PlayerSkin {
   descKey: string;
   colorHex: string;
   emissiveHex: string;
-  modelStyle: 'cyber' | 'neon' | 'samurai' | 'gold' | 'ghost' | 'demon' | 'titan';
+  modelStyle: 'cyber' | 'neon' | 'samurai' | 'gold' | 'ghost' | 'demon' | 'titan' | 'clown' | 'banana' | 'dino' | 'zombie';
   trailType: 'glow' | 'lightning' | 'fire' | 'matrix' | 'rainbow' | 'stars';
   cost: number;
   currency: 'coins' | 'gems';
   unlocked: boolean;
+  /** Метка бонусного скина: как получить (покупка | награда за уровень | награда за достижение). */
+  reward?: 'shop' | 'level' | 'achievement';
+  /** Для reward='level' — номер уровня-босса, после которого скин открывается автоматически. */
+  rewardLevel?: number;
+  /** Для reward='achievement' — id достижения, дающего скин. */
+  rewardAchievement?: string;
 }
 
 export interface AchievementItem {
@@ -186,6 +192,8 @@ export interface AchievementItem {
   rewardGems: number;
   claimed: boolean;
   category: 'crowd' | 'combat' | 'levels' | 'economy';
+  /** Необязательный бонусный скин, выдаваемый при получении награды. */
+  rewardSkinId?: string;
 }
 
 export interface GameStats {

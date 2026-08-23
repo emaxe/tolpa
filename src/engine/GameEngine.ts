@@ -1137,6 +1137,23 @@ export class GameEngine {
     this.eventFxAccum = 0;
   }
 
+  /**
+   * Цвет частиц speed-trail за толпой. В hyper mode — усиленный золотой;
+   * иначе — цвет/акцент снаряжённого трейла игрока.
+   */
+  private trailColorForState(): number {
+    if (this.crowd.isHyperMode) return 0xfacc15;
+    switch (stateManager.getState().equippedTrail) {
+      case 'fire': return 0xff4400;
+      case 'matrix': return 0x00ff66;
+      case 'rainbow': return 0x9933ff;
+      case 'lightning': return 0x38bdf8;
+      case 'stars': return 0xfacc15;
+      case 'glow':
+      default: return 0x00f0ff;
+    }
+  }
+
   /** Обновляет динамические события уровня: триггерит новые по leaderZ и тикает активные. */
   private updateDynamicEvents(dt: number): void {
     const trackWidth = this.currentLevel?.trackWidth || DEFAULT_TRACK_WIDTH;
@@ -1297,7 +1314,7 @@ export class GameEngine {
           0.4 + Math.random() * 0.6,
           this.crowd.leaderZ - 2 - Math.random() * 2,
           2,
-          this.crowd.isHyperMode ? 0xfacc15 : 0x00f0ff,
+          this.trailColorForState(),
           2.5
         );
       }

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { MobInstance, MobType, FormationType } from '../types/game';
 import { calculateFormationOffset, clamp, lerp, TRACK_RAIL_MARGIN } from '../utils/math';
 import { createHumanoidGeometry } from '../utils/proceduralMeshes';
-import { stateManager } from '../core/StateManager';
+import { stateManager, INITIAL_SKINS } from '../core/StateManager';
 import { eventBus } from '../core/EventBus';
 import { soundEngine } from '../audio/SoundEngine';
 
@@ -22,6 +22,8 @@ export class CrowdManager {
   private dummy: THREE.Object3D = new THREE.Object3D();
   private colorDummy: THREE.Color = new THREE.Color();
   private animTime: number = 0;
+  /** Цвет обычных мобов из снаряжённого скина игрока (обновляется при reset). */
+  private currentSkinColor: number = 0x00f0ff;
 
   // Crowd State
   public leaderX: number = 0;
@@ -44,8 +46,12 @@ export class CrowdManager {
     this.maxCapacity = maxMobs;
 
     const geo = createHumanoidGeometry();
+    // ВАЖНО: InstancedMesh перемножает material.color × instanceColor в шейдере.
+    // Если базовый цвет не белый (например, cyan), любой инстанс, окрашенный в другой
+    // цвет скина, получит искажённый (почти чёрный) результат. Поэтому базовый цвет —
+    // чистый белый, а реальный цвет каждого моба задаётся через instanceColor.
     const mat = new THREE.MeshStandardMaterial({
-      color: 0x00f0ff,
+      color: 0xffffff,
       roughness: 0.3,
       metalness: 0.7,
       emissive: 0x0284c7,
@@ -99,6 +105,15 @@ export class CrowdManager {
   public reset(startingCount: number = 1, startZ: number = 0, trackWidth: number = 16): void {
     const upgrades = stateManager.getState().upgrades;
     const totalStart = startingCount + upgrades.startingMobs;
+
+    // Цвет обычных мобов берём из снаряжённого скина игрока.
+    const eqSkin = stateManager.getState().equippedSkin;
+    const skin = INITIAL_SKINS.find((s) => s.id === eqSkin);
+    this.currentSkinColor = skin ? parseInt(skin.colorHex.replace('#', ''), 16) : 0x00f0ff;
+    // Синхронизируем emissive материала с emissive скина для целостного свечения.
+    if (skin && this.instancedMesh.material instanceof THREE.MeshStandardMaterial) {
+      this.instancedMesh.material.emissive.set(skin.emissiveHex);
+    }
 
     this.leaderX = 0;
     this.leaderZ = startZ;
@@ -217,12 +232,12 @@ export class CrowdManager {
           mob.shieldHp = 1;
           mob.color = 0x10b981; // Emerald
         } else {
-          // Regular mob: equip skin color
+          // Regular mob: equip skin color из снаряжённого скина игрока
           mob.scale = 0.65;
           mob.hp = 1;
           mob.maxHp = 1;
           mob.shieldHp = 0;
-          mob.color = 0x00f0ff; // Cyan
+          mob.color = this.currentSkinColor;
         }
 
         this.colorDummy.setHex(mob.color);

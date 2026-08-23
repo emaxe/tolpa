@@ -209,6 +209,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({ onClose }) => {
               {INITIAL_SKINS.map((skin) => {
                 const isUnlocked = state.unlockedSkins.includes(skin.id);
                 const isEquipped = state.equippedSkin === skin.id;
+                const isRewardSkin = !!skin.reward && skin.reward !== 'shop';
                 const canAfford =
                   skin.currency === 'coins' ? state.coins >= skin.cost : state.gems >= skin.cost;
 
@@ -230,22 +231,24 @@ export const ShopModal: React.FC<ShopModalProps> = ({ onClose }) => {
                       </div>
                       <div>
                         <h4 className="font-orbitron font-bold text-sm text-white">
-                          {skin.id.replace('_', ' ').toUpperCase()}
+                          {i18n.t(skin.nameKey, skin.id.replace('_', ' ').toUpperCase())}
                         </h4>
                         <span className="text-[11px] text-slate-400 uppercase tracking-wider">
-                          {skin.trailType} Trail
+                          {i18n.t(skin.descKey, '')}
                         </span>
                       </div>
                     </div>
 
                     <button
                       onClick={() => handleSkinAction(skin.id, skin.cost, skin.currency)}
-                      disabled={!isUnlocked && !canAfford}
+                      disabled={!isUnlocked && (isRewardSkin || !canAfford)}
                       className={`w-full py-2 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                         isEquipped
                           ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50'
                           : isUnlocked
                           ? 'bg-slate-800 hover:bg-slate-700 text-white'
+                          : isRewardSkin
+                          ? 'bg-slate-800/60 text-slate-500 cursor-not-allowed'
                           : canAfford
                           ? 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-lg'
                           : 'bg-slate-800/60 text-slate-500 cursor-not-allowed'
@@ -258,6 +261,11 @@ export const ShopModal: React.FC<ShopModalProps> = ({ onClose }) => {
                         </>
                       ) : isUnlocked ? (
                         <span>{i18n.t('equip')}</span>
+                      ) : isRewardSkin ? (
+                        <>
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>{i18n.t(skin.reward === 'level' ? 'skinRewardLevel' : 'skinRewardAchievement')}</span>
+                        </>
                       ) : (
                         <>
                           <Lock className="w-3.5 h-3.5" />

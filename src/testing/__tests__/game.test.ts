@@ -348,3 +348,31 @@ describe('Formations & Math Helpers', () => {
     }
   });
 });
+
+describe('Skin Rewards (бонусные скины)', () => {
+  it('прохождение 30 уровня бесплатно открывает скин dino_rex', () => {
+    const mgr = StateManager.getInstance();
+    mgr.resetProgress();
+    expect(mgr.getState().unlockedSkins.includes('dino_rex')).toBe(false);
+    mgr.completeLevel(30, 1000, 100, 3);
+    expect(mgr.getState().unlockedSkins.includes('dino_rex')).toBe(true);
+  });
+
+  it('уровни до 30 не открывают скин dino_rex', () => {
+    const mgr = StateManager.getInstance();
+    mgr.resetProgress();
+    mgr.completeLevel(10, 1000, 100, 3);
+    expect(mgr.getState().unlockedSkins.includes('dino_rex')).toBe(false);
+  });
+
+  it('клейм достижения legion_150 открывает скин glitch_zombie', () => {
+    const mgr = StateManager.getInstance();
+    mgr.resetProgress();
+    expect(mgr.getState().unlockedSkins.includes('glitch_zombie')).toBe(false);
+    // Прогресс достижения 150 мобов
+    mgr.updateAchievementProgress('legion_150', 150);
+    const ok = mgr.claimAchievement('legion_150');
+    expect(ok).toBe(true);
+    expect(mgr.getState().unlockedSkins.includes('glitch_zombie')).toBe(true);
+  });
+});
