@@ -186,6 +186,10 @@ export class LevelGenerator {
       'wrecking_ball',
       'lava_pit',
       'barrier_gate',
+      'bomb',
+      'guard_dog',
+      'swinging_hammer',
+      'rolling_spike_ball',
     ];
 
     let obsIndex = 0;
@@ -277,7 +281,7 @@ export class LevelGenerator {
           });
         } else {
           // Одиночное препятствие
-          const type = allObstacleTypes[Math.floor(rng() * allObstacleTypes.length)];
+          const type = this.pickObstacleType(phase.phaseName, rng);
           const obstacleDef = this.createObstacleDef(type, sectionZ, levelNum, obsIndex++, trackWidth, phase.phaseMult, rng);
           rawObstacles.push(obstacleDef);
         }
@@ -364,13 +368,13 @@ export class LevelGenerator {
             maxHp: 15,
           });
         } else {
-          const type = allObstacleTypes[Math.floor(rng() * allObstacleTypes.length)];
+          const type = this.pickObstacleType(phase.phaseName, rng);
           const obstacleDef = this.createObstacleDef(type, sectionZ, levelNum, obsIndex++, trackWidth, phase.phaseMult, rng);
           rawObstacles.push(obstacleDef);
         }
       } else {
         // Climax / Boss-pre phase
-        const type = allObstacleTypes[Math.floor(rng() * allObstacleTypes.length)];
+        const type = this.pickObstacleType(phase.phaseName, rng);
         const obstacleDef = this.createObstacleDef(type, sectionZ, levelNum, obsIndex++, trackWidth, phase.phaseMult, rng);
         rawObstacles.push(obstacleDef);
       }
@@ -517,6 +521,48 @@ export class LevelGenerator {
     };
   }
 
+  private static pickObstacleType(
+    phaseName: PhaseInfo['phaseName'],
+    rng: () => number
+  ): ObstacleType {
+    if (phaseName === 'warmup') {
+      return rng() < 0.6 ? 'saw_blade' : 'spike_trap';
+    } else if (phaseName === 'ramp') {
+      const pool: ObstacleType[] = ['saw_blade', 'spike_trap', 'crusher', 'axe_pendulum', 'rolling_spike_ball'];
+      return pool[Math.floor(rng() * pool.length)];
+    } else if (phaseName === 'peak') {
+      const pool: ObstacleType[] = [
+        'saw_blade',
+        'crusher',
+        'axe_pendulum',
+        'laser_grid',
+        'barrier_gate',
+        'bomb',
+        'guard_dog',
+        'swinging_hammer',
+        'rolling_spike_ball',
+      ];
+      return pool[Math.floor(rng() * pool.length)];
+    } else {
+      // corridor / climax: all obstacles available
+      const pool: ObstacleType[] = [
+        'saw_blade',
+        'axe_pendulum',
+        'crusher',
+        'spike_trap',
+        'laser_grid',
+        'wrecking_ball',
+        'lava_pit',
+        'barrier_gate',
+        'bomb',
+        'guard_dog',
+        'swinging_hammer',
+        'rolling_spike_ball',
+      ];
+      return pool[Math.floor(rng() * pool.length)];
+    }
+  }
+
   private static createObstacleDef(
     type: ObstacleType,
     z: number,
@@ -530,12 +576,15 @@ export class LevelGenerator {
     let obsWidth: number;
     let x: number;
     let range: number;
+    let baseDmg = 12;
+    let speed = 1.5 + rng() * 2.0;
 
     if (type === 'laser_grid') {
       obsWidth = 4.0;
       const side = rng() < 0.5 ? -1 : 1;
       x = side * (playableHalf - obsWidth / 2);
       range = 0;
+      baseDmg = 6;
     } else if (type === 'wrecking_ball') {
       obsWidth = 2.4;
       x = (rng() * 2 - 1) * (playableHalf - 1.2);
@@ -548,6 +597,36 @@ export class LevelGenerator {
       obsWidth = 3.3;
       x = (rng() * 2 - 1) * (playableHalf - 1.65);
       range = 0;
+    } else if (type === 'bomb') {
+      obsWidth = 2.4;
+      x = (rng() * 2 - 1) * (playableHalf - 1.2);
+      range = 3.5;
+      baseDmg = 999;
+      speed = 0.8;
+    } else if (type === 'guard_dog') {
+      obsWidth = 2.0;
+      x = (rng() * 2 - 1) * (playableHalf - 1.0);
+      range = 2.6;
+      baseDmg = 1;
+      speed = 1.6;
+    } else if (type === 'swinging_hammer') {
+      obsWidth = 3.2;
+      x = (rng() * 2 - 1) * (playableHalf - 1.6);
+      range = 0;
+      baseDmg = 20;
+      speed = 1.8 + rng() * 0.8;
+    } else if (type === 'rolling_spike_ball') {
+      obsWidth = 2.2;
+      x = (rng() * 2 - 1) * (playableHalf - 1.1);
+      range = 2.0;
+      baseDmg = 15;
+      speed = 2.5;
+    } else if (type === 'saw_blade' || type === 'spike_trap') {
+      const maxHalfX = (trackWidth / 2 - 0.6) - 1.0;
+      obsWidth = 2.0;
+      x = (rng() * 2 - 1) * maxHalfX;
+      range = Math.min(3.5, maxHalfX);
+      baseDmg = 6;
     } else {
       const maxHalfX = (trackWidth / 2 - 0.6) - 1.0;
       obsWidth = 2.0;
@@ -555,8 +634,7 @@ export class LevelGenerator {
       range = Math.min(3.5, maxHalfX);
     }
 
-    const baseDmg = type === 'saw_blade' || type === 'laser_grid' || type === 'spike_trap' ? 6 : 12;
-    const damage = Math.round((baseDmg + Math.floor(levelNum * 0.16)) * phaseMult);
+    const damage = type === 'bomb' ? 999 : type === 'guard_dog' ? 1 : Math.round((baseDmg + Math.floor(levelNum * 0.16)) * phaseMult);
 
     return {
       id: `obs_${levelNum}_${index}`,
@@ -567,11 +645,16 @@ export class LevelGenerator {
       width: obsWidth,
       height: 2,
       depth: 2,
-      speed: 1.5 + rng() * 2.0,
+      speed,
       range,
       initialOffset: rng() * Math.PI * 2,
       damage,
-      destructible: type === 'crusher' || type === 'axe_pendulum' || type === 'wrecking_ball',
+      destructible:
+        type === 'crusher' ||
+        type === 'axe_pendulum' ||
+        type === 'wrecking_ball' ||
+        type === 'guard_dog' ||
+        type === 'swinging_hammer',
       hp: 15,
       maxHp: 15,
     };
@@ -876,6 +959,10 @@ export class LevelGenerator {
       'wrecking_ball',
       'lava_pit',
       'barrier_gate',
+      'bomb',
+      'guard_dog',
+      'swinging_hammer',
+      'rolling_spike_ball',
     ];
 
     const obsCount = 4 + (rng() < 0.5 ? 1 : 0);
@@ -886,12 +973,15 @@ export class LevelGenerator {
       let obsWidth = 2.0;
       let x = 0;
       let range = 0;
+      let damage = 12;
+      let speed = 1.8 + rng() * 1.5;
 
       if (type === 'laser_grid') {
         obsWidth = 4.0;
         const side = rng() < 0.5 ? -1 : 1;
         x = side * (playableHalf - obsWidth / 2);
         range = 0;
+        damage = 6;
       } else if (type === 'wrecking_ball') {
         obsWidth = 2.4;
         x = (rng() * 2 - 1) * (playableHalf - 1.2);
@@ -904,6 +994,36 @@ export class LevelGenerator {
         obsWidth = 3.3;
         x = (rng() * 2 - 1) * (playableHalf - 1.5);
         range = 0;
+      } else if (type === 'bomb') {
+        obsWidth = 2.4;
+        x = (rng() * 2 - 1) * (playableHalf - 1.2);
+        range = 3.5;
+        damage = 999;
+        speed = 0.8;
+      } else if (type === 'guard_dog') {
+        obsWidth = 2.0;
+        x = (rng() * 2 - 1) * (playableHalf - 1.0);
+        range = 2.6;
+        damage = 1;
+        speed = 1.6;
+      } else if (type === 'swinging_hammer') {
+        obsWidth = 3.2;
+        x = (rng() * 2 - 1) * (playableHalf - 1.6);
+        range = 0;
+        damage = 20;
+        speed = 1.8 + rng() * 0.8;
+      } else if (type === 'rolling_spike_ball') {
+        obsWidth = 2.2;
+        x = (rng() * 2 - 1) * (playableHalf - 1.1);
+        range = 2.0;
+        damage = 15;
+        speed = 2.5;
+      } else if (type === 'saw_blade' || type === 'spike_trap') {
+        const maxHalfX = (trackWidth / 2 - 0.6) - 1.0;
+        obsWidth = 2.0;
+        x = (rng() * 2 - 1) * maxHalfX;
+        range = Math.min(3.5, maxHalfX);
+        damage = 6;
       } else {
         const maxHalfX = (trackWidth / 2 - 0.6) - 1.0;
         obsWidth = 2.0;
@@ -920,11 +1040,16 @@ export class LevelGenerator {
         width: obsWidth,
         height: 2,
         depth: 2,
-        speed: 1.8 + rng() * 1.5,
+        speed,
         range,
         initialOffset: rng() * Math.PI * 2,
-        damage: type === 'saw_blade' || type === 'laser_grid' || type === 'spike_trap' ? 6 : 12,
-        destructible: type === 'crusher' || type === 'axe_pendulum' || type === 'wrecking_ball',
+        damage,
+        destructible:
+          type === 'crusher' ||
+          type === 'axe_pendulum' ||
+          type === 'wrecking_ball' ||
+          type === 'guard_dog' ||
+          type === 'swinging_hammer',
         hp: 15,
         maxHp: 15,
       });

@@ -674,6 +674,303 @@ export function createBarrierGateMesh(): THREE.Group {
   return group;
 }
 
+// Procedural Bomb Mesh — мина с AoE радиусом.
+// children[0] — верхний мигающий диод-маячок (пульсирует в update).
+// children[1] — нижняя магнитная подставка-диск.
+// children[2] — сферический корпус мины.
+export function createBombMesh(): THREE.Group {
+  const group = new THREE.Group();
+
+  // 0. Верхний мигающий диод-маячок (индекс 0 для быстрой анимации пульсации)
+  const beaconGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.22, 8);
+  const beaconMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    emissive: 0xef4444,
+    emissiveIntensity: 1.0,
+    roughness: 0.2,
+  });
+  const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+  beacon.position.y = 1.65;
+  group.add(beacon);
+
+  // 1. Нижняя магнитная подставка-диск
+  const baseGeo = new THREE.CylinderGeometry(0.7, 0.85, 0.16, 12);
+  const baseMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.3 });
+  const base = new THREE.Mesh(baseGeo, baseMat);
+  base.position.y = 0.08;
+  group.add(base);
+
+  // 2. Сферический корпус мины
+  const bodyGeo = new THREE.SphereGeometry(0.85, 14, 14);
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: 0x18181b,
+    metalness: 0.8,
+    roughness: 0.2,
+    emissive: 0xef4444,
+    emissiveIntensity: 0.4,
+  });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.y = 0.85;
+  group.add(body);
+
+  // 3..6. 4 шипа-детонатора по горизонтальным осям
+  const spikeMat = new THREE.MeshStandardMaterial({ color: 0x71717a, metalness: 0.9, roughness: 0.2 });
+  const angles = [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2];
+  for (let i = 0; i < 4; i++) {
+    const spikeGeo = new THREE.ConeGeometry(0.14, 0.45, 6);
+    const spike = new THREE.Mesh(spikeGeo, spikeMat);
+    const ang = angles[i];
+    spike.position.set(Math.cos(ang) * 0.9, 0.85, Math.sin(ang) * 0.9);
+    spike.rotation.z = Math.PI / 2;
+    spike.rotation.y = -ang;
+    group.add(spike);
+  }
+
+  return group;
+}
+
+// Procedural Guard Dog Mesh — кибер-собака на энергетической цепи.
+// children[0] — анкерный столб-цилиндр на полу.
+// children[1] — энергетическая цепь (цилиндр от столба к собаке).
+// children[2] — корпус собаки (THREE.Group: торс, лапы, голова, пасть, хвост).
+// Внутри dogGroup (children[2]): children[3] — нижняя челюсть / пасть для анимации укуса.
+export function createGuardDogMesh(): THREE.Group {
+  const group = new THREE.Group();
+
+  // 0. Анкерный столб на полу
+  const postGeo = new THREE.CylinderGeometry(0.2, 0.28, 0.45, 8);
+  const postMat = new THREE.MeshStandardMaterial({
+    color: 0x1e293b,
+    metalness: 0.9,
+    roughness: 0.25,
+    emissive: 0xa855f7,
+    emissiveIntensity: 0.3,
+  });
+  const post = new THREE.Mesh(postGeo, postMat);
+  post.position.y = 0.22;
+  group.add(post);
+
+  // 1. Энергетическая цепь (динамически ориентируется в update)
+  const chainGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.0, 6);
+  const chainMat = new THREE.MeshStandardMaterial({
+    color: 0xc084fc,
+    emissive: 0xa855f7,
+    emissiveIntensity: 0.8,
+    roughness: 0.3,
+  });
+  const chain = new THREE.Mesh(chainGeo, chainMat);
+  chain.position.set(0, 0.25, 0.5);
+  chain.rotation.x = Math.PI / 2;
+  group.add(chain);
+
+  // 2. Корпус собаки (группа)
+  const dogGroup = new THREE.Group();
+  dogGroup.position.set(0, 0, 1.2);
+
+  // 2.0. Угловатый торс
+  const bodyGeo = new THREE.BoxGeometry(0.55, 0.42, 0.9);
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: 0x0f172a,
+    metalness: 0.8,
+    roughness: 0.3,
+    emissive: 0xa855f7,
+    emissiveIntensity: 0.25,
+  });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.y = 0.45;
+  dogGroup.add(body);
+
+  // 2.1. Голова с визором
+  const headGeo = new THREE.BoxGeometry(0.38, 0.3, 0.42);
+  const headMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.2 });
+  const head = new THREE.Mesh(headGeo, headMat);
+  head.position.set(0, 0.65, 0.55);
+  dogGroup.add(head);
+
+  // 2.2. Красный визор-глаза
+  const eyeGeo = new THREE.BoxGeometry(0.3, 0.07, 0.08);
+  const eyeMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+  const eyes = new THREE.Mesh(eyeGeo, eyeMat);
+  eyes.position.set(0, 0.7, 0.75);
+  dogGroup.add(eyes);
+
+  // 2.3. Подвижная пасть / нижняя челюсть (индекс 3 внутри dogGroup для анимации)
+  const jawGeo = new THREE.BoxGeometry(0.32, 0.1, 0.32);
+  const jawMat = new THREE.MeshStandardMaterial({
+    color: 0x0f172a,
+    metalness: 0.85,
+    roughness: 0.2,
+    emissive: 0xef4444,
+    emissiveIntensity: 0.4,
+  });
+  const jaw = new THREE.Mesh(jawGeo, jawMat);
+  jaw.position.set(0, 0.52, 0.62);
+  dogGroup.add(jaw);
+
+  // 2.4..2.7. Кибер-лапы (4 цилиндра)
+  const legGeo = new THREE.CylinderGeometry(0.06, 0.05, 0.35, 6);
+  const legMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.85, roughness: 0.2 });
+  const legPositions = [
+    [-0.22, 0.18, 0.3],
+    [0.22, 0.18, 0.3],
+    [-0.22, 0.18, -0.3],
+    [0.22, 0.18, -0.3],
+  ];
+  legPositions.forEach(([lx, ly, lz]) => {
+    const leg = new THREE.Mesh(legGeo, legMat);
+    leg.position.set(lx, ly, lz);
+    dogGroup.add(leg);
+  });
+
+  // Хвост-антенна
+  const tailGeo = new THREE.CylinderGeometry(0.02, 0.03, 0.4, 4);
+  const tail = new THREE.Mesh(tailGeo, legMat);
+  tail.position.set(0, 0.7, -0.5);
+  tail.rotation.x = -Math.PI / 4;
+  dogGroup.add(tail);
+
+  // Неоновые полосы на боках торса
+  const stripeMat = new THREE.MeshBasicMaterial({ color: 0xc084fc });
+  const stripeL = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.1, 0.7), stripeMat);
+  stripeL.position.set(0.28, 0.45, 0);
+  dogGroup.add(stripeL);
+  const stripeR = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.1, 0.7), stripeMat);
+  stripeR.position.set(-0.28, 0.45, 0);
+  dogGroup.add(stripeR);
+
+  group.add(dogGroup);
+  return group;
+}
+
+// Procedural Swinging Hammer Mesh — гидравлический молот, качающийся вдоль трассы (плоскость YZ).
+// children[0] — верхняя балка портальной рамы.
+// children[1] — левая опора.
+// children[2] — правая опора.
+// children[3] — наковальня-плита на настиле.
+// children[4] — подвижный качающийся боёк-шарнир (THREE.Group: штанга + ударная голова с полосами).
+export function createSwingingHammerMesh(): THREE.Group {
+  const group = new THREE.Group();
+
+  // 0. Верхняя балка-портал
+  const beamGeo = new THREE.BoxGeometry(3.6, 0.35, 0.35);
+  const beamMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.25 });
+  const beam = new THREE.Mesh(beamGeo, beamMat);
+  beam.position.y = 3.6;
+  group.add(beam);
+
+  // 1. Левая опорная стойка
+  const postGeo = new THREE.CylinderGeometry(0.14, 0.16, 3.6, 8);
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 });
+  const postL = new THREE.Mesh(postGeo, postMat);
+  postL.position.set(-1.7, 1.8, 0);
+  group.add(postL);
+
+  // 2. Правая опорная стойка
+  const postR = new THREE.Mesh(postGeo, postMat);
+  postR.position.set(1.7, 1.8, 0);
+  group.add(postR);
+
+  // 3. Плита-наковальня на настиле
+  const anvilGeo = new THREE.BoxGeometry(2.4, 0.16, 2.0);
+  const anvilMat = new THREE.MeshStandardMaterial({
+    color: 0x0f172a,
+    metalness: 0.9,
+    roughness: 0.2,
+    emissive: 0xf59e0b,
+    emissiveIntensity: 0.2,
+  });
+  const anvil = new THREE.Mesh(anvilGeo, anvilMat);
+  anvil.position.y = 0.08;
+  group.add(anvil);
+
+  // 4. Подвижная группа шарнира бойка (качается вокруг оси X, в плоскости YZ)
+  const hammerPivot = new THREE.Group();
+  hammerPivot.position.set(0, 3.6, 0);
+
+  // Штанга молота
+  const shaftGeo = new THREE.CylinderGeometry(0.09, 0.09, 2.9, 8);
+  const shaftMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.9, roughness: 0.2 });
+  const shaft = new THREE.Mesh(shaftGeo, shaftMat);
+  shaft.position.y = -1.45;
+  hammerPivot.add(shaft);
+
+  // Массивная ударная голова молота
+  const headGeo = new THREE.BoxGeometry(1.8, 0.85, 1.1);
+  const headMat = new THREE.MeshStandardMaterial({
+    color: 0x334155,
+    metalness: 0.85,
+    roughness: 0.25,
+    emissive: 0xfacc15,
+    emissiveIntensity: 0.35,
+  });
+  const head = new THREE.Mesh(headGeo, headMat);
+  head.position.y = -2.9;
+  hammerPivot.add(head);
+
+  // Предупреждающие желто-черные полосы на бойке
+  const warnMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+  for (let i = -1; i <= 1; i += 2) {
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.86, 1.12), warnMat);
+    stripe.position.set(i * 0.55, -2.9, 0);
+    hammerPivot.add(stripe);
+  }
+
+  group.add(hammerPivot);
+  return group;
+}
+
+// Procedural Rolling Spike Ball Mesh — тяжёлый шипастый шар, катящийся навстречу толпе.
+// children[0] — вращающаяся сфера с коническими шипами и светящимся кольцом.
+export function createRollingSpikeBallMesh(): THREE.Group {
+  const group = new THREE.Group();
+
+  // 0. Вращающаяся сфера-шар
+  const ballGroup = new THREE.Group();
+  ballGroup.position.y = 0.95;
+
+  const coreGeo = new THREE.SphereGeometry(0.95, 14, 14);
+  const coreMat = new THREE.MeshStandardMaterial({
+    color: 0x09090b,
+    metalness: 0.9,
+    roughness: 0.15,
+    emissive: 0xd97706,
+    emissiveIntensity: 0.25,
+  });
+  const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+  ballGroup.add(coreMesh);
+
+  // Экваториальное светящееся кольцо
+  const ringGeo = new THREE.TorusGeometry(0.96, 0.05, 6, 16);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ballGroup.add(ring);
+
+  // ~10 конических шипов по поверхности
+  const spikeMat = new THREE.MeshStandardMaterial({
+    color: 0xd97706,
+    metalness: 0.95,
+    roughness: 0.1,
+  });
+  for (let i = 0; i < 10; i++) {
+    const phi = (i / 10) * Math.PI * 2;
+    const theta = (i % 3) * 0.9 + 0.5;
+    const spikeGeo = new THREE.ConeGeometry(0.16, 0.45, 6);
+    const spike = new THREE.Mesh(spikeGeo, spikeMat);
+    const x = Math.sin(theta) * Math.cos(phi) * 1.0;
+    const y = Math.cos(theta) * 1.0;
+    const z = Math.sin(theta) * Math.sin(phi) * 1.0;
+    spike.position.set(x, y, z);
+    spike.quaternion.setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      new THREE.Vector3(x, y, z).normalize()
+    );
+    ballGroup.add(spike);
+  }
+
+  group.add(ballGroup);
+  return group;
+}
+
 // Procedural Boss Mesh Generator
 export function createBossMesh(boss: BossData): THREE.Group {
   const group = new THREE.Group();

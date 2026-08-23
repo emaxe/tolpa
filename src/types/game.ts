@@ -58,7 +58,11 @@ export type ObstacleType =
   | 'wrecking_ball' 
   | 'laser_grid' 
   | 'barrier_gate' 
-  | 'lava_pit';
+  | 'lava_pit'
+  | 'bomb'
+  | 'guard_dog'
+  | 'swinging_hammer'
+  | 'rolling_spike_ball';
 
 export interface ObstacleData {
   id: string;

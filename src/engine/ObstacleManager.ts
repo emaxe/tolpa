@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ObstacleData, CoinData } from '../types/game';
+import { ObstacleData, CoinData, MobInstance } from '../types/game';
 import {
   createSawBladeMesh,
   createPendulumAxeMesh,
@@ -9,6 +9,10 @@ import {
   createWreckingBallMesh,
   createLavaPitMesh,
   createBarrierGateMesh,
+  createBombMesh,
+  createGuardDogMesh,
+  createSwingingHammerMesh,
+  createRollingSpikeBallMesh,
 } from '../utils/proceduralMeshes';
 import { CrowdManager } from './CrowdManager';
 import { ParticleSystem } from './ParticleSystem';
@@ -29,6 +33,11 @@ interface ObstacleVisual {
   hazardZ: number;
   hazardW: number;
   hazardD: number;
+  // Runtime-состояния для новых типов препятствий
+  exploded?: boolean;
+  attackCooldown?: number;
+  subX?: number;
+  subZ?: number;
 }
 
 interface CoinVisual {
@@ -84,6 +93,18 @@ export class ObstacleManager {
       case 'barrier_gate':
         mesh = createBarrierGateMesh();
         break;
+      case 'bomb':
+        mesh = createBombMesh();
+        break;
+      case 'guard_dog':
+        mesh = createGuardDogMesh();
+        break;
+      case 'swinging_hammer':
+        mesh = createSwingingHammerMesh();
+        break;
+      case 'rolling_spike_ball':
+        mesh = createRollingSpikeBallMesh();
+        break;
       default:
         mesh = createSawBladeMesh();
         break;
@@ -102,6 +123,10 @@ export class ObstacleManager {
       hazardZ: obs.z,
       hazardW: obs.width,
       hazardD: obs.depth,
+      exploded: false,
+      attackCooldown: 0,
+      subX: obs.x,
+      subZ: obs.z,
     };
   }
 
@@ -218,6 +243,79 @@ export class ObstacleManager {
           }
           this.setHazard(obsVis, obs.x, obs.z, 3.4, 0.45);
           break;
+
+        case 'bomb':
+          // Пульсация верхнего диода-маячка (child 0)
+          const beacon = obsVis.mesh.children[0] as THREE.Mesh;
+          if (beacon && beacon.material instanceof THREE.MeshStandardMaterial) {
+            beacon.material.emissiveIntensity = 0.5 + Math.sin(t * 8) * 0.5;
+          }
+          this.setHazard(obsVis, obs.x, obs.z, obs.width, obs.depth);
+          break;
+
+        case 'guard_dog':
+          // Кулдаун атаки
+          if (obsVis.attackCooldown && obsVis.attackCooldown > 0) {
+            obsVis.attackCooldown -= dt;
+          }
+          // Анимация пасти и движение собаки (child 2 = dogGroup, внутри неё child 3 = jaw)
+          const dogGroup = obsVis.mesh.children[2] as THREE.Group;
+          if (dogGroup) {
+            const jaw = dogGroup.children[3] as THREE.Mesh;
+            if (jaw) {
+              jaw.rotation.x = Math.sin(t * 6) * 0.25 + 0.15;
+            }
+            // Патрулирование собаки в пределах радиуса цепи
+            const patrolAngle = t * 1.5;
+            const patrolRadius = Math.min(obs.range * 0.6, 1.8);
+            const dogRelX = Math.cos(patrolAngle) * patrolRadius;
+            const dogRelZ = Math.sin(patrolAngle) * patrolRadius;
+            dogGroup.position.set(dogRelX, 0, dogRelZ);
+            dogGroup.rotation.y = -patrolAngle + Math.PI / 2;
+
+            // Обновление ориентации цепи (child 1)
+            const chain = obsVis.mesh.children[1] as THREE.Mesh;
+            if (chain) {
+              const chainLen = Math.sqrt(dogRelX * dogRelX + dogRelZ * dogRelZ);
+              chain.position.set(dogRelX * 0.5, 0.25, dogRelZ * 0.5);
+              chain.scale.set(1, Math.max(0.1, chainLen), 1);
+              chain.quaternion.setFromUnitVectors(
+                new THREE.Vector3(0, 1, 0),
+                new THREE.Vector3(dogRelX, 0.05, dogRelZ).normalize()
+              );
+            }
+          }
+          this.setHazard(obsVis, obs.x, obs.z, obs.range * 2, obs.range * 2);
+          break;
+
+        case 'swinging_hammer':
+          // Качание шарнира бойка (child 4) в плоскости YZ вдоль трассы
+          const hammerPivot = obsVis.mesh.children[4] as THREE.Group;
+          if (hammerPivot) {
+            hammerPivot.rotation.x = Math.sin(t * 1.8) * 1.25;
+            const hammerHeadZ = obsVis.mesh.position.z + Math.sin(hammerPivot.rotation.x) * 2.9;
+            this.setHazard(obsVis, obs.x, hammerHeadZ, obs.width, 1.8);
+          } else {
+            this.setHazard(obsVis, obs.x, obs.z, obs.width, 1.8);
+          }
+          break;
+
+        case 'rolling_spike_ball':
+          // Катится навстречу толпе по -Z
+          obs.z -= dt * (obs.speed * 2.2);
+          obsVis.mesh.position.z = obs.z;
+          // Вращение шара (child 0) вокруг оси X
+          const ballSpike = obsVis.mesh.children[0] as THREE.Group;
+          if (ballSpike) {
+            ballSpike.rotation.x -= dt * 8;
+          }
+          this.setHazard(obsVis, obs.x, obs.z, 2.0, 2.0);
+          // Если шар укатился далеко позади толпы — убираем
+          if (obs.z < crowd.leaderZ - 25) {
+            obs.isDead = true;
+            this.scene.remove(obsVis.mesh);
+          }
+          break;
       }
 
       // Check collision with crowd
@@ -270,6 +368,16 @@ export class ObstacleManager {
         // когда поднята — толпа проходит под ней.
         const bg = obsVis.mesh.children[3] as THREE.Mesh;
         return bg ? obsVis.mesh.position.y + bg.position.y < 2.4 : true;
+      case 'bomb':
+        return !obsVis.exploded;
+      case 'guard_dog':
+        return true;
+      case 'swinging_hammer':
+        // Молот опасен в нижней точке траектории удара по настилу
+        const hammerPivot = obsVis.mesh.children[4] as THREE.Group;
+        return hammerPivot ? Math.abs(hammerPivot.rotation.x) < 0.25 : true;
+      case 'rolling_spike_ball':
+        return true;
       default:
         return true;
     }
@@ -307,6 +415,22 @@ export class ObstacleManager {
         // Лава — поднимающиеся вверх оранжевые угли
         particles.emitBurst(x, y, z, 14, 0xea580c, 4.0, 3.0);
         break;
+      case 'bomb':
+        // Бомба — яркий огненный взрыв
+        particles.emitBurst(x, y, z, 24, 0xff4400, 8.5, 3.0);
+        break;
+      case 'guard_dog':
+        // Кибер-собака — неоново-фиолетовые искры
+        particles.emitBurst(x, y, z, 14, 0xa855f7, 5.0, 1.4);
+        break;
+      case 'swinging_hammer':
+        // Молот — золотисто-жёлтый разлёт у земли
+        particles.emitBurst(x, y - 0.2, z, 16, 0xfacc15, 5.5, 0.6);
+        break;
+      case 'rolling_spike_ball':
+        // Катящийся шар — оранжево-металлические искры
+        particles.emitBurst(x, y, z, 16, 0xf59e0b, 6.0, 1.0);
+        break;
       case 'barrier_gate':
       default:
         // Барьер — белые/желтоватые искры
@@ -323,6 +447,19 @@ export class ObstacleManager {
     if (!this.isHazardActive(obsVis)) return;
 
     const obs = obsVis.data;
+
+    // Кастомная обработка для бомбы (AoE детонация)
+    if (obs.type === 'bomb') {
+      this.resolveBomb(obsVis, crowd, particles);
+      return;
+    }
+
+    // Кастомная обработка для кибер-собаки (атака 1 моба с кулдауном)
+    if (obs.type === 'guard_dog') {
+      this.resolveDog(obsVis, crowd, particles);
+      return;
+    }
+
     const aliveMobs = crowd.getAliveMobs();
 
     // Если Hyper Mode активен или есть танки — препятствие можно сломать.
@@ -374,6 +511,140 @@ export class ObstacleManager {
       soundEngine.playSound('mob_death');
       eventBus.emit('screenShake', { intensity: 0.3 });
     }
+  }
+
+  private resolveBomb(
+    vis: ObstacleVisual,
+    crowd: CrowdManager,
+    particles: ParticleSystem
+  ): void {
+    if (vis.exploded || vis.data.isDead) return;
+    const obs = vis.data;
+    const r = obs.range;
+    const rSq = r * r;
+    const alive = crowd.getAliveMobs();
+    if (alive.length === 0) return;
+
+    // Hyper / Танки обезвреживают мину без потерь
+    const isHyper = crowd.isHyperMode;
+    const hasTanks = alive.some((m) => m.type === 'tank');
+    if (isHyper || (obs.destructible && hasTanks)) {
+      let touched = false;
+      for (const m of alive) {
+        if (!m.alive) continue;
+        const dx = m.x - obs.x;
+        const dz = m.z - obs.z;
+        if (dx * dx + dz * dz <= rSq) {
+          touched = true;
+          break;
+        }
+      }
+      if (touched) {
+        obs.isDead = true;
+        vis.exploded = true;
+        this.scene.remove(vis.mesh);
+        soundEngine.playSound('obstacle_smash');
+        particles.emitBurst(obs.x, 1.0, obs.z, 35, 0xf97316, 6.5);
+        stateManager.runRecordObstacleSmash();
+        eventBus.emit('obstacleSmashed', { type: obs.type, x: obs.x, z: obs.z });
+      }
+      return;
+    }
+
+    // Проверяем, коснулся ли хоть один живой моб зоны взрыва
+    let triggered = false;
+    for (const m of alive) {
+      if (!m.alive) continue;
+      const dx = m.x - obs.x;
+      const dz = m.z - obs.z;
+      if (dx * dx + dz * dz <= rSq) {
+        triggered = true;
+        break;
+      }
+    }
+    if (!triggered) return;
+
+    // Взрыв мины: детонирует один раз, уничтожает всех живых мобов в радиусе
+    vis.exploded = true;
+    obs.isDead = true;
+    this.scene.remove(vis.mesh);
+
+    soundEngine.playSound('bomb_explode');
+    particles.emitBurst(obs.x, 1.0, obs.z, 50, 0xff4400, 8.5, 3.0);
+    eventBus.emit('screenShake', { intensity: 0.7 });
+
+    for (const m of alive) {
+      if (!m.alive) continue;
+      const dx = m.x - obs.x;
+      const dz = m.z - obs.z;
+      if (dx * dx + dz * dz <= rSq) {
+        crowd.killMobById(m.id);
+        this.playDeathEffect(obs, m.x, 0.8, m.z, particles);
+      }
+    }
+  }
+
+  private resolveDog(
+    vis: ObstacleVisual,
+    crowd: CrowdManager,
+    particles: ParticleSystem
+  ): void {
+    if (vis.data.isDead) return;
+    const obs = vis.data;
+    const r = obs.range;
+    const rSq = r * r;
+    const alive = crowd.getAliveMobs();
+    if (alive.length === 0) return;
+
+    // Танки / гипер уничтожают кибер-собаку
+    const isHyper = crowd.isHyperMode;
+    const hasTanks = alive.some((m) => m.type === 'tank');
+    if (isHyper || (obs.destructible && hasTanks)) {
+      let touched = false;
+      for (const m of alive) {
+        if (!m.alive) continue;
+        const dx = m.x - obs.x;
+        const dz = m.z - obs.z;
+        if (dx * dx + dz * dz <= rSq) {
+          touched = true;
+          break;
+        }
+      }
+      if (touched) {
+        obs.isDead = true;
+        this.scene.remove(vis.mesh);
+        soundEngine.playSound('obstacle_smash');
+        particles.emitBurst(obs.x, 1.0, obs.z, 30, 0xa855f7, 6.0);
+        stateManager.runRecordObstacleSmash();
+        eventBus.emit('obstacleSmashed', { type: obs.type, x: obs.x, z: obs.z });
+        return;
+      }
+    }
+
+    if (vis.attackCooldown && vis.attackCooldown > 0) return;
+
+    // Поиск ближайшего живого моба в радиусе цепи
+    let nearest: MobInstance | null = null;
+    let bestDistSq = 1e9;
+    for (const m of alive) {
+      if (!m.alive) continue;
+      const dx = m.x - obs.x;
+      const dz = m.z - obs.z;
+      const dSq = dx * dx + dz * dz;
+      if (dSq <= rSq && dSq < bestDistSq) {
+        bestDistSq = dSq;
+        nearest = m;
+      }
+    }
+
+    if (!nearest) return;
+
+    // Атака строго одного моба с кулдауном
+    crowd.killMobById(nearest.id);
+    vis.attackCooldown = 0.9;
+    this.playDeathEffect(obs, nearest.x, 0.8, nearest.z, particles);
+    soundEngine.playSound('dog_snap');
+    eventBus.emit('screenShake', { intensity: 0.25 });
   }
 
   private disposeMeshTree(root: THREE.Object3D): void {

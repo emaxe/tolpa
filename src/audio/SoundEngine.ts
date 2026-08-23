@@ -610,6 +610,93 @@ export class SoundEngine {
         break;
       }
 
+      case 'bomb_explode': {
+        // Взрыв бомбы — низкочастотный рокот (sawtooth 400->40 Hz) + белый шумовой хлопок
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(400 * pitchShift, t);
+        osc.frequency.exponentialRampToValueAtTime(40, t + 0.65);
+        gain.gain.setValueAtTime(0.35, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+        osc.connect(gain);
+        gain.connect(this.sfxGain!);
+        osc.start(t);
+        osc.stop(t + 0.7);
+
+        // Шумовой хлопок
+        const noiseDur = 0.55;
+        const noiseBuffer = this.ctx.createBuffer(
+          1,
+          Math.floor(this.ctx.sampleRate * noiseDur),
+          this.ctx.sampleRate
+        );
+        const noiseData = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < noiseData.length; i++) {
+          noiseData[i] = Math.random() * 2 - 1;
+        }
+        const noiseSrc = this.ctx.createBufferSource();
+        noiseSrc.buffer = noiseBuffer;
+        const noiseFilter = this.ctx.createBiquadFilter();
+        noiseFilter.type = 'lowpass';
+        noiseFilter.frequency.setValueAtTime(1200 * pitchShift, t);
+        noiseFilter.frequency.exponentialRampToValueAtTime(100, t + noiseDur);
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.35, t);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, t + noiseDur);
+        noiseSrc.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(this.sfxGain!);
+        noiseSrc.start(t);
+        noiseSrc.stop(t + noiseDur);
+        break;
+      }
+
+      case 'dog_snap': {
+        // Короткий металлический щелчок / укус кибер-собаки (square 600->120 Hz)
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(600 * pitchShift, t);
+        osc.frequency.exponentialRampToValueAtTime(120, t + 0.08);
+        gain.gain.setValueAtTime(0.15, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+        osc.connect(gain);
+        gain.connect(this.sfxGain!);
+        osc.start(t);
+        osc.stop(t + 0.08);
+        break;
+      }
+
+      case 'hammer_impact': {
+        // Глухой тяжёлый удар гидравлического молота (triangle 90->20 Hz) + резонанс металла
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(90 * pitchShift, t);
+        osc.frequency.exponentialRampToValueAtTime(20, t + 0.35);
+        gain.gain.setValueAtTime(0.4, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+        osc.connect(gain);
+        gain.connect(this.sfxGain!);
+        osc.start(t);
+        osc.stop(t + 0.35);
+
+        // Короткий металлический резонанс
+        const pingOsc = this.ctx.createOscillator();
+        const pingGain = this.ctx.createGain();
+        pingOsc.type = 'sine';
+        pingOsc.frequency.setValueAtTime(880 * pitchShift, t);
+        pingOsc.frequency.exponentialRampToValueAtTime(440, t + 0.15);
+        pingGain.gain.setValueAtTime(0.15, t);
+        pingGain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+        pingOsc.connect(pingGain);
+        pingGain.connect(this.sfxGain!);
+        pingOsc.start(t);
+        pingOsc.stop(t + 0.15);
+        break;
+      }
+
       case 'crowd_cheer': {
         // Радостный победный возглас толпы — одноразовый всплеск (в отличие от
         // непрерывного фонового playCrowdCheer). Два слоя:
