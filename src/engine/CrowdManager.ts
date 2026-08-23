@@ -128,6 +128,11 @@ export class CrowdManager {
     this.aliveCount = 0;
     for (let i = 0; i < this.maxCapacity; i++) {
       this.mobs[i].alive = false;
+      // Сбрасываем и падение/смерть: иначе слот, застигнутый в полёте/смерти при рестарте,
+      // сохранил бы falling/dying=true и spawnMob() оживил бы его уже падающим.
+      this.mobs[i].falling = false;
+      this.mobs[i].fallVy = 0;
+      this.mobs[i].dying = false;
       this.mobs[i].y = -100;
       this.dummy.position.set(0, -100, 0);
       this.dummy.updateMatrix();
@@ -626,6 +631,11 @@ export class CrowdManager {
     let index = 0;
 
     for (let mob of aliveMobs) {
+      // Моб уже упал с края дорожки — его позиция больше НЕ пересчитывается формацией.
+      // Иначе flocking-lerp тянет его обратно к строю, и он "возвращается в толпу",
+      // частично видимый из-под поля. Падение обрабатывается только в updateFallingMobs().
+      if (mob.falling) continue;
+
       if (mob.invulnerableTime > 0) {
         mob.invulnerableTime = Math.max(0, mob.invulnerableTime - dt);
       }
