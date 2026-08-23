@@ -159,7 +159,9 @@ export class GateManager {
       const off = Math.sin(gv.motionPhase) * gate.motionRange;
       gv.group.position.x = gv.baseX + off;
     } else if (gate.motion === 'vertical') {
-      const off = Math.sin(gv.motionPhase) * gate.motionRange;
+      // Вертикальное движение только ВВЕРХ от пола: основание проёма никогда не
+      // опускается ниже y=0 (иначе ворота «уходят в пол»). Сдвиг берём по модулю.
+      const off = Math.abs(Math.sin(gv.motionPhase)) * gate.motionRange;
       gv.group.position.y = gv.baseY + off;
     } else if (gate.motion === 'rotate') {
       // Вращение вокруг Y — проём поворачивается, что меняет фактическую ширину по X.

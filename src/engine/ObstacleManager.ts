@@ -195,9 +195,10 @@ export class ObstacleManager {
 
       switch (obs.type) {
         case 'saw_blade':
-          // Диск пилы вращается и ездит по X — убивает только сам диск, а не всё
-          // габаритное место. hazard-бокс центрирован по фактической X пилы.
-          obsVis.mesh.rotation.z += dt * 15;
+          // Диск пилы вращается (горизонтальное лезвие, ось Y) и ездит по X —
+          // убивает только сам диск, а не всё габаритное место. hazard-бокс
+          // центрирован по фактической X пилы.
+          obsVis.mesh.children[0].rotation.y += dt * 6;
           obsVis.mesh.position.x = Math.sin(t) * obs.range;
           obs.x = obsVis.mesh.position.x;
           this.setHazard(obsVis, obs.x, obs.z, 1.7, 1.2);

@@ -319,42 +319,62 @@ function mergeBufferGeometries(geometries: THREE.BufferGeometry[]): THREE.Buffer
   return merged;
 }
 
-// Procedural Saw Blade Mesh
+// Procedural Saw Blade Mesh — вращающийся шипастый диск на полу.
+// Лежит горизонтально (плоскость XZ, ось вращения Y), поднят чуть над настилом,
+// чтобы с камеры за толпой читался как ОПАСНЫЙ вращающийся диск, а не как
+// тёмная «палка на полу». Яркие зубья + светящееся кольцо + ступица.
 export function createSawBladeMesh(): THREE.Group {
   const group = new THREE.Group();
-  
-  // Center cylinder
-  const centerGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.15, 16);
-  const centerMat = new THREE.MeshStandardMaterial({ color: 0x222226, metalness: 0.9, roughness: 0.2 });
-  const centerMesh = new THREE.Mesh(centerGeo, centerMat);
-  centerMesh.rotation.x = Math.PI / 2;
-  group.add(centerMesh);
 
-  // Outer blade disc
-  const discGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.05, 24);
+  // Вращающаяся группа: сам диск с зубьями (анимируется в ObstacleManager.update).
+  const spin = new THREE.Group();
+  spin.position.y = 0.55; // чуть выше настила, чтобы диск был виден сбоку
+
+  // Ступица-вал по центру (вертикальный, ось вращения Y)
+  const hubGeo = new THREE.CylinderGeometry(0.28, 0.32, 0.5, 12);
+  const hubMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.9, roughness: 0.25 });
+  const hub = new THREE.Mesh(hubGeo, hubMat);
+  hub.position.y = 0.05;
+  spin.add(hub);
+
+  // Диск лезвия — горизонтальная пластина
+  const discGeo = new THREE.CylinderGeometry(1.25, 1.25, 0.09, 28);
   const bladeMat = new THREE.MeshStandardMaterial({
-    color: 0x94a3b8,
+    color: 0xcbd5e1,
     metalness: 0.95,
-    roughness: 0.1,
-    emissive: 0xef4444,
-    emissiveIntensity: 0.3,
+    roughness: 0.15,
+    emissive: 0x64748b,
+    emissiveIntensity: 0.4,
   });
-  const discMesh = new THREE.Mesh(discGeo, bladeMat);
-  discMesh.rotation.x = Math.PI / 2;
-  group.add(discMesh);
+  const disc = new THREE.Mesh(discGeo, bladeMat);
+  spin.add(disc);
 
-  // Teeth around edge
-  const teethCount = 8;
+  // Светящееся кольцо по краю лезвия — обозначает опасную зону
+  const ringGeo = new THREE.TorusGeometry(1.25, 0.06, 8, 48);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = Math.PI / 2;
+  spin.add(ring);
+
+  // Крупные яркие зубья по периметру (смотрят наружу, выделяются на тёмном настиле)
+  const teethCount = 12;
+  const toothMat = new THREE.MeshStandardMaterial({
+    color: 0xef4444,
+    metalness: 0.8,
+    roughness: 0.2,
+    emissive: 0xef4444,
+    emissiveIntensity: 0.5,
+  });
   for (let i = 0; i < teethCount; i++) {
     const angle = (i / teethCount) * Math.PI * 2;
-    const toothGeo = new THREE.ConeGeometry(0.2, 0.4, 3);
-    const toothMat = new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.8, roughness: 0.2 });
+    const toothGeo = new THREE.BoxGeometry(0.22, 0.5, 0.22);
     const tooth = new THREE.Mesh(toothGeo, toothMat);
-    tooth.position.set(Math.cos(angle) * 1.25, Math.sin(angle) * 1.25, 0);
-    tooth.rotation.z = angle - Math.PI / 2;
-    group.add(tooth);
+    tooth.position.set(Math.cos(angle) * 1.35, 0, Math.sin(angle) * 1.35);
+    tooth.rotation.z = -angle;
+    spin.add(tooth);
   }
 
+  group.add(spin);
   return group;
 }
 
