@@ -25,6 +25,7 @@ export type SoundEffect =
   | 'level_lose'
   | 'button_click'
   | 'upgrade_buy'
-  | 'combo_ding';
+  | 'combo_ding'
+  | 'crowd_cheer';
 
 export type MusicTheme = 'cyber' | 'magma' | 'crystal' | 'void' | 'celestial' | 'boss_battle' | 'menu';

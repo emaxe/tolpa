@@ -764,3 +764,205 @@ export function createBossMesh(boss: BossData): THREE.Group {
 
   return group;
 }
+
+// Procedural Street Lamp Mesh — Г-образный фонарь: столб, изогнутый кронштейн
+// и светящийся плафон (MeshBasicMaterial, без PointLight).
+export function createStreetLampMesh(): THREE.Group {
+  const group = new THREE.Group();
+
+  // Столб
+  const poleGeo = new THREE.CylinderGeometry(0.12, 0.16, 4.0, 8);
+  const poleMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.3 });
+  const pole = new THREE.Mesh(poleGeo, poleMat);
+  pole.position.y = 2.0;
+  group.add(pole);
+
+  // Изогнутый кронштейн (сегменты, образующие дугу к плафону)
+  const armMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.85, roughness: 0.3 });
+  const segments = 5;
+  for (let i = 0; i < segments; i++) {
+    const t = i / (segments - 1);
+    const armGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.5, 6);
+    const arm = new THREE.Mesh(armGeo, armMat);
+    // Дуга: поднимаемся от верха столба и выносим вперёд по +Z
+    arm.position.set(0, 4.0 + t * 0.6, t * 1.2);
+    arm.rotation.x = -0.5 * t;
+    group.add(arm);
+  }
+
+  // Плафон — светящаяся сфера
+  const lampGeo = new THREE.SphereGeometry(0.28, 12, 12);
+  const lampMat = new THREE.MeshBasicMaterial({ color: 0xfff7cc });
+  const lamp = new THREE.Mesh(lampGeo, lampMat);
+  lamp.position.set(0, 4.7, 1.25);
+  group.add(lamp);
+
+  // Внутреннее яркое ядро плафона
+  const coreGeo = new THREE.SphereGeometry(0.12, 8, 8);
+  const coreMat = new THREE.MeshBasicMaterial({ color: 0xfffde7 });
+  const core = new THREE.Mesh(coreGeo, coreMat);
+  core.position.set(0, 4.7, 1.25);
+  group.add(core);
+
+  return group;
+}
+
+// Procedural Billboard Mesh — рекламный щит: рама + панель с CanvasTexture
+// (текст на градиентном фоне, как в createGateTexture).
+export function createBillboardMesh(text: string, accent: number): THREE.Group {
+  const group = new THREE.Group();
+
+  // Рама
+  const frameGeo = new THREE.BoxGeometry(3.0, 2.0, 0.15);
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.3 });
+  const frame = new THREE.Mesh(frameGeo, frameMat);
+  frame.position.y = 2.0;
+  group.add(frame);
+
+  // Панель с CanvasTexture
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d')!;
+
+  // Градиентный фон
+  const grad = ctx.createLinearGradient(0, 0, 0, 256);
+  grad.addColorStop(0, `rgba(${(accent >> 16) & 255}, ${(accent >> 8) & 255}, ${accent & 255}, 0.9)`);
+  grad.addColorStop(1, 'rgba(10, 10, 20, 0.95)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 512, 256);
+
+  // Светящаяся рамка
+  ctx.lineWidth = 10;
+  ctx.strokeStyle = '#ffffff';
+  ctx.strokeRect(8, 8, 496, 240);
+
+  // Текст
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+  ctx.shadowBlur = 12;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 64px Orbitron, sans-serif';
+  ctx.fillText(text, 256, 128);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+
+  const panelGeo = new THREE.PlaneGeometry(2.8, 1.8);
+  const panelMat = new THREE.MeshBasicMaterial({ map: texture });
+  const panel = new THREE.Mesh(panelGeo, panelMat);
+  panel.position.set(0, 2.0, 0.08);
+  group.add(panel);
+
+  // Опорные ножки
+  const legGeo = new THREE.CylinderGeometry(0.1, 0.12, 1.0, 6);
+  const legMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.3 });
+  const legL = new THREE.Mesh(legGeo, legMat);
+  legL.position.set(-1.2, 0.5, 0);
+  group.add(legL);
+  const legR = new THREE.Mesh(legGeo, legMat);
+  legR.position.set(1.2, 0.5, 0);
+  group.add(legR);
+
+  return group;
+}
+
+// Procedural Flag Mesh — шест + полупрозрачное полотнище.
+// userData.animate = 'flag' для покачивания в update-цикле.
+export function createFlagMesh(color: number): THREE.Group {
+  const group = new THREE.Group();
+
+  // Шест
+  const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 4.0, 6);
+  const poleMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8, roughness: 0.3 });
+  const pole = new THREE.Mesh(poleGeo, poleMat);
+  pole.position.y = 2.0;
+  group.add(pole);
+
+  // Полотнище — полупрозрачное
+  const flagGeo = new THREE.PlaneGeometry(1.4, 0.8);
+  const flagMat = new THREE.MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity: 0.75,
+    side: THREE.DoubleSide,
+  });
+  const flag = new THREE.Mesh(flagGeo, flagMat);
+  flag.position.set(0.7, 3.4, 0);
+  group.add(flag);
+
+  // Навершие
+  const tipGeo = new THREE.SphereGeometry(0.1, 6, 6);
+  const tipMat = new THREE.MeshBasicMaterial({ color });
+  const tip = new THREE.Mesh(tipGeo, tipMat);
+  tip.position.y = 4.0;
+  group.add(tip);
+
+  group.userData.animate = 'flag';
+  return group;
+}
+
+// Procedural Drone Mesh — летающий транспорт: корпус, пропеллеры, светящиеся огни.
+// userData.animate = 'drone' для парения в update-цикле.
+export function createDroneMesh(accent: number): THREE.Group {
+  const group = new THREE.Group();
+
+  // Корпус
+  const bodyGeo = new THREE.BoxGeometry(0.7, 0.25, 0.7);
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: 0x1e293b,
+    metalness: 0.85,
+    roughness: 0.25,
+    emissive: accent,
+    emissiveIntensity: 0.3,
+  });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  group.add(body);
+
+  // Пропеллеры (4 шт.)
+  const propMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.2 });
+  const armMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.85, roughness: 0.3 });
+  const offsets = [
+    [-0.5, 0.5],
+    [0.5, 0.5],
+    [-0.5, -0.5],
+    [0.5, -0.5],
+  ];
+  for (const [ox, oz] of offsets) {
+    const armGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.5, 4);
+    const arm = new THREE.Mesh(armGeo, armMat);
+    arm.rotation.z = Math.PI / 2;
+    arm.position.set(ox * 0.5, 0.1, oz * 0.5);
+    group.add(arm);
+
+    const propGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.03, 12);
+    const prop = new THREE.Mesh(propGeo, propMat);
+    prop.position.set(ox * 0.5, 0.2, oz * 0.5);
+    group.add(prop);
+  }
+
+  // Светящиеся огни
+  const lightMat = new THREE.MeshBasicMaterial({ color: accent });
+  const lightGeo = new THREE.SphereGeometry(0.06, 6, 6);
+  const light = new THREE.Mesh(lightGeo, lightMat);
+  light.position.set(0, 0.2, 0);
+  group.add(light);
+
+  const redMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+  const redGeo = new THREE.SphereGeometry(0.05, 6, 6);
+  const red = new THREE.Mesh(redGeo, redMat);
+  red.position.set(0, -0.15, 0.35);
+  group.add(red);
+
+  group.userData.animate = 'drone';
+  return group;
+}
+
+// Procedural Confetti Geometry — маленький плоский квадрат для конфетти.
+// Возвращает BufferGeometry, готовую к использованию в InstancedMesh.
+export function createConfettiGeometry(): THREE.BufferGeometry {
+  const geo = new THREE.PlaneGeometry(0.12, 0.12);
+  geo.rotateX(-Math.PI / 2);
+  return geo;
+}

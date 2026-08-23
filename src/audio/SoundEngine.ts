@@ -13,6 +13,13 @@ export class SoundEngine {
   private stepBeat: number = 0;
   private isMuted: boolean = false;
 
+  // Поля для непрерывного процедурного звука криков толпы (crowd cheer).
+  // Создаются лениво в playCrowdCheer() и освобождаются в stopCrowdCheer().
+  private crowdNoiseSource: AudioBufferSourceNode | null = null;
+  private crowdFilter: BiquadFilterNode | null = null;
+  private crowdGain: GainNode | null = null;
+  private crowdLfo: OscillatorNode | null = null;
+
   private constructor() {
     // Lazy initialize on first user interaction
   }
@@ -583,6 +590,114 @@ export class SoundEngine {
       default:
         break;
     }
+  }
+
+  /**
+   * Непрерывный процедурный звук криков толпы (crowd cheer).
+   * Строится из зацикленного белого шума, пропущенного через bandpass-фильтр
+   * (200–1200 Гц) и gain-узел с LFO (~0.3–0.5 Гц) для волнообразного «крика».
+   * Громкость пропорциональна intensity (0..1).
+   *
+   * Throttle: если звук уже играет, ноды НЕ пересоздаются — обновляется только
+   * громкость. Ноды создаются исключительно здесь (не в update-цикле).
+   */
+  public playCrowdCheer(intensity: number): void {
+    if (!this.ctx || this.isMuted) return;
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume();
+    }
+    if (this.ctx.state !== 'running') return;
+
+    const clamped = Math.max(0, Math.min(1, intensity));
+
+    // Если звук уже играет — просто обновляем громкость (throttle).
+    if (this.crowdGain && this.crowdNoiseSource) {
+      this.crowdGain.gain.setTargetAtTime(clamped * 0.5, this.ctx.currentTime, 0.05);
+      return;
+    }
+
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+
+    // 1. Зацикленный белый шум (~1.5 сек буфер).
+    const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 1.5), ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+
+    // 2. Bandpass-фильтр для «голосового» диапазона толпы.
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 200 + clamped * 1000; // 200..1200 Гц
+    filter.Q.value = 0.5;
+
+    // 3. Gain-узел с LFO для волнообразного «крика».
+    const gain = ctx.createGain();
+    gain.gain.value = clamped * 0.5;
+
+    const lfo = ctx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.value = 0.3 + Math.random() * 0.2; // 0.3..0.5 Гц
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.value = clamped * 0.2;
+    lfo.connect(lfoGain);
+    lfoGain.connect(gain.gain);
+
+    // Сборка цепочки: source -> filter -> gain -> sfxGain.
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain!);
+
+    source.start(t);
+    lfo.start(t);
+
+    // Сохраняем ссылки для stopCrowdCheer().
+    this.crowdNoiseSource = source;
+    this.crowdFilter = filter;
+    this.crowdGain = gain;
+    this.crowdLfo = lfo;
+  }
+
+  /** Останавливает и освобождает все ноды криков толпы. */
+  public stopCrowdCheer(): void {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+
+    if (this.crowdGain) {
+      // Плавно затухаем, чтобы не было щелчка.
+      this.crowdGain.gain.setTargetAtTime(0, t, 0.05);
+    }
+    if (this.crowdNoiseSource) {
+      try {
+        this.crowdNoiseSource.stop(t + 0.2);
+      } catch {
+        // Узел уже остановлен — игнорируем.
+      }
+      this.crowdNoiseSource.disconnect();
+    }
+    if (this.crowdLfo) {
+      try {
+        this.crowdLfo.stop(t + 0.2);
+      } catch {
+        // Узел уже остановлен — игнорируем.
+      }
+      this.crowdLfo.disconnect();
+    }
+    if (this.crowdFilter) {
+      this.crowdFilter.disconnect();
+    }
+    if (this.crowdGain) {
+      this.crowdGain.disconnect();
+    }
+
+    this.crowdNoiseSource = null;
+    this.crowdFilter = null;
+    this.crowdGain = null;
+    this.crowdLfo = null;
   }
 
   public playMusic(theme: MusicTheme = 'cyber'): void {

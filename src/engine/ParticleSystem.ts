@@ -92,6 +92,68 @@ export class ParticleSystem {
     }
   }
 
+  // Разноцветное конфетти для финиша и комбо. Частицы подбрасываются вверх и
+  // разлетаются в стороны с лёгкой гравитацией — 0-GC, переиспользует пул.
+  public emitConfetti(x: number, y: number, z: number, count: number = 40): void {
+    let emitted = 0;
+    const palette = [0xff3b30, 0xff9500, 0xffcc00, 0x34c759, 0x00c7be, 0x007aff, 0xaf52de, 0xff2d55, 0x5ac8fa, 0xffd60a];
+
+    for (let i = 0; i < this.particles.length && emitted < count; i++) {
+      const p = this.particles[i];
+      if (!p.active) {
+        p.active = true;
+        p.x = x;
+        p.y = y;
+        p.z = z;
+        p.life = 0;
+        p.maxLife = 1.2 + Math.random() * 1.2;
+        p.scale = 0.5 + Math.random() * 0.5;
+        p.color.setHex(palette[(Math.random() * palette.length) | 0]);
+
+        const angle = Math.random() * Math.PI * 2;
+        const spd = 2.0 + Math.random() * 4.0;
+        p.vx = Math.cos(angle) * spd;
+        p.vz = Math.sin(angle) * spd;
+        p.vy = 3.0 + Math.random() * 4.0;
+
+        this.instancedMesh.setColorAt(i, p.color);
+        emitted++;
+      }
+    }
+    if (this.instancedMesh.instanceColor) {
+      this.instancedMesh.instanceColor.needsUpdate = true;
+    }
+  }
+
+  // Световой столб: частицы взлетают вертикально вверх из точки (x, z).
+  public emitLightPillar(x: number, z: number, count: number = 30, colorHex: number = 0x00f0ff): void {
+    let emitted = 0;
+    this.colorDummy.setHex(colorHex);
+
+    for (let i = 0; i < this.particles.length && emitted < count; i++) {
+      const p = this.particles[i];
+      if (!p.active) {
+        p.active = true;
+        p.x = x + (Math.random() - 0.5) * 0.6;
+        p.y = 0.2;
+        p.z = z + (Math.random() - 0.5) * 0.6;
+        p.life = 0;
+        p.maxLife = 0.8 + Math.random() * 0.6;
+        p.scale = 0.6 + Math.random() * 0.5;
+        p.color.setHex(colorHex);
+        p.vx = (Math.random() - 0.5) * 0.5;
+        p.vz = (Math.random() - 0.5) * 0.5;
+        p.vy = 4.0 + Math.random() * 3.0;
+
+        this.instancedMesh.setColorAt(i, p.color);
+        emitted++;
+      }
+    }
+    if (this.instancedMesh.instanceColor) {
+      this.instancedMesh.instanceColor.needsUpdate = true;
+    }
+  }
+
   public update(dt: number): void {
     let changed = false;
 
