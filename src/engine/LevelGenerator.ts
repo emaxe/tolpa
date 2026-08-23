@@ -37,6 +37,32 @@ export interface PhaseInfo {
   densityMult: number;
 }
 
+export type PatternType =
+  | 'slalom_cascade'
+  | 'choke_point_funnel'
+  | 'checkerboard_hazard'
+  | 'tank_breach_cluster'
+  | 'gate_trap_dilemma'
+  | 'central_bastion_split'
+  | 'pendulum_sweep_wave'
+  | 'cyborg_hound_pack'
+  | 'single_hazard';
+
+export interface PatternContext {
+  out: ObstacleData[];
+  z0: number;
+  levelNum: number;
+  trackWidth: number;
+  playableHalf: number;
+  phaseMult: number;
+  rng: () => number;
+  rawGates: GateData[];
+  rawWalls: WallData[];
+  coins: CoinData[];
+  bonuses: BonusData[];
+  idPrefix?: string;
+}
+
 export class LevelGenerator {
   public static getBiomeForLevel(levelNum: number): BiomeType {
     if (levelNum <= 10) return 'cyber_city';
@@ -177,207 +203,45 @@ export class LevelGenerator {
     // -------------------------------------------------------------
     // ЭТАП 2: РИТМ УРОВНЯ, ПАТТЕРНЫ ПРЕПЯТСТВИЙ И SAFE CORRIDORS
     // -------------------------------------------------------------
-    const allObstacleTypes: ObstacleType[] = [
-      'saw_blade',
-      'axe_pendulum',
-      'crusher',
-      'spike_trap',
-      'laser_grid',
-      'wrecking_ball',
-      'lava_pit',
-      'barrier_gate',
-      'bomb',
-      'guard_dog',
-      'swinging_hammer',
-      'rolling_spike_ball',
-    ];
-
     let obsIndex = 0;
     const baseObstacleTarget = Math.min(120, Math.floor(trackLength / 26));
 
-    // Проходим по трассе с шагом и генерируем тактические паттерны с учетом safe corridors
-    const sectionStep = 26;
-    const numSections = Math.floor((trackLength - 140) / sectionStep);
+    let sectionZ = 55;
+    let lastPattern: PatternType | null = null;
+    let sectionIndex = 0;
 
-    for (let s = 0; s < numSections && obsIndex < baseObstacleTarget; s++) {
-      const sectionZ = 55 + s * sectionStep + (rng() * 6 - 3);
+    while (sectionZ < trackLength - 60 && obsIndex < baseObstacleTarget) {
       const phase = this.getPhaseInfo(sectionZ, trackLength);
 
-      // Safe Corridor: каждые ~136м гарантированный gap без ловушек (реже, чтобы не было пустых участков)
-      const isSafeCorridorGap = s % 4 === 3;
-      if (isSafeCorridorGap && rng() < 0.45) {
+      // Safe Corridor: каждые ~4 секции gap без ловушек (реже, чтобы не было пустых участков)
+      if (sectionIndex % 4 === 3 && rng() < 0.45) {
+        sectionIndex++;
+        sectionZ += 26;
         continue;
       }
+      sectionIndex++;
 
-      // Выбор паттерна в зависимости от фазы уровня
-      const patternRand = rng();
-
-      if (phase.phaseName === 'warmup') {
-        // Warmup: одиночные простые ловушки
-        const type: ObstacleType = rng() < 0.6 ? 'saw_blade' : 'spike_trap';
-        const obsWidth = 2.0;
-        const maxHalfX = (trackWidth / 2 - 0.6) - obsWidth / 2;
-        const x = (rng() * 2 - 1) * maxHalfX;
-        const damage = Math.round((6 + Math.floor(levelNum * 0.16)) * phase.phaseMult);
-
-        rawObstacles.push({
-          id: `obs_${levelNum}_${obsIndex++}`,
-          type,
-          x,
-          y: 0,
-          z: sectionZ,
-          width: obsWidth,
-          height: 2,
-          depth: 2,
-          speed: 1.5 + rng() * 1.5,
-          range: Math.min(3.0, maxHalfX),
-          initialOffset: rng() * Math.PI * 2,
-          damage,
-          destructible: false,
-          hp: 15,
-          maxHp: 15,
-        });
-      } else if (phase.phaseName === 'ramp') {
-        // Ramp: слалом (чередование X +-3 через ~16м) или одиночные ловушки
-        if (patternRand < 0.45 && obsIndex + 2 <= baseObstacleTarget) {
-          // Паттерн: Слалом из двух препятствий
-          const damage = Math.round((6 + Math.floor(levelNum * 0.16)) * phase.phaseMult);
-          const side = rng() < 0.5 ? -1 : 1;
-
-          rawObstacles.push({
-            id: `obs_${levelNum}_${obsIndex++}`,
-            type: 'saw_blade',
-            x: side * 3.0,
-            y: 0,
-            z: sectionZ,
-            width: 2.0,
-            height: 2,
-            depth: 2,
-            speed: 2.0,
-            range: 1.0,
-            initialOffset: 0,
-            damage,
-            destructible: false,
-            hp: 15,
-            maxHp: 15,
-          });
-
-          rawObstacles.push({
-            id: `obs_${levelNum}_${obsIndex++}`,
-            type: 'saw_blade',
-            x: -side * 3.0,
-            y: 0,
-            z: sectionZ + 16,
-            width: 2.0,
-            height: 2,
-            depth: 2,
-            speed: 2.0,
-            range: 1.0,
-            initialOffset: Math.PI,
-            damage,
-            destructible: false,
-            hp: 15,
-            maxHp: 15,
-          });
-        } else {
-          // Одиночное препятствие
-          const type = this.pickObstacleType(phase.phaseName, rng);
-          const obstacleDef = this.createObstacleDef(type, sectionZ, levelNum, obsIndex++, trackWidth, phase.phaseMult, rng);
-          rawObstacles.push(obstacleDef);
-        }
-      } else if (phase.phaseName === 'peak') {
-        // Peak: бутылочное горлышко, деструктивный кластер (танки) или тяжелые ловушки
-        if (patternRand < 0.35 && obsIndex + 2 <= baseObstacleTarget) {
-          // Паттерн: Бутылочное горлышко (flank obstacles, safe center >= 3.5m)
-          const damage = Math.round((12 + Math.floor(levelNum * 0.16)) * phase.phaseMult);
-          const laserWidth = 4.0;
-          const barrierWidth = 3.3;
-
-          rawObstacles.push({
-            id: `obs_${levelNum}_${obsIndex++}`,
-            type: 'laser_grid',
-            x: -(playableHalf - laserWidth / 2),
-            y: 0,
-            z: sectionZ,
-            width: laserWidth,
-            height: 2,
-            depth: 2,
-            speed: 2.0,
-            range: 0,
-            initialOffset: 0,
-            damage,
-            destructible: false,
-            hp: 15,
-            maxHp: 15,
-          });
-
-          rawObstacles.push({
-            id: `obs_${levelNum}_${obsIndex++}`,
-            type: 'barrier_gate',
-            x: +(playableHalf - barrierWidth / 2),
-            y: 0,
-            z: sectionZ + 3,
-            width: barrierWidth,
-            height: 2,
-            depth: 2,
-            speed: 2.2,
-            range: 0,
-            initialOffset: Math.PI * 0.5,
-            damage,
-            destructible: false,
-            hp: 15,
-            maxHp: 15,
-          });
-        } else if (patternRand < 0.70 && obsIndex + 2 <= baseObstacleTarget) {
-          // Паттерн: Деструктивный кластер (crusher + axe, стимул для класса Tank)
-          const damage = Math.round((12 + Math.floor(levelNum * 0.16)) * phase.phaseMult);
-
-          rawObstacles.push({
-            id: `obs_${levelNum}_${obsIndex++}`,
-            type: 'crusher',
-            x: -2.4,
-            y: 0,
-            z: sectionZ,
-            width: 2.0,
-            height: 2,
-            depth: 2,
-            speed: 2.4,
-            range: 1.2,
-            initialOffset: 0,
-            damage,
-            destructible: true,
-            hp: 15,
-            maxHp: 15,
-          });
-
-          rawObstacles.push({
-            id: `obs_${levelNum}_${obsIndex++}`,
-            type: 'axe_pendulum',
-            x: 2.4,
-            y: 0,
-            z: sectionZ + 7,
-            width: 2.0,
-            height: 2,
-            depth: 2,
-            speed: 2.4,
-            range: 1.2,
-            initialOffset: Math.PI,
-            damage,
-            destructible: true,
-            hp: 15,
-            maxHp: 15,
-          });
-        } else {
-          const type = this.pickObstacleType(phase.phaseName, rng);
-          const obstacleDef = this.createObstacleDef(type, sectionZ, levelNum, obsIndex++, trackWidth, phase.phaseMult, rng);
-          rawObstacles.push(obstacleDef);
-        }
-      } else {
-        // Climax / Boss-pre phase
-        const type = this.pickObstacleType(phase.phaseName, rng);
-        const obstacleDef = this.createObstacleDef(type, sectionZ, levelNum, obsIndex++, trackWidth, phase.phaseMult, rng);
-        rawObstacles.push(obstacleDef);
-      }
+      const pattern = this.selectPattern(phase.phaseName, levelNum, lastPattern, rng);
+      lastPattern = pattern;
+      const span = this.runPattern(
+        pattern,
+        {
+          out: rawObstacles,
+          z0: sectionZ,
+          levelNum,
+          trackWidth,
+          playableHalf,
+          phaseMult: phase.phaseMult,
+          rng,
+          rawGates,
+          rawWalls,
+          coins,
+          bonuses,
+        },
+        phase.phaseName
+      );
+      obsIndex += span.count;
+      sectionZ += Math.max(26, span.spanZ);
     }
 
     // -------------------------------------------------------------
@@ -497,7 +361,17 @@ export class LevelGenerator {
       events.sort((a, b) => a.triggerZ - b.triggerZ);
     }
 
-    // Boss Data for milestone levels
+    // Кап и упорядочение элементов уровня
+    rawWalls.sort((a, b) => a.z - b.z);
+    if (rawWalls.length > 12) rawWalls.length = 12;
+
+    bonuses.sort((a, b) => a.z - b.z);
+    if (bonuses.length > 14) bonuses.length = 14;
+
+    coins.sort((a, b) => a.z - b.z);
+    if (coins.length > 360) coins.length = 360;
+
+    // Данные босса для юбилейных уровней (10, 20, 30, 40, 50)
     let boss: BossData | undefined;
     if (isBossLevel) {
       boss = this.generateBoss(levelNum, biome);
@@ -661,14 +535,503 @@ export class LevelGenerator {
     };
   }
 
+  /**
+   * Создаёт препятствие через createObstacleDef и переопределяет параметры
+   */
+  private static pushObs(
+    out: ObstacleData[],
+    type: ObstacleType,
+    z: number,
+    x: number,
+    levelNum: number,
+    trackWidth: number,
+    phaseMult: number,
+    rng: () => number,
+    overrides?: Partial<ObstacleData>
+  ): void {
+    const index = out.length;
+    const def = this.createObstacleDef(type, z, levelNum, index, trackWidth, phaseMult, rng);
+    def.x = x;
+    def.z = z;
+    if (overrides) {
+      Object.assign(def, overrides);
+    }
+    out.push(def);
+  }
+
+  // 1. Слалом из 3 препятствий (чередование сторон X=±3.6, шаг Z=12м)
+  private static patternSlalomCascade(ctx: PatternContext): { count: number; spanZ: number } {
+    const types: ObstacleType[] = ['saw_blade', 'rolling_spike_ball', 'axe_pendulum'];
+    const chosenType = types[Math.floor(ctx.rng() * types.length)];
+    const side = ctx.rng() < 0.5 ? -1 : 1;
+    const idPrefix = ctx.idPrefix;
+
+    for (let i = 0; i < 3; i++) {
+      const x = (i % 2 === 0 ? side : -side) * 3.6;
+      const z = ctx.z0 + i * 12;
+      const initialOffset = i % 2 === 0 ? 0 : Math.PI;
+      this.pushObs(
+        ctx.out,
+        chosenType,
+        z,
+        x,
+        ctx.levelNum,
+        ctx.trackWidth,
+        ctx.phaseMult,
+        ctx.rng,
+        {
+          range: 1.0,
+          initialOffset,
+          ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
+        }
+      );
+    }
+
+    return { count: 3, spanZ: 28 };
+  }
+
+  // 2. Бутылочное горлышко (2 фланговых ловушки X=±4.8, безопасный центр >=3.5м, +3 монеты)
+  private static patternChokePointFunnel(ctx: PatternContext): { count: number; spanZ: number } {
+    const idPrefix = ctx.idPrefix;
+    // Левый фланг
+    this.pushObs(
+      ctx.out,
+      'laser_grid',
+      ctx.z0,
+      -4.8,
+      ctx.levelNum,
+      ctx.trackWidth,
+      ctx.phaseMult,
+      ctx.rng,
+      {
+        width: 4.0,
+        range: 0,
+        initialOffset: 0,
+        ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
+      }
+    );
+
+    // Правый фланг
+    this.pushObs(
+      ctx.out,
+      'barrier_gate',
+      ctx.z0 + 3,
+      4.8,
+      ctx.levelNum,
+      ctx.trackWidth,
+      ctx.phaseMult,
+      ctx.rng,
+      {
+        width: 3.3,
+        range: 0,
+        initialOffset: Math.PI * 0.5,
+        ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
+      }
+    );
+
+    // +3 монеты по центру (свободная зона)
+    if (ctx.coins.length <= 350) {
+      for (let i = 0; i < 3; i++) {
+        ctx.coins.push({
+          id: `coin_${ctx.levelNum}_choke_${Math.floor(ctx.z0)}_${i}`,
+          x: 0,
+          y: 0.5,
+          z: ctx.z0 + i * 2.0,
+          value: 10,
+        });
+      }
+    }
+
+    return { count: 2, spanZ: 14 };
+  }
+
+  // 3. Шахматная сетка из 4 точечных ловушек (2 ряда по 2 ловушки)
+  private static patternCheckerboardHazard(ctx: PatternContext): { count: number; spanZ: number } {
+    const pool: ObstacleType[] = ['spike_trap', 'bomb', 'lava_pit'];
+    const idPrefix = ctx.idPrefix;
+
+    const r1o1 = pool[Math.floor(ctx.rng() * pool.length)];
+    const r1o2 = pool[Math.floor(ctx.rng() * pool.length)];
+    const r2o1 = pool[Math.floor(ctx.rng() * pool.length)];
+    const r2o2 = pool[Math.floor(ctx.rng() * pool.length)];
+
+    // Ряд 1: X = -4.0, +1.8
+    this.pushObs(ctx.out, r1o1, ctx.z0, -4.0, ctx.levelNum, ctx.trackWidth, ctx.phaseMult, ctx.rng, {
+      range: 0,
+      ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
+    });
+    this.pushObs(ctx.out, r1o2, ctx.z0, 1.8, ctx.levelNum, ctx.trackWidth, ctx.phaseMult, ctx.rng, {
+      range: 0,
+      ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
+    });
+
+    // Ряд 2: X = -1.8, +4.0 (Z + 10)
+    this.pushObs(ctx.out, r2o1, ctx.z0 + 10, -1.8, ctx.levelNum, ctx.trackWidth, ctx.phaseMult, ctx.rng, {
+      range: 0,
+      ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
+    });
+    this.pushObs(ctx.out, r2o2, ctx.z0 + 10, 4.0, ctx.levelNum, ctx.trackWidth, ctx.phaseMult, ctx.rng, {
+      range: 0,
+      ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
+    });
+
+    return { count: 4, spanZ: 18 };
+  }
+
+  // 4. Прорыв танком (2 разрушаемых препятствия + бонус в центре)
+  private static patternTankBreachCluster(ctx: PatternContext): { count: number; spanZ: number } {
+    const idPrefix = ctx.idPrefix;
+    const type2 = ctx.rng() < 0.5 ? 'axe_pendulum' : 'swinging_hammer';
+
+    // 2 разрушаемых препятствия
+    this.pushObs(ctx.out, 'crusher', ctx.z0, -2.2, ctx.levelNum, ctx.trackWidth, ctx.phaseMult, ctx.rng, {
+      width: 2.6,
+      range: 0.8,
+      speed: 2.2,
+      destructible: true,
+      ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
+    });
+    this.pushObs(ctx.out, type2, ctx.z0 + 7, 2.2, ctx.levelNum, ctx.trackWidth, ctx.phaseMult, ctx.rng, {
+      width: 2.6,
+      range: 0.8,
+      speed: 2.2,
+      destructible: true,
+      ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
+    });
+
+    // +1 бонус (adrenaline / add_mobs)
+    if (ctx.bonuses.length < 14) {
+      const isAdrenaline = ctx.rng() < 0.5;
+      const type: BonusType = isAdrenaline ? 'adrenaline' : 'add_mobs';
+      const value = isAdrenaline
+        ? 4 + Math.floor(ctx.levelNum * 0.04)
+        : 6 + Math.floor(ctx.rng() * 4) + Math.floor(ctx.levelNum * 0.15);
+      ctx.bonuses.push({
+        id: `bonus_${ctx.levelNum}_tank_${Math.floor(ctx.z0)}`,
+        type,
+        x: 0,
+        y: 1.0,
+        z: ctx.z0 + 6,
+        value,
+      });
+    }
+
+    return { count: 2, spanZ: 16 };
+  }
+
+  // 5. Дилемма у ворот (страж перед воротами на dz=11 > 10.5)
+  private static patternGateTrapDilemma(ctx: PatternContext): { count: number; spanZ: number } {
+    const idPrefix = ctx.idPrefix;
+    const nearestGate = ctx.rawGates.find((g) => g.z >= ctx.z0 + 11 && g.z <= ctx.z0 + 45);
+
+    if (nearestGate) {
+      const guardZ = nearestGate.z - 11;
+      const guardType: ObstacleType = ctx.rng() < 0.6 ? 'guard_dog' : 'saw_blade';
+      const guardX = Math.max(-4.5, Math.min(4.5, nearestGate.x));
+      this.pushObs(
+        ctx.out,
+        guardType,
+        guardZ,
+        guardX,
+        ctx.levelNum,
+        ctx.trackWidth,
+        ctx.phaseMult,
+        ctx.rng,
+        {
+          range: 1.5,
+          ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
+        }
+      );
+      return { count: 1, spanZ: Math.max(16, (nearestGate.z - ctx.z0) + 4) };
+    }
+
+    // Если подходящих ворот нет — одиночная ловушка
+    const fallbackType = this.pickObstacleType('ramp', ctx.rng);
+    const x = (ctx.rng() * 2 - 1) * 3.0;
+    this.pushObs(
+      ctx.out,
+      fallbackType,
+      ctx.z0,
+      x,
+      ctx.levelNum,
+      ctx.trackWidth,
+      ctx.phaseMult,
+      ctx.rng,
+      idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : undefined
+    );
+    return { count: 1, spanZ: 14 };
+  }
+
+  // 6. Центральный бастион (стена по центру + 2 фланговые ловушки + 4 монеты)
+  private static patternCentralBastionSplit(ctx: PatternContext): { count: number; spanZ: number } {
+    const idPrefix = ctx.idPrefix;
+
+    // Центральная стена (X=0, W=4.4)
+    if (ctx.rawWalls.length < 12 && ctx.levelNum >= 3) {
+      const nearGate = ctx.rawGates.some((g) => Math.abs(g.z - ctx.z0) < 8);
+      if (!nearGate) {
+        const wallCount = 6 + Math.floor(ctx.rng() * 4) + Math.floor(ctx.levelNum * 0.2);
+        ctx.rawWalls.push({
+          id: `wall_${ctx.levelNum}_bastion_${Math.floor(ctx.z0)}`,
+          z: ctx.z0,
+          x: 0,
+          width: 4.4,
+          count: wallCount,
+          killsRemaining: wallCount,
+        });
+      }
+    }
+
+    // 2 фланговых препятствия на разной глубине
+    this.pushObs(ctx.out, 'saw_blade', ctx.z0 + 6, -4.8, ctx.levelNum, ctx.trackWidth, ctx.phaseMult, ctx.rng, {
+      width: 2.0,
+      range: 0.6,
+      ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
+    });
+    this.pushObs(ctx.out, 'spike_trap', ctx.z0 + 12, 4.8, ctx.levelNum, ctx.trackWidth, ctx.phaseMult, ctx.rng, {
+      width: 2.0,
+      range: 0,
+      ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
+    });
+
+    // 4 монеты в одном из рукавов
+    if (ctx.coins.length <= 350) {
+      const coinSide = ctx.rng() < 0.5 ? -1 : 1;
+      for (let i = 0; i < 4; i++) {
+        ctx.coins.push({
+          id: `coin_${ctx.levelNum}_bastion_${Math.floor(ctx.z0)}_${i}`,
+          x: coinSide * 3.2,
+          y: 0.5,
+          z: ctx.z0 + 4 + i * 2.0,
+          value: 10,
+        });
+      }
+    }
+
+    return { count: 2, spanZ: 18 };
+  }
+
+  // 7. Волна маятников (2 динамических маятника с противофазой)
+  private static patternPendulumSweepWave(ctx: PatternContext): { count: number; spanZ: number } {
+    const idPrefix = ctx.idPrefix;
+    const type1 = ctx.rng() < 0.5 ? 'axe_pendulum' : 'wrecking_ball';
+    const type2 = ctx.rng() < 0.5 ? 'axe_pendulum' : 'wrecking_ball';
+
+    this.pushObs(ctx.out, type1, ctx.z0, 0, ctx.levelNum, ctx.trackWidth, ctx.phaseMult, ctx.rng, {
+      width: 2.2,
+      range: 3.2,
+      speed: 2.2,
+      initialOffset: 0,
+      ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
+    });
+    this.pushObs(ctx.out, type2, ctx.z0 + 14, 0, ctx.levelNum, ctx.trackWidth, ctx.phaseMult, ctx.rng, {
+      width: 2.2,
+      range: 3.2,
+      speed: 2.2,
+      initialOffset: Math.PI,
+      ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
+    });
+
+    return { count: 2, spanZ: 20 };
+  }
+
+  // 8. Стая кибер-гончих (2 guard_dog)
+  private static patternCyborgHoundPack(ctx: PatternContext): { count: number; spanZ: number } {
+    const idPrefix = ctx.idPrefix;
+    const rate = Math.min(3, 1 + Math.floor(ctx.levelNum / 17));
+
+    this.pushObs(ctx.out, 'guard_dog', ctx.z0, -3.2, ctx.levelNum, ctx.trackWidth, ctx.phaseMult, ctx.rng, {
+      width: 2.0,
+      range: 2.6,
+      attackRate: rate,
+      destructible: true,
+      damage: 1,
+      speed: 1.6,
+      ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
+    });
+    this.pushObs(ctx.out, 'guard_dog', ctx.z0 + 14, 3.2, ctx.levelNum, ctx.trackWidth, ctx.phaseMult, ctx.rng, {
+      width: 2.0,
+      range: 2.6,
+      attackRate: rate,
+      destructible: true,
+      damage: 1,
+      speed: 1.6,
+      ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
+    });
+
+    return { count: 2, spanZ: 20 };
+  }
+
+  // 9. Одиночная ловушка (fallback)
+  private static patternSingleHazard(
+    ctx: PatternContext,
+    phaseName?: PhaseInfo['phaseName']
+  ): { count: number; spanZ: number } {
+    const idPrefix = ctx.idPrefix;
+    const type = this.pickObstacleType(phaseName || 'warmup', ctx.rng);
+    const obs = this.createObstacleDef(
+      type,
+      ctx.z0,
+      ctx.levelNum,
+      ctx.out.length,
+      ctx.trackWidth,
+      ctx.phaseMult,
+      ctx.rng
+    );
+    if (idPrefix) {
+      obs.id = `${idPrefix}_${ctx.out.length}`;
+    }
+    ctx.out.push(obs);
+    return { count: 1, spanZ: 14 };
+  }
+
+  /**
+   * Выбор паттерна по фазе с учетом весов и уровневых блокировок
+   */
+  private static selectPattern(
+    phaseName: PhaseInfo['phaseName'],
+    levelNum: number,
+    lastPattern: PatternType | null,
+    rng: () => number
+  ): PatternType {
+    let table: [PatternType, number][];
+
+    switch (phaseName) {
+      case 'warmup':
+        table = [
+          ['slalom_cascade', 0.5],
+          ['checkerboard_hazard', 0.3],
+          ['single_hazard', 0.2],
+        ];
+        break;
+      case 'ramp':
+        table = [
+          ['slalom_cascade', 0.35],
+          ['checkerboard_hazard', 0.25],
+          ['pendulum_sweep_wave', 0.2],
+          ['single_hazard', 0.2],
+        ];
+        break;
+      case 'peak':
+        table = [
+          ['choke_point_funnel', 0.3],
+          ['tank_breach_cluster', 0.3],
+          ['gate_trap_dilemma', 0.2],
+          ['cyborg_hound_pack', 0.2],
+        ];
+        break;
+      case 'corridor':
+        table = [
+          ['choke_point_funnel', 0.35],
+          ['checkerboard_hazard', 0.25],
+          ['pendulum_sweep_wave', 0.2],
+          ['slalom_cascade', 0.2],
+        ];
+        break;
+      case 'climax':
+      default:
+        table = [
+          ['gate_trap_dilemma', 0.3],
+          ['tank_breach_cluster', 0.25],
+          ['choke_point_funnel', 0.25],
+          ['cyborg_hound_pack', 0.2],
+        ];
+        break;
+    }
+
+    // Уровневые блокировки:
+    // levelNum < 4 → убрать tank_breach, hound, gate_trap, central_bastion
+    // levelNum < 8 → убрать gate_trap
+    const filtered = table.filter(([pat]) => {
+      if (
+        levelNum < 4 &&
+        (pat === 'tank_breach_cluster' ||
+          pat === 'cyborg_hound_pack' ||
+          pat === 'gate_trap_dilemma' ||
+          pat === 'central_bastion_split')
+      ) {
+        return false;
+      }
+      if (levelNum < 8 && pat === 'gate_trap_dilemma') {
+        return false;
+      }
+      return true;
+    });
+
+    const candidateTable =
+      filtered.length > 0 ? filtered : ([['single_hazard', 1.0]] as [PatternType, number][]);
+
+    const pickWeighted = (tbl: [PatternType, number][]) => {
+      const total = tbl.reduce((acc, [, w]) => acc + w, 0);
+      if (total <= 0) return 'single_hazard';
+      const r = rng() * total;
+      let cur = 0;
+      for (const [p, w] of tbl) {
+        cur += w;
+        if (r <= cur) return p;
+      }
+      return tbl[tbl.length - 1][0];
+    };
+
+    let chosen = pickWeighted(candidateTable);
+    if (chosen === lastPattern && candidateTable.length > 1) {
+      for (let retry = 0; retry < 2; retry++) {
+        const next = pickWeighted(candidateTable);
+        if (next !== lastPattern) {
+          chosen = next;
+          break;
+        }
+      }
+    }
+
+    return chosen;
+  }
+
+  /**
+   * Диспетчер исполнения паттерна
+   */
+  private static runPattern(
+    pattern: PatternType,
+    ctx: PatternContext,
+    phaseName?: PhaseInfo['phaseName']
+  ): { count: number; spanZ: number } {
+    switch (pattern) {
+      case 'slalom_cascade':
+        return this.patternSlalomCascade(ctx);
+      case 'choke_point_funnel':
+        return this.patternChokePointFunnel(ctx);
+      case 'checkerboard_hazard':
+        return this.patternCheckerboardHazard(ctx);
+      case 'tank_breach_cluster':
+        return this.patternTankBreachCluster(ctx);
+      case 'gate_trap_dilemma':
+        return this.patternGateTrapDilemma(ctx);
+      case 'central_bastion_split':
+        return this.patternCentralBastionSplit(ctx);
+      case 'pendulum_sweep_wave':
+        return this.patternPendulumSweepWave(ctx);
+      case 'cyborg_hound_pack':
+        return this.patternCyborgHoundPack(ctx);
+      case 'single_hazard':
+      default:
+        return this.patternSingleHazard(ctx, phaseName);
+    }
+  }
+
   public static resolveOverlaps(
     gates: GateData[],
     obstacles: ObstacleData[],
     trackWidth: number,
     minZ: number,
-    maxZ: number
+    maxZ: number,
+    peers?: ObstacleData[]
   ): ObstacleData[] {
     const validObstacles: ObstacleData[] = [];
+    const checkPeers = (z: number) => {
+      if (validObstacles.some((p) => Math.abs(p.z - z) < 6)) return true;
+      if (peers && peers.some((p) => Math.abs(p.z - z) < 6)) return true;
+      return false;
+    };
 
     for (const obs of obstacles) {
       if (obs.z < minZ || obs.z > maxZ) {
@@ -680,12 +1043,14 @@ export class LevelGenerator {
 
       if (hasGateOverlap) {
         let resolved = false;
+        // Первая попытка: сдвиг с проверкой чистоты от ворот и от соседних препятствий
         for (let attempt = 1; attempt <= 6; attempt++) {
           const offset = attempt * 4.5;
           const candidateForward = obs.z + offset;
           if (
             candidateForward <= maxZ &&
-            !gates.some((g) => Math.abs(g.z - candidateForward) < GATE_CLEARANCE)
+            !gates.some((g) => Math.abs(g.z - candidateForward) < GATE_CLEARANCE) &&
+            !checkPeers(candidateForward)
           ) {
             safeZ = candidateForward;
             resolved = true;
@@ -694,11 +1059,36 @@ export class LevelGenerator {
           const candidateBackward = obs.z - offset;
           if (
             candidateBackward >= minZ &&
-            !gates.some((g) => Math.abs(g.z - candidateBackward) < GATE_CLEARANCE)
+            !gates.some((g) => Math.abs(g.z - candidateBackward) < GATE_CLEARANCE) &&
+            !checkPeers(candidateBackward)
           ) {
             safeZ = candidateBackward;
             resolved = true;
             break;
+          }
+        }
+        // Вторая попытка: если со строгим peer-чеком не нашли, ищем хотя бы чистый от ворот слот
+        if (!resolved) {
+          for (let attempt = 1; attempt <= 6; attempt++) {
+            const offset = attempt * 4.5;
+            const candidateForward = obs.z + offset;
+            if (
+              candidateForward <= maxZ &&
+              !gates.some((g) => Math.abs(g.z - candidateForward) < GATE_CLEARANCE)
+            ) {
+              safeZ = candidateForward;
+              resolved = true;
+              break;
+            }
+            const candidateBackward = obs.z - offset;
+            if (
+              candidateBackward >= minZ &&
+              !gates.some((g) => Math.abs(g.z - candidateBackward) < GATE_CLEARANCE)
+            ) {
+              safeZ = candidateBackward;
+              resolved = true;
+              break;
+            }
           }
         }
         if (!resolved) {
@@ -950,112 +1340,62 @@ export class LevelGenerator {
       killsRemaining: wallCount,
     });
 
-    // 4-5 Препятствий в сегменте
-    const endlessTypes: ObstacleType[] = [
-      'saw_blade',
-      'axe_pendulum',
-      'crusher',
-      'spike_trap',
-      'laser_grid',
-      'wrecking_ball',
-      'lava_pit',
-      'barrier_gate',
-      'bomb',
-      'guard_dog',
-      'swinging_hammer',
-      'rolling_spike_ball',
-    ];
+    // 3 слота паттернов препятствий в 120м сегменте
+    // Слот 1 (Z+10..Z+40): движение (slalom/pendulum)
+    const zSlot1 = currentZ + 12 + (rng() * 4 - 2);
+    const p1: PatternType = rng() < 0.5 ? 'slalom_cascade' : 'pendulum_sweep_wave';
+    this.runPattern(p1, {
+      out: rawObstacles,
+      z0: zSlot1,
+      levelNum: segmentIndex,
+      trackWidth,
+      playableHalf,
+      phaseMult: 1.0,
+      rng,
+      rawGates,
+      rawWalls,
+      coins,
+      bonuses,
+      idPrefix: `endless_obs_${segmentIndex}`,
+    });
 
-    const obsCount = 4 + (rng() < 0.5 ? 1 : 0);
-    for (let o = 0; o < obsCount; o++) {
-      const z = currentZ + 12 + o * (length / Math.max(1, obsCount)) + (rng() * 4 - 2);
-      const type = endlessTypes[Math.floor(rng() * endlessTypes.length)];
+    // Слот 2 (Z+48..Z+80): выбор (gate_trap/central_bastion/checkerboard)
+    const zSlot2 = currentZ + 50 + (rng() * 4 - 2);
+    const r2 = rng();
+    const p2: PatternType = r2 < 0.4 ? 'gate_trap_dilemma' : r2 < 0.7 ? 'central_bastion_split' : 'checkerboard_hazard';
+    this.runPattern(p2, {
+      out: rawObstacles,
+      z0: zSlot2,
+      levelNum: segmentIndex,
+      trackWidth,
+      playableHalf,
+      phaseMult: 1.0,
+      rng,
+      rawGates,
+      rawWalls,
+      coins,
+      bonuses,
+      idPrefix: `endless_obs_${segmentIndex}`,
+    });
 
-      let obsWidth = 2.0;
-      let x = 0;
-      let range = 0;
-      let damage = 12;
-      let speed = 1.8 + rng() * 1.5;
-
-      if (type === 'laser_grid') {
-        obsWidth = 4.0;
-        const side = rng() < 0.5 ? -1 : 1;
-        x = side * (playableHalf - obsWidth / 2);
-        range = 0;
-        damage = 6;
-      } else if (type === 'wrecking_ball') {
-        obsWidth = 2.4;
-        x = (rng() * 2 - 1) * (playableHalf - 1.2);
-        range = Math.min(3.0, playableHalf - 1.2);
-      } else if (type === 'lava_pit') {
-        obsWidth = 2.4;
-        x = (rng() * 2 - 1) * (playableHalf - 1.2);
-        range = 0;
-      } else if (type === 'barrier_gate') {
-        obsWidth = 3.3;
-        x = (rng() * 2 - 1) * (playableHalf - 1.5);
-        range = 0;
-      } else if (type === 'bomb') {
-        obsWidth = 2.4;
-        x = (rng() * 2 - 1) * (playableHalf - 1.2);
-        range = 3.5;
-        damage = 999;
-        speed = 0.8;
-      } else if (type === 'guard_dog') {
-        obsWidth = 2.0;
-        x = (rng() * 2 - 1) * (playableHalf - 1.0);
-        range = 2.6;
-        damage = 1;
-        speed = 1.6;
-      } else if (type === 'swinging_hammer') {
-        obsWidth = 3.2;
-        x = (rng() * 2 - 1) * (playableHalf - 1.6);
-        range = 0;
-        damage = 20;
-        speed = 1.8 + rng() * 0.8;
-      } else if (type === 'rolling_spike_ball') {
-        obsWidth = 2.2;
-        x = (rng() * 2 - 1) * (playableHalf - 1.1);
-        range = 2.0;
-        damage = 15;
-        speed = 2.5;
-      } else if (type === 'saw_blade' || type === 'spike_trap') {
-        const maxHalfX = (trackWidth / 2 - 0.6) - 1.0;
-        obsWidth = 2.0;
-        x = (rng() * 2 - 1) * maxHalfX;
-        range = Math.min(3.5, maxHalfX);
-        damage = 6;
-      } else {
-        const maxHalfX = (trackWidth / 2 - 0.6) - 1.0;
-        obsWidth = 2.0;
-        x = (rng() * 2 - 1) * maxHalfX;
-        range = Math.min(3.5, maxHalfX);
-      }
-
-      rawObstacles.push({
-        id: `endless_obs_${segmentIndex}_${o}`,
-        type,
-        x,
-        y: 0,
-        z,
-        width: obsWidth,
-        height: 2,
-        depth: 2,
-        speed,
-        range,
-        initialOffset: rng() * Math.PI * 2,
-        damage,
-        attackRate: type === 'guard_dog' ? 1 + (segmentIndex % 3) : undefined,
-        destructible:
-          type === 'crusher' ||
-          type === 'axe_pendulum' ||
-          type === 'wrecking_ball' ||
-          type === 'guard_dog' ||
-          type === 'swinging_hammer',
-        hp: 15,
-        maxHp: 15,
-      });
-    }
+    // Слот 3 (Z+88..Z+115): препятствия (tank_breach/choke/hound)
+    const zSlot3 = currentZ + 88 + (rng() * 4 - 2);
+    const r3 = rng();
+    const p3: PatternType = r3 < 0.4 ? 'tank_breach_cluster' : r3 < 0.75 ? 'choke_point_funnel' : 'cyborg_hound_pack';
+    this.runPattern(p3, {
+      out: rawObstacles,
+      z0: zSlot3,
+      levelNum: segmentIndex,
+      trackWidth,
+      playableHalf,
+      phaseMult: 1.0,
+      rng,
+      rawGates,
+      rawWalls,
+      coins,
+      bonuses,
+      idPrefix: `endless_obs_${segmentIndex}`,
+    });
 
     const obstacles = this.resolveOverlaps(
       gates,
@@ -1114,6 +1454,10 @@ export class LevelGenerator {
         value,
       });
     }
+
+    rawWalls.sort((a, b) => a.z - b.z);
+    bonuses.sort((a, b) => a.z - b.z);
+    coins.sort((a, b) => a.z - b.z);
 
     return { gates, walls: rawWalls, bonuses, obstacles, coins, length };
   }
