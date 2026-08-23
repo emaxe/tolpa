@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { GameEngine } from '../engine/GameEngine';
 import { eventBus } from '../core/EventBus';
+import { i18n } from '../core/Localization';
 
 interface FloatingItem {
   id: number;
@@ -58,10 +59,22 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       spawn(data.x || 0, data.z || 0, `+${data.value}`, 'text-amber-400');
     });
 
+    // Разрушение препятствия (Hyper-режим / класс Tank): всплывающая подпись над местом слома.
+    // Раньше событие obstacleSmashed эмитилось, но никем не потреблялось — игрок видел только
+    // звук + частицы, без текстового фидбека. Цвет совпадает с взрывом частиц (0xf97316).
+    const unsubObstacle = eventBus.on(
+      'obstacleSmashed',
+      (data: { type?: string; x?: number; z?: number }) => {
+        if (!data) return;
+        spawn(data.x || 0, data.z || 0, i18n.t('obstacleSmashed', 'СЛОМАНО!'), 'text-orange-400');
+      }
+    );
+
     return () => {
       unsubGate();
       unsubMobsKilled();
       unsubCoin();
+      unsubObstacle();
     };
   }, [engine]);
 

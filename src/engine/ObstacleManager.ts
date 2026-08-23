@@ -355,7 +355,7 @@ export class ObstacleManager {
           soundEngine.playSound('obstacle_smash');
           particles.emitBurst(obs.x, 1.0, obs.z, 30, 0xf97316, 6.0);
           stateManager.runRecordObstacleSmash();
-          eventBus.emit('obstacleSmashed', { type: obs.type });
+          eventBus.emit('obstacleSmashed', { type: obs.type, x: obs.x, z: obs.z });
           break;
         } else {
           // Препятствие уничтожает КАЖДОГО моба, который его касается — в этом же кадре.
