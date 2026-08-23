@@ -526,6 +526,25 @@ export class SoundEngine {
         break;
       }
 
+      case 'finish_chest_open': {
+        // Открытие финального сундука — яркая восходящая "сокровищница"
+        const notes = [523.25, 659.25, 783.99, 1046.5];
+        notes.forEach((freq, idx) => {
+          const osc = this.ctx!.createOscillator();
+          const gain = this.ctx!.createGain();
+          const start = t + idx * 0.08;
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq * pitchShift, start);
+          gain.gain.setValueAtTime(0.22, start);
+          gain.gain.exponentialRampToValueAtTime(0.001, start + 0.25);
+          osc.connect(gain);
+          gain.connect(this.sfxGain!);
+          osc.start(start);
+          osc.stop(start + 0.25);
+        });
+        break;
+      }
+
       default:
         break;
     }

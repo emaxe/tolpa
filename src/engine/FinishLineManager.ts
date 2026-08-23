@@ -142,8 +142,9 @@ export class FinishLineManager {
       spread: 80,
       origin: { y: 0.6 },
     });
-
     if (this.chestMesh) {
+      // Сундук открывается — отдельный яркий звук награды
+      soundEngine.playSound('finish_chest_open');
       particles.emitBurst(0, 3.5, this.chestMesh.position.z, 60, 0xfacc15, 8.0);
     }
 
