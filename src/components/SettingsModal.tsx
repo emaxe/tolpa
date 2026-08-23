@@ -164,6 +164,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
               ))}
             </div>
 
+            {/* Описание выбранного качества */}
+            <p className="text-xs text-slate-400 leading-relaxed">
+              {settings.graphicsQuality === 'high' && i18n.t('qualityHigh')}
+              {settings.graphicsQuality === 'medium' && i18n.t('qualityMed')}
+              {settings.graphicsQuality === 'low' && i18n.t('qualityLow')}
+            </p>
+
             {/* Checkboxes for FX */}
             <div className="grid grid-cols-2 gap-3 pt-2">
               <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">

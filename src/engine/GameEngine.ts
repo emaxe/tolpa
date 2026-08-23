@@ -132,6 +132,16 @@ export class GameEngine {
   private unsubGateCharge: (() => void) | null = null;
   private unsubMobFell: (() => void) | null = null;
   private unsubCombo: (() => void) | null = null;
+  private unsubSettings: (() => void) | null = null;
+
+  // ==== Адаптивное разрешение (watchdog) ====
+  // Следит за средним временем кадра и при просадке FPS плавно снижает pixelRatio,
+  // восстанавливая его, когда кадр снова быстрый. Снижает нагрузку на GPU на слабых
+  // устройствах без ручного вмешательства игрока.
+  private adaptiveAccum: number = 0;
+  private adaptiveFrames: number = 0;
+  private adaptiveLastChange: number = 0;
+  private currentPixelRatio: number = 1;
 
   constructor(container: HTMLElement, callbacks: GameEngineCallbacks = {}) {
     this.container = container;
@@ -155,13 +165,14 @@ export class GameEngine {
       alpha: false,
     });
     this.renderer.setSize(container.clientWidth, container.clientHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, settings.graphicsQuality === 'high' ? 2.0 : 1.0));
-    this.renderer.shadowMap.enabled = settings.enableShadows;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.1;
 
     container.appendChild(this.renderer.domElement);
+
+    // Применяем настройки графики (pixelRatio, тени) сразу при создании.
+    this.applyGraphicsSettings();
 
     // 4. Lights
     this.hemiLight = new THREE.HemisphereLight(0x38bdf8, 0x0f172a, 0.7);
@@ -223,7 +234,64 @@ export class GameEngine {
       }
     });
 
+    // Живое применение настроек графики: смена качества/теней в настройках сразу
+    // влияет на рендер, без перезапуска забега.
+    this.unsubSettings = eventBus.on('settingsChanged', () => this.applyGraphicsSettings());
+
     this.animate = this.animate.bind(this);
+  }
+
+  /** Применяет текущие настройки графики к рендереру (pixelRatio, тени, antialias).
+   *  Вызывается при создании и при каждом изменении настроек. */
+  private applyGraphicsSettings(): void {
+    const settings = stateManager.getState().settings;
+    const dpr = window.devicePixelRatio || 1;
+    // Целевой pixelRatio по качеству: high = до 2.0, medium/low = 1.0 (дешевле на мобильных).
+    const target = settings.graphicsQuality === 'high' ? Math.min(dpr, 2.0) : 1.0;
+    // Не поднимаем выше, чем уже установил адаптивный watchdog (если он снизил из-за FPS).
+    this.currentPixelRatio = Math.min(target, this.currentPixelRatio || target);
+    this.renderer.setPixelRatio(this.currentPixelRatio);
+    this.renderer.shadowMap.enabled = settings.enableShadows;
+    this.dirLight.castShadow = settings.enableShadows;
+    // antialias нельзя менять на лету у существующего рендерера — он задаётся при создании.
+    // Здесь только синхронизируем тени и разрешение; antialias остаётся как при старте.
+  }
+
+  /** Адаптивный watchdog разрешения: накапливает среднее время кадра и при просадке
+   *  FPS плавно снижает pixelRatio (до 0.75), восстанавливая его, когда кадр снова
+   *  быстрый. Работает только на high-качестве (там есть запас по разрешению). */
+  private updateAdaptiveResolution(dt: number): void {
+    const settings = stateManager.getState().settings;
+    if (settings.graphicsQuality !== 'high') return;
+
+    this.adaptiveAccum += dt;
+    this.adaptiveFrames++;
+    if (this.adaptiveFrames < 30) return; // ждём ~0.5с накопления
+
+    const avgFrame = this.adaptiveAccum / this.adaptiveFrames;
+    this.adaptiveAccum = 0;
+    this.adaptiveFrames = 0;
+    const now = performance.now();
+
+    // Просадка: средний кадр > 33мс (~30 FPS) и прошло >2.5с с последнего изменения.
+    if (avgFrame > 0.033 && now - this.adaptiveLastChange > 2500) {
+      const next = Math.max(0.75, this.currentPixelRatio * 0.9);
+      if (next < this.currentPixelRatio) {
+        this.currentPixelRatio = next;
+        this.renderer.setPixelRatio(this.currentPixelRatio);
+        this.adaptiveLastChange = now;
+      }
+    } else if (avgFrame < 0.02 && now - this.adaptiveLastChange > 2500) {
+      // Кадр быстрый — восстанавливаем к целевому качеству.
+      const dpr = window.devicePixelRatio || 1;
+      const target = Math.min(dpr, 2.0);
+      const next = Math.min(target, this.currentPixelRatio * 1.1);
+      if (next > this.currentPixelRatio) {
+        this.currentPixelRatio = next;
+        this.renderer.setPixelRatio(this.currentPixelRatio);
+        this.adaptiveLastChange = now;
+      }
+    }
   }
 
   // Keyboard controls
@@ -1095,6 +1163,7 @@ export class GameEngine {
 
     perfMonitor.update();
     perfMonitor.setDrawCalls(this.renderer.info.render.calls);
+    this.updateAdaptiveResolution(dt);
 
     // Гонка rAF: update() может было остановить цикл (pause()/победа/поражение) внутри
     // этого же кадра — не планировать следующий rAF, если это произошло.
@@ -1597,6 +1666,7 @@ export class GameEngine {
     this.unsubGateCharge?.();
     this.unsubMobFell?.();
     this.unsubCombo?.();
+    this.unsubSettings?.();
 
     this.crowd.dispose();
     this.gates.clear();
