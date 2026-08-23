@@ -196,33 +196,46 @@ export class ObstacleManager {
       return;
     }
 
+    // Позиция собаки (смещена от анкера — она свободно гуляет).
+    const dogX = obs.x + dogGroup.position.x;
+    const dogZ = obs.z + dogGroup.position.z;
+
+    // Радиус атаки от собаки: цепь тянется до obs.range, плюс запас на саму собаку.
+    const attackRange = obs.range + 1.2;
+
     // ---- 1. Определяем целевое состояние на кадр ----
-    // Атака: ближайший живой моб в пределах радиуса цепи (obs.range).
+    // Цель — ближайший живой моб в радиусе атаки ОТ ПОЗИЦИИ СОБАКИ (не анкера).
     let nearestMob: MobInstance | null = null;
     let bestSq = 1e9;
     const alive = crowd.getAliveMobs();
     for (const m of alive) {
       if (!m.alive) continue;
-      const dx = m.x - obs.x;
-      const dz = m.z - obs.z;
+      const dx = m.x - dogX;
+      const dz = m.z - dogZ;
       const dSq = dx * dx + dz * dz;
-      if (dSq <= obs.range * obs.range && dSq < bestSq) {
+      if (dSq <= attackRange * attackRange && dSq < bestSq) {
         bestSq = dSq;
         nearestMob = m;
       }
     }
 
-    const attacking = !!nearestMob && vis.attackCooldown && vis.attackCooldown <= 0;
+    // Скорость атаки: attackRate (1..3 моб/сек) или 1 по умолчанию. Кулдаун между укусами.
+    const attackRate = obs.attackRate ?? 1;
+    const biteCooldown = 1 / attackRate;
+
+    // Атака активна, пока есть цель в радиусе — независимо от кулдауна укуса
+    // (кулдаун только замедляет укусы, но собака продолжает преследовать).
+    const attacking = !!nearestMob;
     vis.dogStateTime = (vis.dogStateTime || 0) + dt;
 
     if (attacking) {
       vis.dogState = 'attack';
     } else if (vis.dogState === 'attack') {
-      // Атака закончилась → кулдаун и возврат к гулянию/отдыху
+      // Атака закончилась (цель вышла из радиуса) → возврат к гулянию/отдыху.
+      // Кулдаун задаётся скоростью атаки, чтобы собака не кусала мгновенно.
       vis.dogState = 'wander';
       vis.dogStateTime = 0;
       vis.dogLungeT = -1;
-      vis.attackCooldown = 1.2;
       // новая случайная цель
       vis.dogTargetX = (Math.random() - 0.5) * obs.range * 1.5;
       vis.dogTargetZ = (Math.random() - 0.5) * obs.range * 1.5;
@@ -241,23 +254,32 @@ export class ObstacleManager {
       }
     }
 
-    // ---- 2. Атака: кулак-рывок к ближайшему мобу ----
+    // ---- 2. Атака: рывок-преследование к ближайшему мобу ----
     if (vis.dogState === 'attack' && nearestMob) {
-      // Направление к цели (локально, анкер в 0,0)
+      // Направление к цели (мировые координаты) в локальном радиусе от анкера.
       const tx = nearestMob.x - obs.x;
       const tz = nearestMob.z - obs.z;
       const dist = Math.sqrt(tx * tx + tz * tz) || 1;
-      // Бросок: держимся на короткой дистанции (не выходим за радиус, но вытягиваемся к цели)
-      const lunge = Math.min(dist, obs.range * 0.92);
-      vis.dogLungeT = Math.min(1, (vis.dogLungeT || 0) + dt * 4);
-      const ease = 1 - Math.pow(1 - vis.dogLungeT, 3); // easeOutCubic
-      const pull = 1 + ease * 0.7;
-      const dogRelX = (tx / dist) * lunge * pull;
-      const dogRelZ = (tz / dist) * lunge * pull;
-      dogGroup.position.set(dogRelX, 0, dogRelZ);
+      // Рывок: бежим к цели, но не выходим за длину цепи (obs.range) от анкера.
+      const reach = Math.min(dist, obs.range * 0.95);
+      const speed = 5.0;
+      const step = Math.min(speed * dt, dist);
+      // Плавно двигаемся к точке у цели (не телепортом).
+      const dirX = tx / dist;
+      const dirZ = tz / dist;
+      let newRelX = dogGroup.position.x + dirX * step;
+      let newRelZ = dogGroup.position.z + dirZ * step;
+      // Ограничение цепью: локальный радиус вокруг анкера не превышает obs.range.
+      const chainLen = Math.sqrt(newRelX * newRelX + newRelZ * newRelZ);
+      if (chainLen > obs.range) {
+        newRelX = (newRelX / chainLen) * obs.range;
+        newRelZ = (newRelZ / chainLen) * obs.range;
+      }
+      dogGroup.position.set(newRelX, 0, newRelZ);
       vis.dogFacing = Math.atan2(tx, tz);
       dogGroup.rotation.y = vis.dogFacing;
-      // actual attack happens in resolveDog (механика укуса там); здесь только визуал
+      vis.dogAnimPhase = (vis.dogAnimPhase || 0) + dt * 14; // быстрый перебор лап при беге
+      // Укус происходит в resolveDog (механика там); здесь только визуал.
     } else if (vis.dogState === 'wander') {
       // Двигаемся к цели гулять
       const gx = vis.dogTargetX ?? 0;
@@ -780,7 +802,8 @@ export class ObstacleManager {
   ): void {
     if (vis.data.isDead) return;
     const obs = vis.data;
-    const r = obs.range;
+    // Радиус укуса чуть больше длины цепи, чтобы собака реально доставала моба.
+    const r = obs.range + 0.8;
     const rSq = r * r;
     const alive = crowd.getAliveMobs();
     if (alive.length === 0) return;
@@ -834,9 +857,10 @@ export class ObstacleManager {
 
     if (!nearest) return;
 
-    // Атака строго одного моба с кулдауном
+    // Укус: убиваем одного моба. Кулдаун = 1/attackRate (1..3 моб/сек),
+    // т.е. при attackRate=1 — раз в сек, при 3 — до трёх раз в сек.
     crowd.killMobById(nearest.id);
-    vis.attackCooldown = 0.9;
+    vis.attackCooldown = 1 / (obs.attackRate ?? 1);
     this.playDeathEffect(obs, nearest.x, 0.8, nearest.z, particles);
     if (vol > 0) soundEngine.playSound('dog_snap', 1, vol);
     eventBus.emit('screenShake', { intensity: 0.25 });

@@ -649,6 +649,7 @@ export class LevelGenerator {
       range,
       initialOffset: rng() * Math.PI * 2,
       damage,
+      attackRate: type === 'guard_dog' ? Math.min(3, 1 + Math.floor(levelNum / 17)) : undefined,
       destructible:
         type === 'crusher' ||
         type === 'axe_pendulum' ||
@@ -1044,6 +1045,7 @@ export class LevelGenerator {
         range,
         initialOffset: rng() * Math.PI * 2,
         damage,
+        attackRate: type === 'guard_dog' ? 1 + (segmentIndex % 3) : undefined,
         destructible:
           type === 'crusher' ||
           type === 'axe_pendulum' ||

@@ -81,6 +81,8 @@ export interface ObstacleData {
   hp?: number;
   maxHp?: number;
   isDead?: boolean;
+  /** Киборг-собака: сколько человечков собака может убить в секунду (1..3). */
+  attackRate?: number;
 }
 
 export interface CoinData {
