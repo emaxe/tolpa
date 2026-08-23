@@ -170,6 +170,122 @@ describe('Level Generator Smoke Tests', () => {
   });
 });
 
+describe('Level Generator Enhanced Tests', () => {
+  it('generateLevel детерминирован: повторный вызов даёт идентичный результат', () => {
+    const a = LevelGenerator.generateLevel(5);
+    const b = LevelGenerator.generateLevel(5);
+    expect(a.gates.length).toBe(b.gates.length);
+    expect(a.obstacles.length).toBe(b.obstacles.length);
+    expect(a.coins.length).toBe(b.coins.length);
+    for (let i = 0; i < a.gates.length; i++) {
+      expect(a.gates[i].z).toBeCloseTo(b.gates[i].z, 6);
+    }
+    for (let i = 0; i < a.obstacles.length; i++) {
+      expect(a.obstacles[i].z).toBeCloseTo(b.obstacles[i].z, 6);
+      expect(a.obstacles[i].x).toBeCloseTo(b.obstacles[i].x, 6);
+    }
+    for (let i = 0; i < a.coins.length; i++) {
+      expect(a.coins[i].z).toBeCloseTo(b.coins[i].z, 6);
+      expect(a.coins[i].x).toBeCloseTo(b.coins[i].x, 6);
+    }
+  });
+
+  it('generateEndlessSegment детерминирован: повторный вызов даёт идентичный результат', () => {
+    const a = LevelGenerator.generateEndlessSegment(0, 0);
+    const b = LevelGenerator.generateEndlessSegment(0, 0);
+    expect(a.gates.length).toBe(b.gates.length);
+    expect(a.obstacles.length).toBe(b.obstacles.length);
+    expect(a.coins.length).toBe(b.coins.length);
+    for (let i = 0; i < a.gates.length; i++) {
+      expect(a.gates[i].z).toBeCloseTo(b.gates[i].z, 6);
+    }
+    for (let i = 0; i < a.obstacles.length; i++) {
+      expect(a.obstacles[i].z).toBeCloseTo(b.obstacles[i].z, 6);
+      expect(a.obstacles[i].x).toBeCloseTo(b.obstacles[i].x, 6);
+    }
+  });
+
+  it('gate и obstacle никогда не сталкиваются (clearance по Z >= 10, и нет X-перекрытия в z-полосе)', () => {
+    for (let lvl = 1; lvl <= 50; lvl++) {
+      const config = LevelGenerator.generateLevel(lvl);
+      for (const gate of config.gates) {
+        const gateHalf = gate.width / 2;
+        const gateCenterX = (gate.xLeft + gate.xRight) / 2;
+        for (const obs of config.obstacles) {
+          const dz = Math.abs(gate.z - obs.z);
+          // Сильный инвариант: clearance по Z всегда >= 10.
+          expect(dz).toBeGreaterThanOrEqual(10);
+          // Если (гипотетически) ворота и препятствие оказались бы на одной z-полосе,
+          // они не должны перекрываться по X.
+          if (dz < 10) {
+            const dx = Math.abs(gateCenterX - obs.x);
+            expect(dx).toBeGreaterThan(gateHalf + obs.width / 2);
+          }
+        }
+      }
+    }
+  });
+
+  it('монеты не лежат внутри хитбоксов препятствий', () => {
+    for (let lvl = 1; lvl <= 50; lvl++) {
+      const config = LevelGenerator.generateLevel(lvl);
+      for (const coin of config.coins) {
+        for (const obs of config.obstacles) {
+          if (Math.abs(coin.z - obs.z) < 2) {
+            expect(Math.abs(coin.x - obs.x)).toBeGreaterThan(obs.width / 2 + 0.5);
+          }
+        }
+      }
+    }
+  });
+
+  it('на уровнях >= 6 есть хотя бы одна каскадная пара ворот (dz в диапазоне 10..20)', () => {
+    for (let lvl = 6; lvl <= 50; lvl++) {
+      const config = LevelGenerator.generateLevel(lvl);
+      let found = false;
+      for (let i = 1; i < config.gates.length; i++) {
+        const dz = config.gates[i].z - config.gates[i - 1].z;
+        if (dz >= 10 && dz <= 20) {
+          found = true;
+          break;
+        }
+      }
+      expect(found).toBe(true);
+    }
+  });
+
+  it('на уровнях >= 6, для ворот с индексом > 2, створки не дублируются (leftOp != rightOp)', () => {
+    for (let lvl = 6; lvl <= 50; lvl++) {
+      const config = LevelGenerator.generateLevel(lvl);
+      expect(config.gates.length).toBeGreaterThan(2);
+      for (let i = 3; i < config.gates.length; i++) {
+        expect(config.gates[i].leftOp).not.toBe(config.gates[i].rightOp);
+      }
+    }
+  });
+
+  it('cap производительности: gates<=30, obstacles<=90, coins<=360', () => {
+    for (let lvl = 1; lvl <= 50; lvl++) {
+      const config = LevelGenerator.generateLevel(lvl);
+      expect(config.gates.length).toBeLessThanOrEqual(30);
+      expect(config.obstacles.length).toBeLessThanOrEqual(90);
+      expect(config.coins.length).toBeLessThanOrEqual(360);
+    }
+  });
+
+  it('soft-lock / проходимость: препятствия не блокируют весь трек', () => {
+    for (let lvl = 1; lvl <= 50; lvl++) {
+      const config = LevelGenerator.generateLevel(lvl);
+      for (const obs of config.obstacles) {
+        expect(obs.width).toBeLessThanOrEqual(config.trackWidth - 3.2);
+        if (obs.type === 'barrier_gate') {
+          expect(obs.width).toBeLessThanOrEqual(3.5);
+        }
+      }
+    }
+  });
+});
+
 describe('Object Pool & Memory', () => {
   class TestEntity implements Poolable {
     public val: number = 0;
