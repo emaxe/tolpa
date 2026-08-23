@@ -171,9 +171,6 @@ export class GameEngine {
 
     container.appendChild(this.renderer.domElement);
 
-    // Применяем настройки графики (pixelRatio, тени) сразу при создании.
-    this.applyGraphicsSettings();
-
     // 4. Lights
     this.hemiLight = new THREE.HemisphereLight(0x38bdf8, 0x0f172a, 0.7);
     this.scene.add(this.hemiLight);
@@ -190,6 +187,10 @@ export class GameEngine {
     this.dirLight.shadow.camera.top = 30;
     this.dirLight.shadow.camera.bottom = -20;
     this.scene.add(this.dirLight);
+
+    // Применяем настройки графики (pixelRatio, тени) сразу после создания света —
+    // applyGraphicsSettings обращается к this.dirLight, поэтому он должен быть готов.
+    this.applyGraphicsSettings();
 
     // 5. Instantiate sub-systems
     // Потолок толпы снижен с 400 до 200: меньше бойцов = меньше объектов на сцене,
@@ -250,9 +251,11 @@ export class GameEngine {
     const target = settings.graphicsQuality === 'high' ? Math.min(dpr, 2.0) : 1.0;
     // Не поднимаем выше, чем уже установил адаптивный watchdog (если он снизил из-за FPS).
     this.currentPixelRatio = Math.min(target, this.currentPixelRatio || target);
-    this.renderer.setPixelRatio(this.currentPixelRatio);
-    this.renderer.shadowMap.enabled = settings.enableShadows;
-    this.dirLight.castShadow = settings.enableShadows;
+    if (this.renderer) {
+      this.renderer.setPixelRatio(this.currentPixelRatio);
+      if (this.renderer.shadowMap) this.renderer.shadowMap.enabled = settings.enableShadows;
+    }
+    if (this.dirLight) this.dirLight.castShadow = settings.enableShadows;
     // antialias нельзя менять на лету у существующего рендерера — он задаётся при создании.
     // Здесь только синхронизируем тени и разрешение; antialias остаётся как при старте.
   }
