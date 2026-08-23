@@ -21,6 +21,14 @@ interface ObstacleVisual {
   data: ObstacleData;
   mesh: THREE.Group;
   animTime: number;
+  // Активный "убивающий" хитбокс — фактическая геометрия части препятствия, которая
+  // реально убивает (плита шлагбаума, голова маятника, шар крушителя и т.д.).
+  // Обновляется каждый кадр в switch update() под анимацию. Коллизия ведётся ТОЛЬКО
+  // против этой области, а не против всего статичного бокса препятствия.
+  hazardX: number;
+  hazardZ: number;
+  hazardW: number;
+  hazardD: number;
 }
 
 interface CoinVisual {
@@ -84,7 +92,25 @@ export class ObstacleManager {
     mesh.position.set(obs.x, obs.y || 0.5, obs.z);
     this.scene.add(mesh);
 
-    return { data: obs, mesh, animTime: obs.initialOffset || 0 };
+    return {
+      data: obs,
+      mesh,
+      animTime: obs.initialOffset || 0,
+      // Начальное значение hazard-бокса — по базовым габаритам; каждый кадр update()
+      // пересчитывает его под фактическую убивающую часть.
+      hazardX: obs.x,
+      hazardZ: obs.z,
+      hazardW: obs.width,
+      hazardD: obs.depth,
+    };
+  }
+
+  /** Центрирует "убивающий" хитбокс по (x,z) с размером (w,d). Вызывается из update() каждый кадр. */
+  private setHazard(vis: ObstacleVisual, x: number, z: number, w: number, d: number): void {
+    vis.hazardX = x;
+    vis.hazardZ = z;
+    vis.hazardW = w;
+    vis.hazardD = d;
   }
 
   public initObstacles(obsData: ObstacleData[], coinData: CoinData[]): void {
@@ -126,53 +152,63 @@ export class ObstacleManager {
 
       switch (obs.type) {
         case 'saw_blade':
-          // Rotate blade and move horizontally
+          // Диск пилы вращается и ездит по X — убивает только сам диск, а не всё
+          // габаритное место. hazard-бокс центрирован по фактической X пилы.
           obsVis.mesh.rotation.z += dt * 15;
           obsVis.mesh.position.x = Math.sin(t) * obs.range;
           obs.x = obsVis.mesh.position.x;
+          this.setHazard(obsVis, obs.x, obs.z, 1.7, 1.2);
           break;
 
         case 'axe_pendulum':
-          // Swing back and forth
+          // Маятник качается; убивающая часть — голова-топор на конце. Её X сдвигается
+          // по дуге. Активен только в нижней точке (isHazardActive |rotZ|<0.55).
           obsVis.mesh.rotation.z = Math.sin(t) * 1.1;
-          obs.x = obsVis.mesh.position.x + Math.sin(obsVis.mesh.rotation.z) * 3.0;
+          const axeHeadX = obsVis.mesh.position.x + Math.sin(obsVis.mesh.rotation.z) * 3.0;
+          obs.x = axeHeadX;
+          this.setHazard(obsVis, axeHeadX, obs.z, 1.3, 0.9);
           break;
 
         case 'crusher':
-          // Slam up and down
+          // Пресс бьёт вниз; убивает плита, когда она у земли (isHazardActive y<=1.2).
           const slamY = Math.abs(Math.sin(t * 1.5));
           obsVis.mesh.position.y = 0.5 + slamY * 2.0;
           obs.y = obsVis.mesh.position.y;
+          this.setHazard(obsVis, obsVis.mesh.position.x, obs.z, obs.width, obs.depth);
           break;
 
         case 'laser_grid':
-          // Laser grid remains static or pulses
+          // Лазерная решётка статична, убивает всей своей площадью.
+          this.setHazard(obsVis, obs.x, obs.z, obs.width, obs.depth);
           break;
 
         case 'wrecking_ball':
-          // Шар раскачивается поперёк трассы (по X) вокруг верхней балки.
-          // Позиция шара — это дочерний меш на индексе 3 (после балки и 2 столбов),
-          // но для коллизии используем фактическую X-координату шара.
+          // Шар раскачивается поперёк трассы (по X). Убивает ТОЛЬКО сам шар (child 3)
+          // — его фактическая X-координата, узкий хитбокс по ширине шара.
           const ball = obsVis.mesh.children[3];
           if (ball) {
             ball.position.x = Math.sin(t) * obs.range;
             obs.x = obsVis.mesh.position.x + ball.position.x;
+            this.setHazard(obsVis, obs.x, obs.z, 1.6, 1.6);
           }
           break;
 
         case 'lava_pit':
-          // Лава пульсирует свечением — статична по позиции.
+          // Лава пульсирует свечением — статична по позиции, убивает площадью.
           const lavaMesh = obsVis.mesh.children[1] as THREE.Mesh;
           if (lavaMesh) {
             const pulse = 0.7 + Math.abs(Math.sin(t * 2)) * 0.3;
             (lavaMesh.material as THREE.MeshStandardMaterial).emissiveIntensity = pulse;
           }
+          this.setHazard(obsVis, obs.x, obs.z, obs.width, obs.depth);
           break;
 
         case 'barrier_gate':
-          // Плита-ворота (child 3) опускается (блокирует полосу) и поднимается
-          // (пропускает толпу) по синусоидальному циклу. Группа стоит на y=0.5,
-          // поэтому мировая Y плиты = 0.5 + gate.position.y. Опасно когда она внизу.
+          // Плита-ворота (child 3) опускается/поднимается. Убивает ТОЛЬКО сама плита:
+          // хитбокс — тонкая полоса по ширине плиты (3.3) и малой глубине (0.4),
+          // центрируется по позиции группы. isHazardActive фильтрует по высоте плиты:
+          // когда плита поднята — она не убивает (толпа проходит под ней), несмотря
+          // на то что моб стоит в габарите всей конструкции (стойки/перекладина).
           const barrierGate = obsVis.mesh.children[3] as THREE.Mesh;
           if (barrierGate) {
             const gateY = 1.4 + 1.15 * Math.sin(t * 1.6);
@@ -180,6 +216,7 @@ export class ObstacleManager {
             const intensity = 0.3 + Math.max(0, 1 - gateY / 2.6) * 0.6;
             (barrierGate.material as THREE.MeshStandardMaterial).emissiveIntensity = intensity;
           }
+          this.setHazard(obsVis, obs.x, obs.z, 3.4, 0.45);
           break;
       }
 
@@ -296,14 +333,18 @@ export class ObstacleManager {
     for (let mob of aliveMobs) {
       if (!mob.alive) continue;
 
+      // Коллизия ведётся ТОЛЬКО против активного "убивающего" хитбокса препятствия
+      // (плита шлагбаума, голова маятника, шар крушителя), а не против статичного
+      // габаритного прямоугольника. Поэтому моб не гибнет при простом прохождении
+      // мимо конструкции — только когда касается реально опасной её части.
       const hit = checkCircleRectCollision(
         mob.x,
         mob.z,
         0.45 * mob.scale,
-        obs.x,
-        obs.z,
-        obs.width,
-        obs.depth
+        obsVis.hazardX,
+        obsVis.hazardZ,
+        obsVis.hazardW,
+        obsVis.hazardD
       );
 
       if (hit) {

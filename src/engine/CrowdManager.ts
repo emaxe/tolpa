@@ -365,6 +365,91 @@ export class CrowdManager {
     if (toKill > 0) this.killMobs(toKill, 'gate');
   }
 
+  // ==== Групповые операции (изоляция по створкам ворот) ====
+  // Ворота теперь применяют эффект ТОЛЬКО к мобам, прошедшим через конкретную
+  // створку (left/right), а не ко всей толпе. Ниже — операции над заданным
+  // подмножеством мобов, а не над всей толпой. Работают на переданном массиве
+  // ссылок на MobInstance (объекты стабильны в этом.mobs, поэтому ссылки валидны
+  // весь кадр, даже после внутренних getAliveMobs()).
+
+  /** Спавнит count новых мобов в позиции створки (x,z) — для изолированного add. */
+  public addMobsNear(count: number, x: number, z: number): number {
+    const cap = this.maxCapacity - this.getAliveCount();
+    const toSpawn = Math.min(count, cap);
+    if (toSpawn <= 0) return 0;
+    let spawned = 0;
+    for (let i = 0; i < toSpawn; i++) {
+      const m = this.spawnMob(undefined, x, z);
+      if (m) spawned++;
+      else break;
+    }
+    if (spawned > 0) {
+      soundEngine.playSound('mob_spawn');
+      if (this.instancedMesh.instanceColor) this.instancedMesh.instanceColor.needsUpdate = true;
+      stateManager.runRecordMaxCrowd(this.getAliveCount());
+    }
+    return spawned;
+  }
+
+  /** Умножает ТОЛЬКО группу створки: для каждого её моба спавнит (factor-1) копий рядом. */
+  public multiplyGroup(group: MobInstance[], factor: number, x: number, z: number): number {
+    if (factor <= 1) return 0;
+    const perMob = Math.floor(factor) - 1;
+    if (perMob <= 0) return 0;
+    let added = 0;
+    for (const m of group) {
+      if (!m.alive) continue;
+      const n = this.addMobsNear(perMob, m.x, z);
+      added += n;
+      if (this.getAliveCount() >= this.maxCapacity) break;
+    }
+    return added;
+  }
+
+  /** Убивает до count мобов ИЗ УКАЗАННОЙ группы (броня/уклонение/щит — как killMobs). */
+  public killMobsFromGroup(group: MobInstance[], count: number, reason: string = 'gate'): number {
+    if (this.isHyperMode) return 0;
+    if (count <= 0) return 0;
+    const defenseAuraLvl = stateManager.getState().upgrades.defenseAura;
+    const damageReduction = defenseAuraLvl * 0.1;
+    const finalCount = Math.max(0, Math.round(count * (1 - damageReduction)));
+    if (finalCount <= 0) return 0;
+
+    const sorted = group.filter((m) => m.alive).sort((a, b) => b.z - a.z);
+    let killed = 0;
+    let budget = finalCount;
+    for (const mob of sorted) {
+      if (budget <= 0) break;
+      if (mob.invulnerableTime > 0) continue;
+      if (mob.type === 'ninja' && Math.random() < 0.5) { budget--; continue; }
+      if (mob.shieldHp > 0) { mob.shieldHp--; budget--; continue; }
+      if (mob.hp > 1) { mob.hp--; budget--; continue; }
+      mob.alive = false;
+      this.aliveCount--;
+      mob.y = -100;
+      this.dummy.position.set(0, -100, 0);
+      this.dummy.updateMatrix();
+      this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
+      killed++;
+      budget--;
+    }
+    if (killed > 0) {
+      soundEngine.playSound('mob_death');
+      eventBus.emit('mobsKilled', { count: killed, reason, x: this.leaderX, z: this.leaderZ });
+    }
+    return killed;
+  }
+
+  /** Делит ТОЛЬКО группу створки на divisor (убивает лишних из группы). */
+  public divideMobsGroup(group: MobInstance[], divisor: number): number {
+    if (divisor <= 1) return 0;
+    const alive = group.filter((m) => m.alive);
+    const target = Math.max(1, Math.floor(alive.length / divisor));
+    const toKill = alive.length - target;
+    if (toKill <= 0) return 0;
+    return this.killMobsFromGroup(alive, toKill, 'gate');
+  }
+
   public update(dt: number, speed: number, steerInput: number, trackWidth: number): void {
     this.animTime += dt * 15;
 

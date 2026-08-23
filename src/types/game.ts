@@ -19,6 +19,10 @@ export interface GateData {
   isDynamic?: boolean; // Changes value or flips periodically
   flipTimer?: number;
   passed?: boolean;
+  // Горизонтальный дрейф ворот (движение по X туда-сюда) — ворота ездят по трассе,
+  // как качели. amplitude — размах, speed — частота. Если не задан — ворота статичны.
+  driftAmplitude?: number;
+  driftSpeed?: number;
 }
 
 export type ObstacleType = 

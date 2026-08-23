@@ -59,7 +59,7 @@ export class LevelGenerator {
     // было бы 56-140 ворот, толпа упёрлась бы в потолок 400 за первые 500м, а сцена
     // перегрузилась бы тысячами объектов. Вместо этого держим разумное число ворот
     // (8 на L1 → 18 на L50) и равномерно распределяем их по всей длине.
-    const gateCount = Math.min(20, 8 + Math.floor(levelNum / 5));
+    const gateCount = Math.min(30, 10 + Math.floor(levelNum / 4));
     const gateSpacing = (trackLength - 60) / Math.max(1, gateCount);
     for (let g = 0; g < gateCount; g++) {
       const z = 32 + g * gateSpacing + (rng() * 2 - 1);
@@ -132,6 +132,10 @@ export class LevelGenerator {
         rightCondition: rightOp === ('conditional' as GateOp) ? conditionalData : undefined,
         isDynamic: levelNum > 5 && rng() < 0.35,
         flipTimer: 0,
+        // Движущиеся ворота: с уровня 4 часть ворот ездит по X как качели. Амплитуда
+        // растёт с уровнем, но ограничена, чтобы створки не выходили за трек.
+        driftAmplitude: levelNum > 3 && rng() < 0.4 ? Math.min(2.2, 0.8 + levelNum * 0.05) : undefined,
+        driftSpeed: levelNum > 3 && rng() < 0.4 ? 0.8 + rng() * 0.8 : undefined,
       });
     }
 
@@ -155,7 +159,7 @@ export class LevelGenerator {
     // Place Obstacles between gates. Плотность фиксирована (~1 препятствие на 60м),
     // а не растёт с длиной — иначе на 5400м было бы ~70 препятствий и сцена
     // перегрузилась бы. Равномерно распределяем по всей длине трассы.
-    const obstacleCount = Math.min(60, Math.floor(trackLength / 60));
+    const obstacleCount = Math.min(90, Math.floor(trackLength / 45));
     for (let o = 0; o < obstacleCount; o++) {
       let z = 55 + (o / Math.max(1, obstacleCount - 1)) * (trackLength - 105) + (rng() * 4 - 2);
 
@@ -389,9 +393,9 @@ export class LevelGenerator {
     const coins: CoinData[] = [];
     const trackWidth = DEFAULT_TRACK_WIDTH;
 
-    // 2 Gates in this segment
-    for (let i = 0; i < 2; i++) {
-      const z = currentZ + 30 + i * 45;
+    // 2-3 Gates in this segment
+    for (let i = 0; i < 3; i++) {
+      const z = currentZ + 20 + i * 35;
       gates.push({
         id: `endless_gate_${segmentIndex}_${i}`,
         z,
@@ -402,10 +406,13 @@ export class LevelGenerator {
         leftVal: Math.random() < 0.5 ? 2 : 10,
         rightOp: Math.random() < 0.5 ? 'subtract' : 'add',
         rightVal: Math.random() < 0.5 ? 5 : 15,
+        // Часть endless-ворот тоже ездит по X.
+        driftAmplitude: Math.random() < 0.4 ? 1.2 + Math.random() * 1.2 : undefined,
+        driftSpeed: Math.random() < 0.4 ? 0.8 + Math.random() * 0.8 : undefined,
       });
     }
 
-    // 4 Obstacles
+    // 5 Obstacles
     const endlessTypes: ('saw_blade' | 'axe_pendulum' | 'crusher' | 'spike_trap' | 'laser_grid' | 'wrecking_ball' | 'lava_pit' | 'barrier_gate')[] = [
       'saw_blade',
       'axe_pendulum',
@@ -416,8 +423,8 @@ export class LevelGenerator {
       'lava_pit',
       'barrier_gate',
     ];
-    for (let o = 0; o < 4; o++) {
-      const z = currentZ + 15 + o * 25;
+    for (let o = 0; o < 5; o++) {
+      const z = currentZ + 12 + o * 22;
       const type = endlessTypes[Math.floor(Math.random() * endlessTypes.length)];
       const isWrecking = type === 'wrecking_ball';
       const isLava = type === 'lava_pit';
