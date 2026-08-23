@@ -94,6 +94,18 @@ export class GameEngine {
   private flagMeshes: THREE.Mesh[] = [];
   private droneMeshes: THREE.Mesh[] = [];
 
+  // ==== Плоский список анимируемого декора ====
+  // Анимация в update() не умеет рекурсивно спускаться в decorGroup.children —
+  // меши с userData.animate, лежащие ВНУТРИ биомных групп, не анимировались.
+  // Собираем их в плоский массив при постройке (0-GC в кадре: только итерация).
+  private decorAnimated: THREE.Object3D[] = [];
+  // Якоря частиц декора (мировые x,y,z), stride 3 — для «искр» с верхушек
+  // башен/кристаллов/монолитов. Предаллоцированы при постройке.
+  private decorFxAnchors: Float32Array = new Float32Array(0);
+  private decorFxAccum: number = 0;
+  // Накапливаемая фаза бегущей волны по пилонам (смещается по Z — волна «едет»).
+  private pylonWavePhase: number = 0;
+
   // State
   public isRunning: boolean = false;
   public isPaused: boolean = false;
@@ -631,6 +643,10 @@ export class GameEngine {
     this.beamMeshes = [];
     this.flagMeshes = [];
     this.droneMeshes = [];
+    this.decorAnimated = [];
+    this.decorFxAnchors = new Float32Array(0);
+    this.decorFxAccum = 0;
+    this.pylonWavePhase = 0;
   }
 
   private buildTrack(length: number, width: number, biome: BiomeType): void {
@@ -671,6 +687,47 @@ export class GameEngine {
   // Neon pylons + floating energy orbs + biome scenery along the track edges —
   // pure visual, zero gameplay. Никаких PointLight (мобильный бюджет): только
   // emissive/Basic материалы.
+  // Рекурсивно собирает все потомки с userData.animate в плоский список
+  // decorAnimated — update() не умеет спускаться в decorGroup.children, поэтому
+  // вложенные анимируемые меши (антенны в башнях, кольца монолитов, лавовые
+  // колонны) собираются здесь один раз при постройке (0-GC в кадре).
+  private collectDecorAnimated(): void {
+    this.decorAnimated = [];
+    if (!this.decorGroup) return;
+    this.decorGroup.traverse((obj) => {
+      if (obj.userData.animate) this.decorAnimated.push(obj);
+    });
+  }
+
+  // Добавляет якорь для периодических «искр» из декора (вершины башен/кристаллов/
+  // монолитов). Принимает x, y, z. Коллекция идёт только при постройке (0-GC в кадре).
+  private addDecorFxAnchor(x: number, y: number, z: number): void {
+    const n = this.decorFxAnchors.length / 3;
+    const next = new Float32Array((n + 1) * 3);
+    next.set(this.decorFxAnchors);
+    next[n * 3] = x;
+    next[n * 3 + 1] = y;
+    next[n * 3 + 2] = z;
+    this.decorFxAnchors = next;
+  }
+
+  // Высота «верхушки» декора для якоря искр. Объект стоит на y=0; мировая высота
+  // верхней точки = (локальный position + bb.max.y) * scale. Вызывается только при
+  // постройке (build), НЕ в кадре — там 0-GC.
+  private decorFxAnchorHeight(obj: THREE.Object3D): number {
+    let topY = 0;
+    obj.traverse((child) => {
+      const mesh = child as THREE.Mesh;
+      if (mesh.geometry) {
+        if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+        const bb = mesh.geometry.boundingBox!;
+        const localY = child.position.y + bb.max.y;
+        if (localY > topY) topY = localY;
+      }
+    });
+    return Math.max(2.0, topY * (obj.scale.y as number));
+  }
+
   private buildTrackDecor(length: number, width: number, biome: BiomeType): void {
     const group = new THREE.Group();
     const accent = biome === 'magma_citadel' ? 0xf97316 : biome === 'crystal_cavern' ? 0x10b981 : biome === 'quantum_void' ? 0xa855f7 : biome === 'celestial_core' ? 0xfacc15 : 0x00f0ff;
@@ -707,6 +764,9 @@ export class GameEngine {
       for (const side of [-1, 1]) {
         const pylon = new THREE.Mesh(pylonGeo, pylonMat);
         pylon.position.set(side * half, 0.7, z);
+        // Бегущая световая волна по пилонам — модуляция emissiveIntensity по Z.
+        pylon.userData.animate = 'pylonWave';
+        pylon.userData.baseZ = z;
         group.add(pylon);
         const cap = new THREE.Mesh(capGeo, capMat);
         cap.position.set(side * half, 1.45, z);
@@ -762,6 +822,9 @@ export class GameEngine {
         obj.userData.animate = 'scenerySpin';
       }
       group.add(obj);
+      // Якорь «искр» на верхней точке объекта (мировые координаты, с учётом scale).
+      // Привязываем к локальному центру верхушки — без дополнительных bbox-вычислений.
+      this.addDecorFxAnchor(x, this.decorFxAnchorHeight(obj), z);
     }
 
     // ==== ОБЪЕКТЫ-ЗАГОЛОВКИ ====
@@ -792,6 +855,9 @@ export class GameEngine {
 
     this.scene.add(group);
     this.decorGroup = group;
+    // После сборки собрать плоский список анимируемых мешей (включая вложенные
+    // в биомные группы) — update() итерирует его вместо плоского decorGroup.children.
+    this.collectDecorAnimated();
   }
 
   // Ступенчатые трибуны со зрителями по бокам дорожки (|x| >= 9.5) на ключевых
@@ -1115,7 +1181,7 @@ export class GameEngine {
     const group = new THREE.Group();
     switch (biome) {
       case 'cyber_city': {
-        // Небоскрёбы с светящимися окнами
+        // Небоскрёб с сужающимся верхним ярусом и светящимися окнами
         const w = 1.0 + rnd() * 1.4;
         const d = 1.0 + rnd() * 1.4;
         const h = 4 + rnd() * 6;
@@ -1148,6 +1214,44 @@ export class GameEngine {
         ant.userData.animate = 'scenerySpin';
         ant.userData.spin = 'y';
         group.add(ant);
+        // Верхний сужающийся ярус (пентхаус) — ритм этажности, читаемый силуэт
+        if (rnd() < 0.7) {
+          const tw = w * 0.55;
+          const th = 1.6 + rnd() * 1.4;
+          const tierGeo = new THREE.BoxGeometry(tw, th, d * 0.55);
+          const tierMat = new THREE.MeshStandardMaterial({
+            color: 0x1e293b,
+            metalness: 0.6,
+            roughness: 0.4,
+            emissive: accent,
+            emissiveIntensity: 0.35,
+          });
+          const tier = new THREE.Mesh(tierGeo, tierMat);
+          tier.position.y = h + th / 2;
+          group.add(tier);
+          // Яркая полоса-подсветка на стыке ярусов (аддитивное свечение)
+          const bandGeo = new THREE.BoxGeometry(w * 1.02, 0.08, d * 1.02);
+          const bandMat = new THREE.MeshBasicMaterial({
+            color: accent,
+            transparent: true,
+            opacity: 0.7,
+          });
+          const band = new THREE.Mesh(bandGeo, bandMat);
+          band.position.y = h + 0.04;
+          band.userData.animate = 'pulse';
+          group.add(band);
+          // Неоновая вывеска на фасаде пентхауса
+          const signGeo = new THREE.BoxGeometry(tw * 0.7, 0.18, 0.04);
+          const signMat = new THREE.MeshBasicMaterial({
+            color: 0xfef08a,
+            transparent: true,
+            opacity: 0.85,
+          });
+          const sign = new THREE.Mesh(signGeo, signMat);
+          sign.position.set(0, h + th - 0.3, d * 0.55 / 2 + 0.02);
+          sign.userData.animate = 'pulse';
+          group.add(sign);
+        }
         break;
       }
       case 'magma_citadel': {
@@ -1162,6 +1266,20 @@ export class GameEngine {
         const rock = new THREE.Mesh(rockGeo, rockMat);
         rock.position.y = 1.6;
         group.add(rock);
+        // светящаяся трещина-прожилка на скале
+        if (rnd() < 0.8) {
+          const crackGeo = new THREE.CylinderGeometry(0.05, 0.12, 1.2 + rnd() * 1.2, 5);
+          const crackMat = new THREE.MeshBasicMaterial({
+            color: 0xfb923c,
+            transparent: true,
+            opacity: 0.9,
+          });
+          const crack = new THREE.Mesh(crackGeo, crackMat);
+          crack.position.set((rnd() - 0.5) * 1.2, 1.4 + rnd() * 0.6, (rnd() - 0.5) * 1.2);
+          crack.rotation.z = (rnd() - 0.5) * 0.5;
+          crack.userData.animate = 'pulse';
+          group.add(crack);
+        }
         // лавовые колонны
         const pillarGeo = new THREE.CylinderGeometry(0.5, 0.7, 3.5, 6);
         const pillarMat = new THREE.MeshBasicMaterial({
@@ -1173,6 +1291,20 @@ export class GameEngine {
         pillar.position.y = 1.75;
         pillar.userData.animate = 'pulse';
         group.add(pillar);
+        // Базальтовая колонна-спутник (кластер «Дорога гигантов»)
+        if (rnd() < 0.6) {
+          const basGeo = new THREE.CylinderGeometry(0.4, 0.6, 2.6 + rnd() * 1.4, 6);
+          const basMat = new THREE.MeshStandardMaterial({
+            color: 0x2d1505,
+            roughness: 0.9,
+            emissive: 0x7c2d12,
+            emissiveIntensity: 0.35,
+          });
+          const bas = new THREE.Mesh(basGeo, basMat);
+          bas.position.set(1.4 + rnd() * 0.6, 1.3, (rnd() - 0.5) * 1.2);
+          bas.rotation.z = (rnd() - 0.5) * 0.2;
+          group.add(bas);
+        }
         break;
       }
       case 'crystal_cavern': {
@@ -1193,6 +1325,31 @@ export class GameEngine {
           crystal.rotation.y = rnd() * Math.PI;
           group.add(crystal);
         }
+        // Внутреннее светящееся ядро-друза (пульсирует)
+        const coreGeo = new THREE.OctahedronGeometry(0.7 + rnd() * 0.4, 0);
+        const coreMat = new THREE.MeshBasicMaterial({
+          color: 0x6ee7b7,
+          transparent: true,
+          opacity: 0.85,
+        });
+        const core = new THREE.Mesh(coreGeo, coreMat);
+        core.position.set((rnd() - 0.5) * 1.2, 1.4 + rnd() * 1.0, (rnd() - 0.5) * 1.0);
+        core.userData.animate = 'pulse';
+        group.add(core);
+        // Парящий осколок-спутник с микролевитацией (bob)
+        if (rnd() < 0.6) {
+          const shardGeo = new THREE.OctahedronGeometry(0.3 + rnd() * 0.3, 0);
+          const shardMat = new THREE.MeshBasicMaterial({
+            color: accent,
+            transparent: true,
+            opacity: 0.7,
+          });
+          const shard = new THREE.Mesh(shardGeo, shardMat);
+          shard.position.set(1.6 + rnd() * 1.0, 3.0 + rnd() * 1.5, (rnd() - 0.5) * 1.5);
+          shard.userData.animate = 'orb';
+          shard.userData.baseY = shard.position.y;
+          group.add(shard);
+        }
         break;
       }
       case 'quantum_void':
@@ -1209,6 +1366,22 @@ export class GameEngine {
         const mono = new THREE.Mesh(monoGeo, monoMat);
         mono.position.y = 2.5;
         group.add(mono);
+        // Средний сегмент (зазор) — эффект «разорванного» монолита
+        const segH = 1.2 + rnd() * 0.8;
+        const segGeo = new THREE.BoxGeometry(1.1, segH, 1.1);
+        const segMat = new THREE.MeshStandardMaterial({
+          color: monoMat.color,
+          metalness: 0.4,
+          roughness: 0.3,
+          emissive: accent,
+          emissiveIntensity: 0.5,
+        });
+        const seg = new THREE.Mesh(segGeo, segMat);
+        seg.position.y = 6.0 + rnd() * 1.0;
+        seg.rotation.y = (rnd() - 0.5) * 0.5;
+        seg.userData.animate = 'scenerySpin';
+        seg.userData.spin = 'y';
+        group.add(seg);
         // кольцо вокруг монолита
         const ringGeo = new THREE.TorusGeometry(1.3, 0.09, 6, 18);
         const ringMat = new THREE.MeshBasicMaterial({
@@ -1221,6 +1394,37 @@ export class GameEngine {
         ring.userData.animate = 'scenerySpin';
         ring.userData.spin = 'y';
         group.add(ring);
+        // второе наклонное кольцо (двойной гимбал)
+        if (rnd() < 0.7) {
+          const ring2Geo = new THREE.TorusGeometry(1.7, 0.06, 6, 18);
+          const ring2Mat = new THREE.MeshBasicMaterial({
+            color: accent,
+            transparent: true,
+            opacity: 0.4,
+          });
+          const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
+          ring2.position.y = 3.5;
+          ring2.rotation.x = Math.PI / 2;
+          ring2.userData.animate = 'scenerySpin';
+          ring2.userData.spin = 'x';
+          group.add(ring2);
+        }
+        // орбитальные спутники-осколки вокруг монолита
+        if (rnd() < 0.7) {
+          const satGeo = new THREE.IcosahedronGeometry(0.22, 0);
+          const satMat = new THREE.MeshBasicMaterial({ color: accent });
+          for (let s = 0; s < 3; s++) {
+            const sat = new THREE.Mesh(satGeo, satMat);
+            const ang = (s / 3) * Math.PI * 2 + rnd() * 0.5;
+            sat.position.set(Math.cos(ang) * 2.1, 2.5 + Math.sin(ang * 2) * 0.6, Math.sin(ang) * 2.1);
+            sat.userData.animate = 'orbital';
+            sat.userData.baseX = sat.position.x;
+            sat.userData.baseY = sat.position.y;
+            sat.userData.baseZ = sat.position.z;
+            sat.userData.angle = ang;
+            group.add(sat);
+          }
+        }
         break;
       }
       default:
@@ -1585,10 +1789,16 @@ export class GameEngine {
       this.crowd.leaderZ + GameEngine.CAMERA_LOOKAT_LEAD
     );
 
-    // Animate floating energy orbs (bob + gentle spin) — zero-alloc scan of decor group
+    // Animate floating energy orbs (bob + gentle spin), rings, biome scenery
+    // (scenerySpin), pulse columns, pylon light-wave and monolith orbitals.
+    // Итерируем ПЛОСКИЙ список decorAnimated (собран рекурсивно при постройке),
+    // а не decorGroup.children — иначе вложенные меши внутри биомных групп
+    // (антенны в башнях, кольца монолитов) не анимировались бы. 0-GC в кадре.
     if (this.decorGroup) {
       const t = performance.now() * 0.001;
-      for (const child of this.decorGroup.children) {
+      const list = this.decorAnimated;
+      for (let i = 0; i < list.length; i++) {
+        const child = list[i];
         const tag = child.userData.animate;
         if (tag === 'orb') {
           child.position.y = (child.userData.baseY ?? 2.6) + Math.sin(t * 1.5 + child.position.z) * 0.25;
@@ -1600,12 +1810,55 @@ export class GameEngine {
           else child.rotation.y += dt * 1.6;
           child.position.y = (child.userData.baseY ?? 5.5) + Math.sin(t * 1.2 + child.position.z) * 0.2;
         } else if (tag === 'scenerySpin') {
-          // Вращение фоновых объектов (кольца монолитов, антенны)
-          child.rotation.y += dt * 0.5;
+          // Вращение фоновых объектов (кольца монолитов, антенны, сегменты)
+          const axis = child.userData.spin ?? 'y';
+          if (axis === 'x') child.rotation.x += dt * 0.5;
+          else child.rotation.y += dt * 0.5;
         } else if (tag === 'pulse') {
-          // Пульсация лавовых колонн
-          const m = (child as THREE.Mesh).material as THREE.MeshBasicMaterial | undefined;
-          if (m) m.opacity = 0.3 + Math.abs(Math.sin(t * 2 + child.position.z)) * 0.4;
+          // Пульсация прозрачных мешей (лавовые колонны, кристалл-ядро, полосы).
+          // Стандартный материал — пульсируем emissiveIntensity; Basic — opacity.
+          const mat = (child as THREE.Mesh).material as THREE.MeshStandardMaterial | THREE.MeshBasicMaterial | undefined;
+          if (mat) {
+            if ((mat as THREE.MeshStandardMaterial).isMeshStandardMaterial) {
+              (mat as THREE.MeshStandardMaterial).emissiveIntensity = 0.3 + Math.abs(Math.sin(t * 2 + child.position.z)) * 0.45;
+            } else {
+              mat.opacity = 0.3 + Math.abs(Math.sin(t * 2 + child.position.z)) * 0.4;
+            }
+          }
+        } else if (tag === 'pylonWave') {
+          // Бегущая световая волна по пилонам: модуляция emissiveIntensity по Z.
+          // Волна «едет» вдоль дорожки (фаза смещается с ростом t).
+          const baseZ = child.userData.baseZ ?? child.position.z;
+          const m = (child as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
+          if (m) {
+            const wave = Math.sin(t * 4.0 - baseZ * 0.18);
+            m.emissiveIntensity = 0.35 + (wave * 0.5 + 0.5) * 0.65;
+          }
+        } else if (tag === 'orbital') {
+          // Орбитальные осколки вокруг монолита — вращение по эллипсу
+          const bx = (child.userData.baseX as number) ?? 0;
+          const by = (child.userData.baseY as number) ?? 0;
+          const bz = (child.userData.baseZ as number) ?? 0;
+          const a = (child.userData.angle as number) ?? 0;
+          const ang = a + t * 0.8;
+          child.position.set(bx + Math.cos(ang) * 2.1, by + Math.sin(ang * 2) * 0.6, bz + Math.sin(ang) * 2.1);
+        }
+      }
+    }
+
+    // Спецэффект декора: периодические «искры» с верхушек биомных объектов.
+    // 0-GC: якоря предаллоцированы в decorFxAnchors, эмиссия через ParticleSystem.
+    if (this.decorFxAnchors.length >= 3) {
+      this.decorFxAccum += dt;
+      if (this.decorFxAccum >= 0.35) {
+        this.decorFxAccum = 0;
+        const count = this.decorFxAnchors.length / 3;
+        if (count > 0) {
+          const idx = Math.floor(Math.random() * count) * 3;
+          const ax = this.decorFxAnchors[idx];
+          const ay = this.decorFxAnchors[idx + 1];
+          const az = this.decorFxAnchors[idx + 2];
+          this.particles.emitBurst(ax, ay, az, 2, 0x67e8f9, 1.6, 1.2);
         }
       }
     }
