@@ -20,6 +20,7 @@ interface HUDProps {
   progress: number; // 0..1, дистанция до финиша
   metersLeft: number; // -1 в endless
   bossProgress: number; // 0..1, -1 если на уровне нет босса
+  bossDistance: number; // метров до арены босса, -1 если на уровне нет босса
   nextHazardDistance: number; // метров до ближайшего препятствия, -1 если нет
   fps: number;
   drawCalls: number;
@@ -39,6 +40,7 @@ export const HUD: React.FC<HUDProps> = ({
   progress,
   metersLeft,
   bossProgress,
+  bossDistance,
   nextHazardDistance,
   fps,
   drawCalls,
@@ -180,6 +182,14 @@ export const HUD: React.FC<HUDProps> = ({
               <span className="text-[10px] font-orbitron text-amber-400 flex items-center gap-1 animate-pulse">
                 <TriangleAlert className="w-3 h-3" />
                 {Math.round(nextHazardDistance)} м
+              </span>
+            )}
+            {/* Счётчик приближения босса: показывается, когда босс на уровне, бой ещё не начался,
+                и до арены осталось не больше 400 м. */}
+            {!bossInfo && bossDistance >= 0 && bossDistance > 35 && bossDistance <= 400 && (
+              <span className="text-[10px] font-orbitron text-red-400 flex items-center gap-1 animate-pulse">
+                <Skull className="w-3 h-3" />
+                {i18n.t('bossApproach', 'БОСС')} {bossDistance} м
               </span>
             )}
           </div>

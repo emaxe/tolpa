@@ -20,6 +20,7 @@ export interface HudSnapshot {
   progress: number; // 0..1 дистанции до финиша
   metersLeft: number;
   bossProgress: number; // 0..1, -1 если на уровне нет босса
+  bossDistance: number; // метров до арены босса, -1 если на уровне нет босса
   nextHazardDistance: number; // метров до ближайшего живого препятствия впереди, -1 если нет
   fps: number;
   drawCalls: number;
@@ -1134,6 +1135,7 @@ export class GameEngine {
       progress: this.isEndless ? 0 : clamp(this.crowd.leaderZ / len, 0, 1),
       metersLeft: this.isEndless ? -1 : Math.max(0, Math.round(len - this.crowd.leaderZ)),
       bossProgress: bossArenaZ > 0 ? clamp(bossArenaZ / len, 0, 1) : -1,
+      bossDistance: bossArenaZ > 0 ? Math.max(0, Math.round(bossArenaZ - this.crowd.leaderZ)) : -1,
       nextHazardDistance: this.obstacles.getNextHazardDistance(this.crowd.leaderZ),
       fps: perfMonitor.getFPS(),
       drawCalls: perfMonitor.getDrawCalls(),

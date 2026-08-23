@@ -25,6 +25,7 @@ const EMPTY_SNAPSHOT: HudSnapshot = {
   progress: 0,
   metersLeft: -1,
   bossProgress: -1,
+  bossDistance: -1,
   nextHazardDistance: -1,
   fps: 60,
   drawCalls: 0,
@@ -144,6 +145,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         progress={hud.progress}
         metersLeft={hud.metersLeft}
         bossProgress={hud.bossProgress}
+        bossDistance={hud.bossDistance}
         nextHazardDistance={hud.nextHazardDistance}
         fps={hud.fps}
         drawCalls={hud.drawCalls}

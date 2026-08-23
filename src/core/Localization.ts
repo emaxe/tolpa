@@ -78,6 +78,7 @@ export const translations = {
     eventEmpStorm: 'ОПАСНОСТЬ: ЭМИ-Шторм искажает ворота!',
     eventMeteorRain: 'ТРЕВОГА: Метеоритный дождь!',
     eventSpeedBoost: 'УСКОРЕНИЕ: Гипер-драйв активирован!',
+    bossApproach: 'БОСС',
 
     // Level End Modal
     victory: 'ПОБЕДА!',
@@ -269,6 +270,7 @@ export const translations = {
     eventEmpStorm: 'HAZARD: EMP storm distorting gates!',
     eventMeteorRain: 'ALERT: Incoming meteor barrage!',
     eventSpeedBoost: 'BOOST: Hyper-drive engaged!',
+    bossApproach: 'BOSS',
 
     // Level End Modal
     victory: 'VICTORY!',
