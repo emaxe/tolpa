@@ -2,7 +2,21 @@ export type MobType = 'regular' | 'tank' | 'ninja' | 'mage';
 
 export type FormationType = 'wedge' | 'wide' | 'circle' | 'arrow' | 'oval';
 
-export type GateOp = 'add' | 'multiply' | 'subtract' | 'divide' | 'conditional' | 'mystery' | 'adrenaline';
+export type GateOp = 'add' | 'multiply' | 'subtract' | 'divide';
+
+// Бонусы — собираемые светящиеся объекты (сферы/звёзды). В отличие от ворот,
+// они не привязаны к арифметике толпы: это одноразовые подбираемые бусты.
+export type BonusType = 'add_mobs' | 'heal' | 'adrenaline' | 'coins';
+
+export interface BonusData {
+  id: string;
+  type: BonusType;
+  x: number;
+  y: number;
+  z: number;
+  value: number; // add_mobs: +N мобов; heal: +N hp всем живым; adrenaline: +N сек гипер; coins: +N монет
+  collected?: boolean;
+}
 
 export interface GateData {
   id: string;
@@ -12,17 +26,9 @@ export interface GateData {
   width: number;
   leftOp: GateOp;
   leftVal: number;
-  leftCondition?: { minMobs: number; passOp: GateOp; passVal: number; failOp: GateOp; failVal: number };
   rightOp: GateOp;
   rightVal: number;
-  rightCondition?: { minMobs: number; passOp: GateOp; passVal: number; failOp: GateOp; failVal: number };
-  isDynamic?: boolean; // Changes value or flips periodically
-  flipTimer?: number;
   passed?: boolean;
-  // Горизонтальный дрейф ворот (движение по X туда-сюда) — ворота ездят по трассе,
-  // как качели. amplitude — размах, speed — частота. Если не задан — ворота статичны.
-  driftAmplitude?: number;
-  driftSpeed?: number;
 }
 
 export type ObstacleType = 
@@ -103,6 +109,7 @@ export interface LevelConfig {
   startingMobs: number;
   targetMobsToWin: number;
   gates: GateData[];
+  bonuses: BonusData[];
   obstacles: ObstacleData[];
   coins: CoinData[];
   events: LevelDynamicEvent[];

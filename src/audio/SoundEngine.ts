@@ -230,6 +230,22 @@ export class SoundEngine {
         break;
       }
 
+      case 'heal': {
+        // Успокаивающий восходящий аккорд (лечение) — мягкий, не режет слух
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25 * pitchShift, t); // C5
+        osc.frequency.exponentialRampToValueAtTime(783.99 * pitchShift, t + 0.2); // G5
+        gain.gain.setValueAtTime(0.2, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+        osc.connect(gain);
+        gain.connect(this.sfxGain!);
+        osc.start(t);
+        osc.stop(t + 0.3);
+        break;
+      }
+
       case 'adrenaline_activate': {
         // Powerful powerup rising synth sweep
         const osc = this.ctx.createOscillator();

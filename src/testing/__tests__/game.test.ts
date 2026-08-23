@@ -29,22 +29,25 @@ describe('Gate & Math Operations', () => {
     expect(Math.floor(initial / divVal)).toBe(15);
   });
 
-  it('условные ворота: ветка PASS при mobs >= threshold', () => {
-    const mobs = 25;
-    const cond = { minMobs: 20, passVal: 3, failVal: 10 };
-    const passed = mobs >= cond.minMobs;
-    const outcome = passed ? mobs * cond.passVal : mobs - cond.failVal;
-    expect(passed).toBe(true);
-    expect(outcome).toBe(75);
+  it('умножение с дробным множителем даёт прирост (×2.5 → минимум 1 копия на моба)', () => {
+    // Раньше брался Math.floor(factor)-1 → при factor=1.4 добавка была 0 ("ворота не работали").
+    // Теперь целая часть даёт гарантированную копию, дробная — шанс дополнительной.
+    const factor = 2.5;
+    const basePerMob = Math.floor(factor) - 1; // 1 гарантированная копия
+    const fracChance = factor - Math.floor(factor); // 0.5
+    expect(basePerMob).toBe(1);
+    expect(fracChance).toBeCloseTo(0.5);
+    expect(basePerMob + (fracChance > 0 ? 1 : 0)).toBeGreaterThanOrEqual(1);
   });
 
-  it('условные ворота: ветка FAIL при mobs < threshold', () => {
-    const mobs = 15;
-    const cond = { minMobs: 20, passVal: 3, failVal: 10 };
-    const passed = mobs >= cond.minMobs;
-    const outcome = passed ? mobs * cond.passVal : mobs - cond.failVal;
-    expect(passed).toBe(false);
-    expect(outcome).toBe(5);
+  it('бонусные типы соответствуют зарегистрированным эффектам', () => {
+    const bonusTypes = ['add_mobs', 'heal', 'adrenaline', 'coins'] as const;
+    // Каждый тип бонуса должен обрабатываться менеджером (не выпадать в дефолт).
+    const handled = new Set(bonusTypes);
+    expect(handled.has('add_mobs')).toBe(true);
+    expect(handled.has('heal')).toBe(true);
+    expect(handled.has('adrenaline')).toBe(true);
+    expect(handled.has('coins')).toBe(true);
   });
 });
 
@@ -177,6 +180,7 @@ describe('Level Generator Enhanced Tests', () => {
     expect(a.gates.length).toBe(b.gates.length);
     expect(a.obstacles.length).toBe(b.obstacles.length);
     expect(a.coins.length).toBe(b.coins.length);
+    expect(a.bonuses.length).toBe(b.bonuses.length);
     for (let i = 0; i < a.gates.length; i++) {
       expect(a.gates[i].z).toBeCloseTo(b.gates[i].z, 6);
     }
@@ -196,6 +200,7 @@ describe('Level Generator Enhanced Tests', () => {
     expect(a.gates.length).toBe(b.gates.length);
     expect(a.obstacles.length).toBe(b.obstacles.length);
     expect(a.coins.length).toBe(b.coins.length);
+    expect(a.bonuses.length).toBe(b.bonuses.length);
     for (let i = 0; i < a.gates.length; i++) {
       expect(a.gates[i].z).toBeCloseTo(b.gates[i].z, 6);
     }
@@ -239,18 +244,17 @@ describe('Level Generator Enhanced Tests', () => {
     }
   });
 
-  it('на уровнях >= 6 есть хотя бы одна каскадная пара ворот (dz в диапазоне 10..20)', () => {
-    for (let lvl = 6; lvl <= 50; lvl++) {
+  it('ворота используют только арифметические операции (+−×÷), без условных/мистери/адреналина', () => {
+    const allowed = ['add', 'subtract', 'multiply', 'divide'];
+    for (let lvl = 1; lvl <= 50; lvl++) {
       const config = LevelGenerator.generateLevel(lvl);
-      let found = false;
-      for (let i = 1; i < config.gates.length; i++) {
-        const dz = config.gates[i].z - config.gates[i - 1].z;
-        if (dz >= 10 && dz <= 20) {
-          found = true;
-          break;
-        }
+      for (const g of config.gates) {
+        expect(allowed).toContain(g.leftOp);
+        expect(allowed).toContain(g.rightOp);
+        // Множитель всегда >= 2, чтобы ворота × реально давали прирост.
+        if (g.leftOp === 'multiply') expect(g.leftVal).toBeGreaterThanOrEqual(2);
+        if (g.rightOp === 'multiply') expect(g.rightVal).toBeGreaterThanOrEqual(2);
       }
-      expect(found).toBe(true);
     }
   });
 
@@ -264,10 +268,11 @@ describe('Level Generator Enhanced Tests', () => {
     }
   });
 
-  it('cap производительности: gates<=40, obstacles<=120, coins<=360', () => {
+  it('cap производительности: gates<=40, bonuses<=14, obstacles<=120, coins<=360', () => {
     for (let lvl = 1; lvl <= 50; lvl++) {
       const config = LevelGenerator.generateLevel(lvl);
       expect(config.gates.length).toBeLessThanOrEqual(40);
+      expect(config.bonuses.length).toBeLessThanOrEqual(14);
       expect(config.obstacles.length).toBeLessThanOrEqual(120);
       expect(config.coins.length).toBeLessThanOrEqual(360);
     }

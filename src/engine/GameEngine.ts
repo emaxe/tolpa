@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { BiomeType, FormationType, LevelConfig, LevelDynamicEvent, CoinData } from '../types/game';
 import { CrowdManager } from './CrowdManager';
 import { GateManager } from './GateManager';
+import { BonusManager } from './BonusManager';
 import { ObstacleManager } from './ObstacleManager';
 import { BossManager } from './BossManager';
 import { FinishLineManager } from './FinishLineManager';
@@ -45,6 +46,7 @@ export class GameEngine {
   public crowd: CrowdManager;
   public gates: GateManager;
   public obstacles: ObstacleManager;
+  public bonus: BonusManager;
   public boss: BossManager;
   public finishLine: FinishLineManager;
   public particles: ParticleSystem;
@@ -198,6 +200,7 @@ export class GameEngine {
     // меньше нагрузка на CPU/GPU и проще балансировать бонусы/препятствия.
     this.crowd = new CrowdManager(this.scene, 200);
     this.gates = new GateManager(this.scene);
+    this.bonus = new BonusManager(this.scene);
     this.obstacles = new ObstacleManager(this.scene);
     this.boss = new BossManager(this.scene);
     this.finishLine = new FinishLineManager(this.scene);
@@ -482,6 +485,7 @@ export class GameEngine {
     // Reset sub-systems
     this.crowd.reset(levelConfig.startingMobs, 0, levelConfig.trackWidth);
     this.gates.initGates(levelConfig.gates);
+    this.bonus.initBonuses(levelConfig.bonuses);
     this.obstacles.initObstacles(levelConfig.obstacles, levelConfig.coins);
 
     if (levelConfig.boss) {
@@ -533,6 +537,7 @@ export class GameEngine {
 
     const seg = LevelGenerator.generateEndlessSegment(0, 0);
     this.gates.initGates(seg.gates);
+    this.bonus.initBonuses(seg.bonuses);
     this.obstacles.initObstacles(seg.obstacles, seg.coins);
     this.currentEndlessZ += seg.length;
 
@@ -1400,6 +1405,7 @@ export class GameEngine {
 
     // Update Sub-systems
     this.gates.update(dt, this.crowd, this.particles);
+    this.bonus.update(dt, this.crowd, this.particles);
     this.obstacles.update(dt, this.crowd, this.particles);
     this.boss.update(dt, this.crowd, this.particles);
     this.particles.update(dt);
@@ -1597,6 +1603,7 @@ export class GameEngine {
       this.endlessSegmentIndex++;
       const seg = LevelGenerator.generateEndlessSegment(this.endlessSegmentIndex, this.currentEndlessZ);
       this.gates.appendGates(seg.gates);
+      this.bonus.appendBonuses(seg.bonuses);
       this.obstacles.appendObstacles(seg.obstacles, seg.coins);
       this.currentEndlessZ += seg.length;
     }

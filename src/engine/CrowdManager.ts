@@ -177,6 +177,19 @@ export class CrowdManager {
     eventBus.emit('adrenalineTriggered', { duration: totalDuration });
   }
 
+  /** Лечит всех живых мобов на `amount` HP (не выше их максимума). Возвращает число вылеченных. */
+  public healAll(amount: number): number {
+    let healed = 0;
+    for (const mob of this.mobs) {
+      if (!mob.alive) continue;
+      if (mob.hp >= mob.maxHp) continue;
+      mob.hp = Math.min(mob.maxHp, mob.hp + amount);
+      healed++;
+    }
+    if (healed > 0) soundEngine.playSound('heal');
+    return healed;
+  }
+
   public spawnMob(preferredType?: MobType, spawnX?: number, spawnZ?: number): MobInstance | null {
     const upgrades = stateManager.getState().upgrades;
     let mobType: MobType = preferredType || 'regular';
@@ -408,15 +421,25 @@ export class CrowdManager {
     return spawned;
   }
 
-  /** Умножает ТОЛЬКО группу створки: для каждого её моба спавнит (factor-1) копий рядом. */
+  /** Умножает ТОЛЬКО группу створки: для каждого её моба спавнит (factor-1) копий рядом.
+   *  Исправлено: раньше брался Math.floor(factor)-1, что давало 0 новых мобов при factor < 2
+   *  (multVal падал до 1.4 на высоких уровнях) — ворота "не срабатывали". Теперь дробная
+   *  часть factor накапливается как шанс дополнительного спавна, чтобы результат был близок
+   *  к умножению, даже если factor не целый. */
   public multiplyGroup(group: MobInstance[], factor: number, x: number, z: number): number {
     if (factor <= 1) return 0;
-    const perMob = Math.floor(factor) - 1;
-    if (perMob <= 0) return 0;
+    // Целая часть — гарантированные копии на каждого моба, дробная — шанс ещё одной.
+    const basePerMob = Math.floor(factor) - 1; // копий сверх оригинала на каждого
+    const fracChance = factor - Math.floor(factor); // дробная часть [0,1)
+    if (basePerMob < 0 && fracChance === 0) return 0;
     let added = 0;
-    for (const m of group) {
-      if (!m.alive) continue;
-      const n = this.addMobsNear(perMob, m.x, z);
+    const alive = group.filter((m) => m.alive);
+    for (const m of alive) {
+      let extra = Math.max(0, basePerMob);
+      // Дробная часть: с шансом fracChance добавляем ещё одного (например ×1.5 → 50% шанс +1).
+      if (Math.random() < fracChance) extra += 1;
+      if (extra <= 0) continue;
+      const n = this.addMobsNear(extra, m.x, z);
       added += n;
       if (this.getAliveCount() >= this.maxCapacity) break;
     }

@@ -19,8 +19,6 @@ interface GateVisual {
   // Мобы, которые уже прошли через эти ворота — чтобы каждый человечек обрабатывался
   // воротами независимо (по своей реальной позиции), а не по лидеру толпы.
   processedMobs: Set<number>;
-  // Счётчик для горизонтального дрейфа ворот (движение по X туда-сюда).
-  driftTimer: number;
 }
 
 export class GateManager {
@@ -111,7 +109,7 @@ export class GateManager {
 
     this.scene.add(group);
 
-    return { data: gate, group, leftMesh, rightMesh, leftMat, rightMat, leftTexture, rightTexture, processedMobs: new Set<number>(), driftTimer: 0 };
+    return { data: gate, group, leftMesh, rightMesh, leftMat, rightMat, leftTexture, rightTexture, processedMobs: new Set<number>() };
   }
 
   public initGates(gatesData: GateData[]): void {
@@ -136,30 +134,10 @@ export class GateManager {
       const gate = gateVisual.data;
       if (gate.passed) return;
 
-      // Горизонтальный дрейф ворот: группа ездит по X как качели (sin-осцилляция).
-      // Позиции створок для группировки мобов берём с учётом текущего смещения,
-      // чтобы мобы правильно распределялись по фактически видимым створкам.
-      let drift = 0;
-      if (gate.driftAmplitude && gate.driftSpeed) {
-        gateVisual.driftTimer += dt * gate.driftSpeed;
-        drift = Math.sin(gateVisual.driftTimer) * gate.driftAmplitude;
-        gateVisual.group.position.x = drift;
-      }
-      const effLeft = gate.xLeft + drift;
-      const effRight = gate.xRight + drift;
-
-      // Check dynamic flipping gate
-      if (gate.isDynamic) {
-        gate.flipTimer = (gate.flipTimer || 0) + dt;
-        gateVisual.leftMesh.position.y = 1.9 + Math.sin(gate.flipTimer * 3) * 0.15;
-        gateVisual.rightMesh.position.y = 1.9 + Math.cos(gate.flipTimer * 3) * 0.15;
-      }
-
       // Каждый человечек обрабатывается воротами НЕЗАВИСИМО — по своей реальной позиции,
       // а не по лидеру толпы. Ворота срабатывают один раз, когда через них проходит
-      // первый моб. Мобы группируются по створке, к которой они ближе по X (с учётом
-      // дрейфа), и КАЖДАЯ створка применяет свою операцию ТОЛЬКО к своим мобам
-      // (изоляция по створкам): левая створка не трогает тех, кто прошёл правую.
+      // первый моб. Мобы группируются по створке, к которой они ближе по X, и КАЖДАЯ
+      // створка применяет свою операцию ТОЛЬКО к своим мобам (изоляция по створкам).
       const aliveMobs = crowd.getAliveMobs();
       const leftWing: MobInstance[] = [];
       const rightWing: MobInstance[] = [];
@@ -169,7 +147,7 @@ export class GateManager {
         if (mob.z < gate.z - 0.5) continue;
         gateVisual.processedMobs.add(mob.id);
         anyProcessed = true;
-        if (Math.abs(mob.x - effLeft) < Math.abs(mob.x - effRight)) leftWing.push(mob);
+        if (Math.abs(mob.x - gate.xLeft) < Math.abs(mob.x - gate.xRight)) leftWing.push(mob);
         else rightWing.push(mob);
       }
 
@@ -178,14 +156,14 @@ export class GateManager {
         // Обрабатываем каждую створку, через которую реально прошли мобы, ИЗОЛИРОВАННО.
         if (leftWing.length > 0) {
           this.executeGateEffect(
-            gate.leftOp, gate.leftVal, gate.leftCondition,
-            crowd, hasMages, particles, effLeft, gate.z, leftWing
+            gate.leftOp, gate.leftVal,
+            crowd, hasMages, particles, gate.xLeft, gate.z, leftWing
           );
         }
         if (rightWing.length > 0) {
           this.executeGateEffect(
-            gate.rightOp, gate.rightVal, gate.rightCondition,
-            crowd, hasMages, particles, effRight, gate.z, rightWing
+            gate.rightOp, gate.rightVal,
+            crowd, hasMages, particles, gate.xRight, gate.z, rightWing
           );
         }
 
@@ -198,9 +176,8 @@ export class GateManager {
   }
 
   private executeGateEffect(
-    op: string,
+    op: GateOp,
     val: number,
-    condition: any,
     crowd: CrowdManager,
     hasMages: boolean,
     particles: ParticleSystem,
@@ -214,7 +191,6 @@ export class GateManager {
 
     // Все операции применяются ИЗОЛИРОВАННО к группе `wing` — мобам, реально прошедшим
     // через эту створку. Остальная толпа (другая створка) не затрагивается.
-
     if (op === 'add') {
       netChange = crowd.addMobsNear(val, gateX, gateZ);
       if (netChange > 0) soundEngine.playSound('gate_pass_positive');
@@ -250,44 +226,6 @@ export class GateManager {
         particles.emitBurst(gateX, 1.5, gateZ, 20, 0xef4444, 4.0);
         eventBus.emit('screenShake', { intensity: 0.3 });
       }
-    } else if (op === 'conditional' && condition) {
-      if (wingCount >= condition.minMobs) {
-        netChange = condition.passOp === 'multiply'
-          ? crowd.multiplyGroup(wing, condition.passVal, gateX, gateZ)
-          : crowd.addMobsNear(condition.passVal, gateX, gateZ);
-        soundEngine.playSound('gate_pass_multiplier');
-        particles.emitBurst(gateX, 1.5, gateZ, 40, 0x00f0ff, 6.0);
-        isPositive = true;
-      } else {
-        if (condition.failOp === 'divide') {
-          netChange = -crowd.divideMobsGroup(wing, condition.failVal);
-        } else {
-          netChange = -crowd.killMobsFromGroup(wing, condition.failVal, 'gate');
-        }
-        soundEngine.playSound('gate_pass_negative');
-        particles.emitBurst(gateX, 1.5, gateZ, 20, 0xef4444, 4.0);
-        eventBus.emit('screenShake', { intensity: 0.3 });
-      }
-    } else if (op === 'mystery') {
-      // Mystery box: 60% бонус, 40% штраф. Штраф не может убить всю толпу:
-      // максимум 30% от группы, прошедшей через эту створку.
-      if (Math.random() < 0.6) {
-        const bonus = Math.random() < 0.3 ? 18 : 8;
-        netChange = crowd.addMobsNear(bonus, gateX, gateZ);
-        soundEngine.playSound('gate_pass_multiplier');
-        particles.emitBurst(gateX, 1.5, gateZ, 35, 0xf59e0b, 5.5);
-        isPositive = true;
-      } else {
-        const penalty = Math.max(1, Math.floor(wingCount * 0.3));
-        netChange = -crowd.killMobsFromGroup(wing, penalty, 'gate');
-        soundEngine.playSound('gate_pass_negative');
-        particles.emitBurst(gateX, 1.5, gateZ, 20, 0xef4444, 4.0);
-        eventBus.emit('screenShake', { intensity: 0.3 });
-      }
-    } else if (op === 'adrenaline') {
-      crowd.activateHyperMode(6.0);
-      particles.emitBurst(gateX, 1.5, gateZ, 45, 0xfacc15, 7.0);
-      isPositive = true;
     }
 
     // Handle combo streak

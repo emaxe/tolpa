@@ -8,6 +8,7 @@ export type SoundEffect =
   | 'mob_fall'
   | 'coin_pickup'
   | 'gem_pickup'
+  | 'heal'
   | 'obstacle_hit'
   | 'obstacle_smash'
   | 'adrenaline_activate'

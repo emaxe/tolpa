@@ -2,6 +2,8 @@ import {
   BiomeType,
   LevelConfig,
   GateData,
+  BonusData,
+  BonusType,
   ObstacleData,
   CoinData,
   LevelDynamicEvent,
@@ -68,216 +70,74 @@ export class LevelGenerator {
     const rawGates: GateData[] = [];
     const rawObstacles: ObstacleData[] = [];
     const coins: CoinData[] = [];
+    const bonuses: BonusData[] = [];
     const events: LevelDynamicEvent[] = [];
 
     const startingMobs = 8;
     const targetMobsToWin = Math.min(100, 8 + Math.floor(levelNum * 1.8));
 
     // -------------------------------------------------------------
-    // ЭТАП 3: ТАКТИЧЕСКИЕ ВОРОТА И КАСКАДНЫЕ ПАРЫ
+    // ЭТАП 3: ТАКТИЧЕСКИЕ ВОРОТА (только арифметика +−×÷, без условных/мистери/адреналина)
     // -------------------------------------------------------------
     const gateCount = Math.min(40, 16 + Math.floor(levelNum / 2));
     const baseGateSpacing = (trackLength - 120) / Math.max(1, gateCount);
 
-    // Определяем индексы для каскадных пар (начиная с уровня 6)
-    const cascadeIndices = new Set<number>();
-    if (levelNum >= 6) {
-      cascadeIndices.add(3); // Каскадная пара в ramp-фазе (ворота 3 -> 4)
-      if (levelNum >= 20) {
-        cascadeIndices.add(Math.min(gateCount - 4, 7)); // Вторая пара в peak-фазе
-      }
-      if (levelNum >= 40) {
-        cascadeIndices.add(Math.min(gateCount - 2, 12)); // Третья пара в corridor-фазе
-      }
-    }
-
     let currentGateZ = 32;
     for (let g = 0; g < gateCount; g++) {
-      let z: number;
-      const isCascadeChild = cascadeIndices.has(g - 1);
-
-      if (g === 0) {
-        z = 32 + rng() * 2;
-      } else if (isCascadeChild) {
-        // Каскадные ворота B: идут через ~14м после ворот A (10 <= dz <= 20)
-        z = currentGateZ + 14.0;
-      } else {
-        z = currentGateZ + baseGateSpacing + (rng() * 4 - 2);
-      }
+      const z = g === 0
+        ? 32 + rng() * 2
+        : currentGateZ + baseGateSpacing + (rng() * 4 - 2);
       currentGateZ = z;
 
       const gateId = `gate_${levelNum}_${g}`;
       const phase = this.getPhaseInfo(z, trackLength);
-      const multVal = Math.max(1.4, 2.2 - levelNum * 0.02);
+      // Множитель >= 2, чтобы multiply всегда давал прирост (дробная часть даёт шанс на
+      // дополнительного моба). Падал до 1.4 раньше — ворота "не срабатывали".
+      const multVal = Math.max(2.0, 2.4 - levelNum * 0.015);
       const subVal = Math.max(3, 5 + Math.floor(rng() * 8) - Math.floor(levelNum * 0.15));
       const addVal = 6 + Math.floor(rng() * 8) + Math.floor(levelNum * 0.12);
-
-      const conditionalData = {
-        minMobs: 8 + Math.floor(g * 2 + levelNum * 0.4),
-        passOp: 'multiply' as GateOp,
-        passVal: 2.5,
-        failOp: 'subtract' as GateOp,
-        failVal: 8,
-      };
 
       let leftOp: GateOp = 'add';
       let leftVal = addVal;
       let rightOp: GateOp = 'multiply';
       let rightVal = multVal;
-      let leftCondition = undefined;
-      let rightCondition = undefined;
 
-      // Обучающий каскад и ранжирование по фазам
-      if (g === 0) {
-        // 1-е ворота: всегда безопасны (add + multiply)
+      if (g === 0 || g === 1) {
+        // Обучающие ворота: безопасная пара (add + multiply)
         leftOp = 'add';
         leftVal = 8 + Math.floor(rng() * 8);
         rightOp = 'multiply';
         rightVal = multVal;
-      } else if (g === 1) {
-        // 2-е ворота: мягкая проверка
-        leftOp = 'add';
-        leftVal = 10 + Math.floor(rng() * 6);
-        rightOp = 'multiply';
-        rightVal = multVal;
-      } else if (g === 2) {
-        // 3-е ворота: первый обучающий conditional
-        leftOp = 'add';
-        leftVal = addVal;
-        rightOp = 'conditional';
-        rightVal = 0;
-        rightCondition = {
-          minMobs: 10 + Math.floor(levelNum * 0.3),
-          passOp: 'multiply' as GateOp,
-          passVal: 2.2,
-          failOp: 'subtract' as GateOp,
-          failVal: 6,
-        };
-      } else if (isCascadeChild) {
-        // Замыкание цикла каскадной пары бонусом
-        leftOp = 'conditional';
-        leftVal = 0;
-        leftCondition = conditionalData;
-        rightOp = 'add';
-        rightVal = addVal + 4;
       } else {
-        // Фазовое распределение операций
+        // Фазовое распределение только арифметических операций
         const rand = rng();
-        if (phase.phaseName === 'warmup') {
-          if (rand < 0.5) {
-            leftOp = 'add';
-            leftVal = addVal + 2;
-            rightOp = 'multiply';
-            rightVal = multVal;
-          } else {
-            leftOp = 'multiply';
-            leftVal = multVal;
-            rightOp = 'add';
-            rightVal = addVal;
-          }
-        } else if (phase.phaseName === 'ramp') {
-          if (rand < 0.25) {
-            leftOp = 'add';
-            leftVal = addVal;
-            rightOp = 'multiply';
-            rightVal = multVal;
-          } else if (rand < 0.55) {
-            leftOp = 'multiply';
-            leftVal = multVal;
-            rightOp = 'subtract';
-            rightVal = subVal;
-          } else if (rand < 0.80) {
-            leftOp = 'conditional';
-            leftVal = 0;
-            leftCondition = conditionalData;
-            rightOp = 'subtract';
-            rightVal = subVal;
-          } else {
-            leftOp = 'divide';
-            leftVal = 2;
-            rightOp = 'add';
-            rightVal = addVal;
-          }
-        } else if (phase.phaseName === 'peak') {
-          if (rand < 0.35) {
-            leftOp = 'conditional';
-            leftVal = 0;
-            leftCondition = conditionalData;
-            rightOp = 'subtract';
-            rightVal = subVal;
-          } else if (rand < 0.60) {
-            leftOp = 'mystery';
-            leftVal = 0;
-            rightOp = 'multiply';
-            rightVal = multVal;
-          } else if (rand < 0.80) {
-            leftOp = 'adrenaline';
-            leftVal = 0;
-            rightOp = 'subtract';
-            rightVal = subVal;
-          } else if (rand < 0.90) {
-            leftOp = 'divide';
-            leftVal = 2;
-            rightOp = 'multiply';
-            rightVal = multVal;
-          } else {
-            leftOp = 'multiply';
-            leftVal = multVal;
-            rightOp = 'conditional';
-            rightVal = 0;
-            rightCondition = conditionalData;
-          }
-        } else if (phase.phaseName === 'corridor') {
-          if (rand < 0.35) {
-            leftOp = 'multiply';
-            leftVal = multVal;
-            rightOp = 'add';
-            rightVal = addVal + 6;
-          } else if (rand < 0.70) {
-            leftOp = 'add';
-            leftVal = addVal + 8;
-            rightOp = 'conditional';
-            rightVal = 0;
-            rightCondition = conditionalData;
-          } else {
-            leftOp = 'adrenaline';
-            leftVal = 0;
-            rightOp = 'add';
-            rightVal = addVal + 4;
-          }
-        } else {
-          // climax phase
-          if (rand < 0.30) {
-            leftOp = 'adrenaline';
-            leftVal = 0;
-            rightOp = 'conditional';
-            rightVal = 0;
-            rightCondition = conditionalData;
-          } else if (rand < 0.60) {
-            leftOp = 'conditional';
-            leftVal = 0;
-            leftCondition = conditionalData;
-            rightOp = 'subtract';
-            rightVal = subVal;
-          } else if (rand < 0.80) {
-            leftOp = 'mystery';
-            leftVal = 0;
-            rightOp = 'multiply';
-            rightVal = multVal;
-          } else {
-            leftOp = 'divide';
-            leftVal = 2;
-            rightOp = 'subtract';
-            rightVal = subVal;
-          }
-        }
+        const opPair = (): [GateOp, number, GateOp, number] => {
+          const table: [GateOp, number, GateOp, number][] = [
+            ['add', addVal, 'multiply', multVal],
+            ['multiply', multVal, 'add', addVal],
+            ['add', addVal, 'subtract', subVal],
+            ['subtract', subVal, 'add', addVal],
+            ['multiply', multVal, 'subtract', subVal],
+            ['subtract', subVal, 'multiply', multVal],
+            ['divide', 2, 'add', addVal],
+            ['add', addVal, 'divide', 2],
+            ['multiply', multVal, 'divide', 2],
+            ['divide', 2, 'multiply', multVal],
+          ];
+          const idx = Math.floor(rand * table.length) % table.length;
+          return table[idx];
+        };
+        const [lo, lv, ro, rv] = opPair();
+        leftOp = lo;
+        leftVal = lv;
+        rightOp = ro;
+        rightVal = rv;
       }
 
-      // Гарантия выбора створки: на уровнях >= 6 для ворот > 2 створки никогда не дублируются
-      if (levelNum >= 6 && g > 2 && leftOp === rightOp) {
+      // Гарантия выбора створки: створки не дублируются
+      if (leftOp === rightOp) {
         rightOp = leftOp === 'multiply' ? 'add' : 'multiply';
         rightVal = rightOp === 'multiply' ? multVal : addVal;
-        rightCondition = undefined;
       }
 
       rawGates.push({
@@ -288,15 +148,8 @@ export class LevelGenerator {
         width: trackWidth / 2 - 0.4,
         leftOp,
         leftVal,
-        leftCondition,
         rightOp,
         rightVal,
-        rightCondition,
-        isDynamic: g > 0 && levelNum > 5 && rng() < 0.5,
-        flipTimer: 0,
-        driftAmplitude:
-          g > 0 && levelNum > 3 && rng() < 0.6 ? Math.min(2.6, 1.0 + levelNum * 0.06) : undefined,
-        driftSpeed: g > 0 && levelNum > 3 && rng() < 0.6 ? 0.9 + rng() * 0.9 : undefined,
       });
     }
 
@@ -512,6 +365,45 @@ export class LevelGenerator {
     const gates = rawGates;
 
     // -------------------------------------------------------------
+    // ЭТАП 3.5: БОНУСЫ (собираемые светящиеся сферы) — в safe corridors, мимо ворот и препятствий
+    // -------------------------------------------------------------
+    const bonusCount = Math.min(14, 4 + Math.floor(levelNum / 4));
+    for (let b = 0; b < bonusCount; b++) {
+      const z = 60 + b * ((trackLength - 120) / Math.max(1, bonusCount)) + (rng() * 6 - 3);
+      const x = (rng() * 2 - 1) * (trackWidth / 2 - 2.2);
+      // Не ставить бонус вплотную к воротам (чтоб не путать с створками) и к препятствиям.
+      const nearGate = gates.some((g) => Math.abs(g.z - z) < GATE_CLEARANCE);
+      const nearObs = obstacles.some((o) => Math.abs(o.z - z) < 4);
+      if (nearGate || nearObs) continue;
+
+      const roll = rng();
+      let type: BonusType;
+      let value: number;
+      if (roll < 0.40) {
+        type = 'add_mobs';
+        value = 6 + Math.floor(rng() * 6) + Math.floor(levelNum * 0.15);
+      } else if (roll < 0.62) {
+        type = 'heal';
+        value = 2 + Math.floor(levelNum * 0.06); // +N hp всем живым
+      } else if (roll < 0.80) {
+        type = 'adrenaline';
+        value = 4 + Math.floor(levelNum * 0.04); // сек гипер-режима
+      } else {
+        type = 'coins';
+        value = 25 + Math.floor(rng() * 25) + levelNum * 2;
+      }
+
+      bonuses.push({
+        id: `bonus_${levelNum}_${b}`,
+        type,
+        x,
+        y: 1.0,
+        z,
+        value,
+      });
+    }
+
+    // -------------------------------------------------------------
     // ЭТАП 4: БОНУСЫ И МОНЕТЫ В SAFE CORRIDORS С ОБХОДОМ ХИТБОКСОВ
     // -------------------------------------------------------------
     const coinClusters = Math.min(90, Math.floor(trackLength / 40));
@@ -597,6 +489,7 @@ export class LevelGenerator {
       startingMobs,
       targetMobsToWin,
       gates,
+      bonuses,
       obstacles,
       coins,
       events,
@@ -884,6 +777,7 @@ export class LevelGenerator {
     currentZ: number
   ): {
     gates: GateData[];
+    bonuses: BonusData[];
     obstacles: ObstacleData[];
     coins: CoinData[];
     length: number;
@@ -892,13 +786,14 @@ export class LevelGenerator {
     const rawGates: GateData[] = [];
     const rawObstacles: ObstacleData[] = [];
     const coins: CoinData[] = [];
+    const bonuses: BonusData[] = [];
     const trackWidth = DEFAULT_TRACK_WIDTH;
     const playableHalf = trackWidth / 2 - TRACK_RAIL_MARGIN;
 
     // Детерминированный PRNG для бесконечного режима
     const rng = createRng(segmentIndex * 7919 + 9973);
 
-    // 2-3 Ворот в сегменте
+    // 2-3 Ворот в сегменте (только арифметика +−×÷)
     const gateCount = 2 + (rng() < 0.5 ? 1 : 0);
     const gateSpacing = (length - 40) / Math.max(1, gateCount);
     for (let i = 0; i < gateCount; i++) {
@@ -912,30 +807,22 @@ export class LevelGenerator {
       const randR = rng();
       if (randR < 0.35) {
         rightOp = leftOp === 'add' ? 'multiply' : 'add';
-        rightVal = rightOp === 'multiply' ? 1.8 : 12;
+        rightVal = rightOp === 'multiply' ? 2.0 : 12;
       } else if (randR < 0.65) {
         rightOp = 'subtract';
         rightVal = 5 + Math.floor(rng() * 6);
-      } else if (randR < 0.85) {
-        rightOp = 'conditional';
-        rightVal = 0;
+      } else if (randR < 0.82) {
+        rightOp = 'divide';
+        rightVal = 2;
       } else {
-        rightOp = 'adrenaline';
-        rightVal = 0;
+        rightOp = 'multiply';
+        rightVal = 2.0;
       }
 
       if (rightOp === leftOp) {
         rightOp = leftOp === 'add' ? 'multiply' : 'add';
         rightVal = rightOp === 'multiply' ? 2.0 : 8;
       }
-
-      const conditionalData = {
-        minMobs: 12 + Math.floor(rng() * 8),
-        passOp: 'multiply' as GateOp,
-        passVal: 2.2,
-        failOp: 'subtract' as GateOp,
-        failVal: 6,
-      };
 
       rawGates.push({
         id: `endless_gate_${segmentIndex}_${i}`,
@@ -945,14 +832,8 @@ export class LevelGenerator {
         width: trackWidth / 2 - 0.4,
         leftOp,
         leftVal,
-        leftCondition: undefined,
         rightOp,
         rightVal,
-        rightCondition: rightOp === 'conditional' ? conditionalData : undefined,
-        isDynamic: rng() < 0.25,
-        flipTimer: 0,
-        driftAmplitude: rng() < 0.35 ? Math.min(2.0, 1.0 + rng() * 1.0) : undefined,
-        driftSpeed: rng() < 0.35 ? 0.8 + rng() * 0.8 : undefined,
       });
     }
 
@@ -1046,6 +927,41 @@ export class LevelGenerator {
       });
     }
 
-    return { gates, obstacles, coins, length };
+    // Бонусы (светящиеся сферы) — 1-2 на сегмент, мимо ворот и препятствий
+    const bonusCount = 1 + (rng() < 0.5 ? 1 : 0);
+    for (let b = 0; b < bonusCount; b++) {
+      const z = currentZ + 14 + b * (length / Math.max(1, bonusCount + 1));
+      const nearGate = gates.some((g) => Math.abs(g.z - z) < GATE_CLEARANCE);
+      const nearObs = obstacles.some((o) => Math.abs(o.z - z) < 4);
+      if (nearGate || nearObs) continue;
+
+      const roll = rng();
+      let type: BonusType;
+      let value: number;
+      if (roll < 0.40) {
+        type = 'add_mobs';
+        value = 8 + Math.floor(rng() * 5);
+      } else if (roll < 0.62) {
+        type = 'heal';
+        value = 3;
+      } else if (roll < 0.80) {
+        type = 'adrenaline';
+        value = 4;
+      } else {
+        type = 'coins';
+        value = 30 + Math.floor(rng() * 30);
+      }
+
+      bonuses.push({
+        id: `endless_bonus_${segmentIndex}_${b}`,
+        type,
+        x: (rng() * 2 - 1) * (trackWidth / 2 - 2.2),
+        y: 1.0,
+        z,
+        value,
+      });
+    }
+
+    return { gates, bonuses, obstacles, coins, length };
   }
 }

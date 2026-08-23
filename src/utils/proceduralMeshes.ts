@@ -14,9 +14,8 @@ export function createGateTexture(
 
   const op = side === 'left' ? gate.leftOp : gate.rightOp;
   const val = side === 'left' ? gate.leftVal : gate.rightVal;
-  const condition = side === 'left' ? gate.leftCondition : gate.rightCondition;
 
-  const isPositive = op === 'add' || op === 'multiply' || op === 'adrenaline' || (op === 'conditional');
+  const isPositive = op === 'add' || op === 'multiply';
   const isDanger = op === 'subtract' || op === 'divide';
 
   // Base background gradient
@@ -56,46 +55,19 @@ export function createGateTexture(
   ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
   ctx.shadowBlur = 12;
 
-  if (op === 'conditional' && condition) {
-    // Conditional gate: "IF > N" -> "+X / -Y"
-    ctx.fillStyle = '#fef08a';
-    ctx.font = 'bold 52px Orbitron, sans-serif';
-    ctx.fillText(`ЕСЛИ > ${condition.minMobs}`, 256, 140);
+  // Normal Math gate: +10, ×2, −5, ÷2
+  let symbol = '+';
+  if (op === 'multiply') symbol = '×';
+  if (op === 'subtract') symbol = '−';
+  if (op === 'divide') symbol = '÷';
 
-    ctx.font = 'bold 74px Orbitron, sans-serif';
-    ctx.fillStyle = '#86efac';
-    const passSymbol = condition.passOp === 'multiply' ? '×' : '+';
-    ctx.fillText(`${passSymbol}${condition.passVal}`, 256, 260);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 140px Orbitron, sans-serif';
+  ctx.fillText(`${symbol}${val}`, 256, 240);
 
-    ctx.font = 'bold 54px Orbitron, sans-serif';
-    ctx.fillStyle = '#fca5a5';
-    const failSymbol = condition.failOp === 'divide' ? '÷' : '−';
-    ctx.fillText(`ИНАЧЕ ${failSymbol}${condition.failVal}`, 256, 380);
-  } else if (op === 'mystery') {
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '900 160px Orbitron, sans-serif';
-    ctx.fillText('?', 256, 256);
-  } else if (op === 'adrenaline') {
-    ctx.fillStyle = '#fef08a';
-    ctx.font = 'bold 90px Orbitron, sans-serif';
-    ctx.fillText('⚡ RUSH', 256, 220);
-    ctx.font = 'bold 64px Orbitron, sans-serif';
-    ctx.fillText('МАКС. СКОРОСТЬ', 256, 330);
-  } else {
-    // Normal Math gate: +10, ×2, −5, ÷2
-    let symbol = '+';
-    if (op === 'multiply') symbol = '×';
-    if (op === 'subtract') symbol = '−';
-    if (op === 'divide') symbol = '÷';
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '900 140px Orbitron, sans-serif';
-    ctx.fillText(`${symbol}${val}`, 256, 240);
-
-    ctx.font = 'bold 44px Orbitron, sans-serif';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    ctx.fillText(isPositive ? 'БОНУС' : 'ОПАСНОСТЬ', 256, 380);
-  }
+  ctx.font = 'bold 44px Orbitron, sans-serif';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+  ctx.fillText(isPositive ? 'БОНУС' : 'ОПАСНОСТЬ', 256, 380);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;
