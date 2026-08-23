@@ -18,6 +18,9 @@ export class BossManager {
   public isDefeated: boolean = false;
   private bossArenaZ: number = 0;
   private retaliationTimer: number = 0;
+  // Накопитель тиков урона для атаки "minions" (рой мелких тварей грызёт толпу
+  // в течение всей длительности атаки, а не одним ударом как slam/laser).
+  private minionTickAccum: number = 0;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -90,6 +93,8 @@ export class BossManager {
       }
     } else {
       // Attack execution phase
+      // Рой мелких тварей наносит урон тиками на протяжении всей длительности атаки.
+      this.tickMinionDamage(dt, crowd, particles);
       if (this.attackTimer >= currentAttack.duration) {
         this.isAttacking = false;
         this.attackTimer = 0;
@@ -160,6 +165,39 @@ export class BossManager {
       eventBus.emit('screenShake', { intensity: 0.4 });
       particles.emitBurst(0, 1.5, this.bossArenaZ - 2, 30, 0x00f0ff, 6.0);
       crowd.killMobs(Math.floor(attack.damage / 3), 'boss_laser');
+    } else if (attack.type === 'minions') {
+      // Рой мелких тварей: босс призывает рой, который грызёт толпу в течение всей
+      // длительности атаки. Урон наносится тиками (каждые ~0.5с), а не одним ударом,
+      // чтобы атака читалась как "затяжной урон", а не мгновенный вайп.
+      soundEngine.playSound('boss_minions');
+      eventBus.emit('screenShake', { intensity: 0.3 });
+      particles.emitBurst(0, 1.0, this.bossArenaZ - 3, 25, 0xa855f7, 5.0);
+      this.minionTickAccum = 0;
+    }
+  }
+
+  /** Тикает урон роя мелких тварей во время активной атаки "minions". */
+  private tickMinionDamage(dt: number, crowd: CrowdManager, particles: ParticleSystem): void {
+    if (!this.bossData || this.isDefeated) return;
+    const currentAttack = this.bossData.attacks[this.currentAttackIndex % this.bossData.attacks.length];
+    if (currentAttack.type !== 'minions') return;
+
+    this.minionTickAccum += dt;
+    const tickInterval = 0.5;
+    if (this.minionTickAccum >= tickInterval) {
+      this.minionTickAccum = 0;
+      // Урон за тик — доля от полного урона атаки, чтобы за всю длительность
+      // (обычно 2-3с) суммарный урон был сопоставим с slam/laser.
+      const perTick = Math.max(1, Math.round((currentAttack.damage / 3) * tickInterval));
+      crowd.killMobs(perTick, 'boss_minions');
+      particles.emitBurst(
+        (Math.random() - 0.5) * 4,
+        0.8 + Math.random(),
+        this.bossArenaZ - 3 + (Math.random() - 0.5) * 4,
+        8,
+        0xa855f7,
+        3.0
+      );
     }
   }
 

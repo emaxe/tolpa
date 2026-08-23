@@ -15,6 +15,7 @@ export type SoundEffect =
   | 'boss_roar'
   | 'boss_slam'
   | 'boss_laser'
+  | 'boss_minions'
   | 'boss_hit'
   | 'boss_defeat'
   | 'formation_change'

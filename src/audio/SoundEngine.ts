@@ -285,6 +285,69 @@ export class SoundEngine {
         break;
       }
 
+      case 'boss_laser': {
+        // Sharp laser sweep — rising sawtooth with a fast attack
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(400, t);
+        osc.frequency.exponentialRampToValueAtTime(1200, t + 0.25);
+
+        gain.gain.setValueAtTime(0.4, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain!);
+        osc.start(t);
+        osc.stop(t + 0.3);
+        break;
+      }
+
+      case 'boss_minions': {
+        // Swarm of small creatures — buzzing cluster of short high blips
+        for (let i = 0; i < 6; i++) {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const start = t + i * 0.07;
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(700 + Math.random() * 500, start);
+          osc.frequency.exponentialRampToValueAtTime(300, start + 0.12);
+
+          gain.gain.setValueAtTime(0.12, start);
+          gain.gain.exponentialRampToValueAtTime(0.001, start + 0.12);
+
+          osc.connect(gain);
+          gain.connect(this.sfxGain!);
+          osc.start(start);
+          osc.stop(start + 0.12);
+        }
+        break;
+      }
+
+      case 'boss_defeat': {
+        // Triumphant descending fanfare — two-tone victory chime
+        const sfx = this.sfxGain;
+        const ctx = this.ctx;
+        const notes = [520, 660, 880];
+        notes.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const start = t + i * 0.12;
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, start);
+          osc.frequency.exponentialRampToValueAtTime(freq * 0.5, start + 0.4);
+
+          gain.gain.setValueAtTime(0.35, start);
+          gain.gain.exponentialRampToValueAtTime(0.001, start + 0.45);
+
+          osc.connect(gain);
+          if (sfx) gain.connect(sfx);
+          osc.start(start);
+          osc.stop(start + 0.45);
+        });
+        break;
+      }
+
       case 'boss_hit': {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();

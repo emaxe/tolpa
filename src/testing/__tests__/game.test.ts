@@ -113,6 +113,18 @@ describe('Level Generator Smoke Tests', () => {
     }
   });
 
+  it('боссы имеют атаку "minions" (рой), которая реально исполняется', () => {
+    // Атака "minions" была "мёртвой": генерировалась для каждого босса, но
+    // executeBossAttack обрабатывал только slam/laser — рой телеграфировался и
+    // ничего не делал. Теперь она должна присутствовать у всех боссов.
+    const bossLevels = [10, 20, 30, 40, 50];
+    for (const lvl of bossLevels) {
+      const config = LevelGenerator.generateLevel(lvl);
+      const types = config.boss!.attacks.map((a) => a.type);
+      expect(types).toContain('minions');
+    }
+  });
+
   it('ворота строго упорядочены по координате Z', () => {
     for (let lvl = 1; lvl <= 50; lvl++) {
       const config = LevelGenerator.generateLevel(lvl);
