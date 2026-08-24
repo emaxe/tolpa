@@ -98,12 +98,42 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       spawn(data.x || 0, data.z || 0, text, colorClass);
     });
 
+    // Сбор бонусов-сфер (add_mobs / heal / adrenaline): событие bonusCollected эмитится
+    // BonusManager, но раньше никем не потреблялось — игрок видел только звук + частицы.
+    // Подключаем текстовый фидбек, цвет совпадает с BONUS_COLORS.
+    const unsubBonus = eventBus.on(
+      'bonusCollected',
+      (data: { type?: string; value?: number; x?: number; z?: number }) => {
+        if (!data || !data.value) return;
+        const v = data.value;
+        let text: string;
+        let colorClass: string;
+        switch (data.type) {
+          case 'heal':
+            text = `+♥${v} ${i18n.t('bonusHeal', 'ЛЕЧЕНИЕ!')}`;
+            colorClass = 'text-emerald-400 font-bold';
+            break;
+          case 'adrenaline':
+            text = `${i18n.t('bonusHyper', 'ГИПЕР!')} +⚡`;
+            colorClass = 'text-yellow-300 font-extrabold drop-shadow-[0_0_10px_rgba(250,204,21,0.9)]';
+            break;
+          case 'add_mobs':
+          default:
+            text = `+${v}`;
+            colorClass = 'text-emerald-300 font-extrabold';
+            break;
+        }
+        spawn(data.x || 0, data.z || 0, text, colorClass);
+      }
+    );
+
     return () => {
       unsubGate();
       unsubMobsKilled();
       unsubCoin();
       unsubObstacle();
       unsubNearMiss();
+      unsubBonus();
     };
   }, [engine]);
 

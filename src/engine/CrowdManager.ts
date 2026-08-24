@@ -22,6 +22,8 @@ export class CrowdManager {
   // Переиспользуемый буфер для killMobs/consumeMobs — раньше каждый вызов делал
   // .filter().sort() (две аллокации на каждое убийство).
   private aliveScratch: MobInstance[] = [];
+  // Таймер шагов толпы — ритмичный топот при беге (dead sound 'footstep').
+  private footstepTimer: number = 0;
 
   // Reusable 3D math objects to guarantee ZERO runtime GC allocations
   private dummy: THREE.Object3D = new THREE.Object3D();
@@ -607,6 +609,19 @@ export class CrowdManager {
     // Когда вся толпа погибла — прячем модель лидера (нет кого вести).
     if (this.aliveCount === 0 && this.leaderModel) {
       this.leaderModel.visible = false;
+    }
+
+    // Ритмичный топот бегущей толпы: тихий 'footstep', темп растёт со скоростью.
+    if (this.aliveCount > 0 && this.leaderModel?.visible) {
+      this.footstepTimer -= dt;
+      if (this.footstepTimer <= 0) {
+        // ~2.6 шага/с на старте, быстрее при ускорении (cap ~6/с).
+        const interval = Math.max(0.165, 0.38 - speed * 0.006);
+        this.footstepTimer = interval;
+        soundEngine.playSound('footstep', 1, 0.3);
+      }
+    } else {
+      this.footstepTimer = 0;
     }
   }
 
