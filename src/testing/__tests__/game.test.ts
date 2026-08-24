@@ -495,12 +495,21 @@ describe('Skin Rewards (бонусные скины)', () => {
 
     mgr.beginRun();
     mgr.runRecordNearMiss(5);
+    mgr.runRecordNearMissStreak();
+    mgr.runRecordNearMissStreak();
+    mgr.runRecordNearMissStreak();
+    mgr.runRecordNearMissStreak();
+    mgr.runRecordNearMissStreak();
     mgr.commitRun();
 
     const st = mgr.getState();
-    expect(st.stats.totalNearMisses).toBe(initial + 5);
+    expect(st.stats.totalNearMisses).toBe(initial + 10);
     expect(st.achievements['near_miss_50']?.progress).toBeGreaterThanOrEqual(5);
     expect(st.achievements['near_miss_200']?.progress).toBeGreaterThanOrEqual(5);
+    // Серия из 5 уворотов в упор продвигает достижения серии (lifetime-максимум).
+    expect(st.stats.maxNearMissStreak).toBeGreaterThanOrEqual(5);
+    expect(st.achievements['near_miss_streak_5']?.progress).toBeGreaterThanOrEqual(5);
+    expect(st.achievements['near_miss_streak_10']?.progress).toBeLessThan(10);
   });
 
   it('combo-бонус за серию позитивных ворот каппится на +80% (фактор ≤ 1.8)', () => {

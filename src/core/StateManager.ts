@@ -41,6 +41,7 @@ export const INITIAL_STATS: GameStats = {
   maxCrowdReached: 0,
   totalAdrenalineActivations: 0,
   totalNearMisses: 0, // Начальное значение счётчика уворотов в упор
+  maxNearMissStreak: 0, // Максимальная серия уворотов в упор (для достижений)
   gamesPlayed: 0,
   levelsCompleted: 0,
 };
@@ -437,6 +438,30 @@ export const INITIAL_ACHIEVEMENTS: AchievementItem[] = [
     category: 'combat',
   },
   {
+    id: 'near_miss_streak_5',
+    titleKey: 'achNearMissStreak5',
+    descKey: 'achNearMissStreak5Desc',
+    icon: 'Flame',
+    progress: 0,
+    goal: 5,
+    rewardCoins: 1000,
+    rewardGems: 12,
+    claimed: false,
+    category: 'combat',
+  },
+  {
+    id: 'near_miss_streak_10',
+    titleKey: 'achNearMissStreak10',
+    descKey: 'achNearMissStreak10Desc',
+    icon: 'Skull',
+    progress: 0,
+    goal: 10,
+    rewardCoins: 3000,
+    rewardGems: 35,
+    claimed: false,
+    category: 'combat',
+  },
+  {
     id: 'veteran_25',
     titleKey: 'achVeteran25',
     descKey: 'achVeteran25Desc',
@@ -541,6 +566,8 @@ export class StateManager {
     this.updateAchievementProgressSilent('boss_hunter', this.state.stats.totalBossesDefeated);
     this.updateAchievementProgressSilent('near_miss_50', this.state.stats.totalNearMisses);
     this.updateAchievementProgressSilent('near_miss_200', this.state.stats.totalNearMisses);
+    this.updateAchievementProgressSilent('near_miss_streak_5', this.state.stats.maxNearMissStreak);
+    this.updateAchievementProgressSilent('near_miss_streak_10', this.state.stats.maxNearMissStreak);
     this.updateAchievementProgressSilent('games_played', this.state.stats.gamesPlayed);
 
     if (typeof document !== 'undefined') {
@@ -702,6 +729,7 @@ export class StateManager {
     this.state.stats.totalObstaclesSmashed += r.obstaclesSmashed;
     this.state.stats.totalBossesDefeated += r.bossesDefeated;
     this.state.stats.totalNearMisses += r.nearMisses;
+    if (r.maxNearMissStreak > this.state.stats.maxNearMissStreak) this.state.stats.maxNearMissStreak = r.maxNearMissStreak;
     if (r.maxCombo > this.state.stats.highestCombo) this.state.stats.highestCombo = r.maxCombo;
     if (r.maxCrowd > this.state.stats.maxCrowdReached) this.state.stats.maxCrowdReached = r.maxCrowd;
 
@@ -715,6 +743,9 @@ export class StateManager {
     this.updateAchievementProgressSilent('boss_hunter', this.state.stats.totalBossesDefeated);
     this.updateAchievementProgressSilent('near_miss_50', this.state.stats.totalNearMisses);
     this.updateAchievementProgressSilent('near_miss_200', this.state.stats.totalNearMisses);
+    // Достижения серии уворотов в упор — по lifetime-максимуму серии (забег завершён).
+    this.updateAchievementProgressSilent('near_miss_streak_5', this.state.stats.maxNearMissStreak);
+    this.updateAchievementProgressSilent('near_miss_streak_10', this.state.stats.maxNearMissStreak);
     // Достижения легиона в Бесконечном режиме: completeLevel() не вызывается в эндлессе,
     // поэтому прогресс legion_50/150 привязываем к lifetime-максимуму толпы.
     this.updateAchievementProgressSilent('legion_50', this.state.stats.maxCrowdReached);

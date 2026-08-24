@@ -264,6 +264,8 @@ export interface GameStats {
   totalAdrenalineActivations: number;
   /** Общее число уворотов в упор (Near-Miss) за всё время игры. */
   totalNearMisses: number;
+  /** Максимальная серия уворотов в упор подряд (без урона) за всё время игры. */
+  maxNearMissStreak: number;
   gamesPlayed: number;
   levelsCompleted: number;
 }
