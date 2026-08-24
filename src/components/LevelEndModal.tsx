@@ -142,6 +142,12 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
               </div>
               <div className="flex items-center justify-between text-zinc-300">
                 <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-zinc-400">
+                  <Users className="w-3.5 h-3.5 text-indigo-400" /> {i18n.t('runMobsSpawned')}
+                </span>
+                <span className="font-orbitron font-bold text-indigo-400">{runStats.mobsSpawned}</span>
+              </div>
+              <div className="flex items-center justify-between text-zinc-300">
+                <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-zinc-400">
                   <Swords className="w-3.5 h-3.5 text-red-400" /> {i18n.t('runObstaclesSmashed')}
                 </span>
                 <span className="font-orbitron font-bold text-red-400">{runStats.obstaclesSmashed}</span>
