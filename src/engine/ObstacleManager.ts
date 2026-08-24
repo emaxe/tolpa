@@ -90,8 +90,9 @@ export class ObstacleManager {
         mesh = createSawBladeMesh();
         break;
       case 'axe_pendulum':
+        // Меш сам стоит на полу (локальный y=0 = пол); рама поднимается
+        // до перекладины PIVOT_Y, маятник свисает с неё.
         mesh = createPendulumAxeMesh();
-        mesh.position.y = 3.5;
         break;
       case 'crusher':
         mesh = createCrusherMesh();
