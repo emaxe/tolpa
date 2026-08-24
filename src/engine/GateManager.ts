@@ -37,6 +37,10 @@ export class GateManager {
   }
 
   private static readonly GATE_HEIGHT = 3.8;
+  // Бонус за комбо-серию позитивных ворот: +8% мобов за каждый шаг серии > 1,
+  // максимум +80% (фактор ≤ 1.8). Награждает удержание серии правильных крыльев.
+  private static readonly COMBO_BONUS_PER_STEP = 0.08;
+  private static readonly COMBO_BONUS_CAP = 0.8;
 
   private ensureSharedGeometry(): void {
     if (this.sharedPlaneGeo) return;
@@ -181,16 +185,29 @@ export class GateManager {
   ): void {
     let isPositive = false;
     let netChange = 0;
+    // Фактор бонуса за серию позитивных ворот: 1.0 при серии ≤ 1 (старое поведение),
+    // растёт до 1.8 при длинной серии. Награждает удержание серии правильных крыльев.
+    const comboFactor = this.comboStreak > 1
+      ? 1 + Math.min((this.comboStreak - 1) * GateManager.COMBO_BONUS_PER_STEP, GateManager.COMBO_BONUS_CAP)
+      : 1;
 
     if (op === 'add') {
       // +N: добавляет N мобов к толпе у ворот (на всех прошедших).
-      netChange = crowd.addMobsNear(val, gateX, gateZ);
+      const base = crowd.addMobsNear(val, gateX, gateZ);
+      if (base > 0) {
+        const bonus = Math.floor(base * (comboFactor - 1));
+        netChange = bonus > 0 ? base + crowd.addMobsNear(bonus, gateX, gateZ) : base;
+      }
       if (netChange > 0) soundEngine.playSound('gate_pass_positive');
       particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 25 : 6, 0x10b981, netChange > 0 ? 5.0 : 2.0);
       isPositive = true;
     } else if (op === 'multiply') {
       // ×N: каждый прошедший моб порождает (N-1) копий (N — целое).
-      netChange = crowd.multiplyGroup(wing, val, gateX, gateZ);
+      const base = crowd.multiplyGroup(wing, val, gateX, gateZ);
+      if (base > 0) {
+        const bonus = Math.floor(base * (comboFactor - 1));
+        netChange = bonus > 0 ? base + crowd.addMobsNear(bonus, gateX, gateZ) : base;
+      }
       if (netChange > 0) soundEngine.playSound('gate_pass_multiplier');
       particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 35 : 6, 0x00f0ff, netChange > 0 ? 6.0 : 2.0);
       isPositive = true;
@@ -213,7 +230,7 @@ export class GateManager {
     }
 
     stateManager.runRecordGatePass();
-    eventBus.emit('gatePassed', { op, val, isPositive, netChange, comboStreak: this.comboStreak, x: gateX, z: gateZ });
+    eventBus.emit('gatePassed', { op, val, isPositive, netChange, comboStreak: this.comboStreak, comboFactor, x: gateX, z: gateZ });
   }
 
   public getCombo(): number {

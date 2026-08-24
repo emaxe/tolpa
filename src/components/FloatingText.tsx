@@ -38,11 +38,19 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
 
     const unsubGate = eventBus.on(
       'gatePassed',
-      (data: { netChange?: number; x?: number; z?: number }) => {
+      (data: { netChange?: number; comboStreak?: number; x?: number; z?: number }) => {
         if (!data || typeof data.netChange !== 'number' || data.netChange === 0) return;
-        const { netChange, x = 0, z = 0 } = data;
-        const text = netChange > 0 ? `+${netChange}` : `${netChange}`;
-        spawn(x, z, text, netChange > 0 ? 'text-emerald-400' : 'text-red-400');
+        const { netChange, comboStreak = 0, x = 0, z = 0 } = data;
+        // При длинной серии позитивных ворот показываем маркер серии рядом с приростом толпы.
+        const text = netChange > 0
+          ? (comboStreak >= 3 ? `+${netChange} x${comboStreak}` : `+${netChange}`)
+          : `${netChange}`;
+        spawn(
+          x,
+          z,
+          text,
+          netChange > 0 ? (comboStreak >= 3 ? 'text-emerald-300 font-extrabold' : 'text-emerald-400') : 'text-red-400'
+        );
       }
     );
 

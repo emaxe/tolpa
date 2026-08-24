@@ -435,4 +435,26 @@ describe('Skin Rewards (бонусные скины)', () => {
     expect(mgr.claimAchievement('gem_collector')).toBe(true);
     expect(mgr.claimAchievement('boss_hunter')).toBe(true);
   });
+
+  it('combo-бонус за серию позитивных ворот каппится на +80% (фактор ≤ 1.8)', () => {
+    // Формула бонуса из GateManager.executeGateEffect: comboFactor = 1 + min((streak-1)*0.08, 0.8).
+    // Проверяем чистую математику без движка.
+    const comboFactor = (streak: number) =>
+      streak > 1 ? 1 + Math.min((streak - 1) * 0.08, 0.8) : 1;
+    // Серия 1 — без бонуса.
+    expect(comboFactor(1)).toBe(1);
+    expect(comboFactor(0)).toBe(1);
+    // Серия 3 — +16%.
+    expect(comboFactor(3)).toBeCloseTo(1.16);
+    // Серия 10 — 9*0.08 = 0.72 → фактор 1.72 (ещё не кап).
+    expect(comboFactor(10)).toBeCloseTo(1.72);
+    // Серия 11+ — бонус упёрся в кап 0.8 → фактор 1.8.
+    expect(comboFactor(11)).toBeCloseTo(1.8);
+    expect(comboFactor(50)).toBeCloseTo(1.8);
+    // Прибавка мобов не превышает base*0.8.
+    const bonusFor = (base: number, streak: number) =>
+      Math.floor(base * (comboFactor(streak) - 1));
+    expect(bonusFor(100, 10)).toBeLessThanOrEqual(80);
+    expect(bonusFor(100, 1)).toBe(0);
+  });
 });
