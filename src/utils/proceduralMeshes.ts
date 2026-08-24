@@ -433,14 +433,16 @@ export function createSawBladeMesh(): THREE.Group {
 export function createPendulumAxeMesh(): THREE.Group {
   const group = new THREE.Group();
 
-  // Arm/Shaft — светлый, чтобы не сливался с тёмным настилом.
-  const armGeo = new THREE.CylinderGeometry(0.14, 0.14, 3.5, 8);
+  // Arm/Shaft — светлый, короче (от подвеса 3.5 до головы ~2.6), чтобы топор
+  // висел НАД полом и качался по дуге, не втыкаясь в настил.
+  const armGeo = new THREE.CylinderGeometry(0.14, 0.14, 2.6, 8);
   const armMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.85, roughness: 0.25 });
   const arm = new THREE.Mesh(armGeo, armMat);
-  arm.position.y = -1.75;
+  arm.position.y = -1.3;
   group.add(arm);
 
-  // Crescent Blade — крупная, яркая голова-топор (главный визуальный маркер)
+  // Crescent Blade — крупная, яркая голова-топор (главный визуальный маркер).
+  // Мировая Y ≈ 3.5 - 2.45 = 1.05 — чётко над полом.
   const bladeGeo = new THREE.TorusGeometry(1.1, 0.2, 12, 20, Math.PI);
   const bladeMat = new THREE.MeshStandardMaterial({
     color: 0xfdba74,
@@ -450,11 +452,12 @@ export function createPendulumAxeMesh(): THREE.Group {
     emissiveIntensity: 0.55,
   });
   const blade = new THREE.Mesh(bladeGeo, bladeMat);
-  blade.position.y = -3.35;
+  blade.position.y = -2.45;
   blade.rotation.z = Math.PI / 2;
   group.add(blade);
 
-  // Яркое лезвийное остриё в нижней точке дуги (острая часть топора)
+  // Яркое лезвийное остриё в нижней точке дуги (острая часть топора).
+  // Мировая Y ≈ 0.75 — не касается пола.
   const tipGeo = new THREE.ConeGeometry(0.14, 0.5, 6);
   const tipMat = new THREE.MeshStandardMaterial({
     color: 0xfca5a5,
@@ -464,7 +467,7 @@ export function createPendulumAxeMesh(): THREE.Group {
     emissiveIntensity: 0.6,
   });
   const tip = new THREE.Mesh(tipGeo, tipMat);
-  tip.position.y = -3.85;
+  tip.position.y = -2.75;
   tip.rotation.z = Math.PI;
   group.add(tip);
 
