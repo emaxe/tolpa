@@ -47,6 +47,9 @@ interface ObstacleVisual {
   dogAnimPhase?: number; // фаза анимации шага/хвоста
   dogFacing?: number; // куда повёрнута собака (радианы, мировой Y)
   dogLungeT?: number; // прогресс броска при атаке (0..1), -1 когда не атакует
+  // One-shot флаг удара гидравлического молота (звук hammer_impact играет один раз
+  // за проход бойка через нижнюю точку, а не каждый кадр).
+  hammerImpacted?: boolean;
 }
 
 interface CoinVisual {
@@ -501,6 +504,19 @@ export class ObstacleManager {
             hammerPivot.rotation.x = Math.sin(t * 1.8) * 1.25;
             const hammerHeadZ = obsVis.mesh.position.z + Math.sin(hammerPivot.rotation.x) * 2.9;
             this.setHazard(obsVis, obs.x, hammerHeadZ, obs.width, 1.8);
+
+            // Звук удара молота по наковальне: голова в нижней точке, когда rotation.x
+            // проходит через 0. One-shot флаг + гистерезис — звук играет один раз за
+            // проход через нижнюю точку, а не каждый кадр.
+            if (Math.abs(hammerPivot.rotation.x) < 0.15) {
+              if (!obsVis.hammerImpacted) {
+                obsVis.hammerImpacted = true;
+                const vol = this.proximityVolume(obs.z, crowd.leaderZ);
+                if (vol > 0) soundEngine.playSound('hammer_impact', 1, vol);
+              }
+            } else if (Math.abs(hammerPivot.rotation.x) > 0.3) {
+              obsVis.hammerImpacted = false;
+            }
           } else {
             this.setHazard(obsVis, obs.x, obs.z, obs.width, 1.8);
           }
