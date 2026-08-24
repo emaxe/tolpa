@@ -431,15 +431,23 @@ export function createSawBladeMesh(): THREE.Group {
 
 // Procedural Pendulum Axe Mesh
 export function createPendulumAxeMesh(): THREE.Group {
+  // НЕПОДВИЖНАЯ П-образная рама (стоит на полу, перекладина над дорогой).
+  // Маятник качается внутри неё — поэтому конструкция читается как топор-маятник,
+  // а не как «торчащая из пола палка».
   const group = new THREE.Group();
 
-  // Arm/Shaft — светлый, короче (от подвеса 3.5 до головы ~2.6), чтобы топор
-  // висел НАД полом и качался по дуге, не втыкаясь в настил.
-  const armGeo = new THREE.CylinderGeometry(0.14, 0.14, 2.6, 8);
+  // Качающаяся подгруппа: штанга + голова-топор. Вращается вокруг Z
+  // (ObstacleManager.update: group.children[0].rotation.z). Рама при этом
+  // остаётся неподвижной.
+  const swing = new THREE.Group();
+
+  // Arm/Shaft — светлый. Локальная y=0 = точка подвеса (перекладина),
+  // мировая Y ≈ 3.5. Штанга свисает вниз до головы.
+  const armGeo = new THREE.CylinderGeometry(0.13, 0.13, 2.6, 8);
   const armMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.85, roughness: 0.25 });
   const arm = new THREE.Mesh(armGeo, armMat);
   arm.position.y = -1.3;
-  group.add(arm);
+  swing.add(arm);
 
   // Crescent Blade — крупная, яркая голова-топор (главный визуальный маркер).
   // Мировая Y ≈ 3.5 - 2.45 = 1.05 — чётко над полом.
@@ -454,7 +462,7 @@ export function createPendulumAxeMesh(): THREE.Group {
   const blade = new THREE.Mesh(bladeGeo, bladeMat);
   blade.position.y = -2.45;
   blade.rotation.z = Math.PI / 2;
-  group.add(blade);
+  swing.add(blade);
 
   // Яркое лезвийное остриё в нижней точке дуги (острая часть топора).
   // Мировая Y ≈ 0.75 — не касается пола.
@@ -469,7 +477,31 @@ export function createPendulumAxeMesh(): THREE.Group {
   const tip = new THREE.Mesh(tipGeo, tipMat);
   tip.position.y = -2.75;
   tip.rotation.z = Math.PI;
-  group.add(tip);
+  swing.add(tip);
+
+  // swing должен быть children[0] — ObstacleManager вращает children[0].rotation.z.
+  group.add(swing);
+
+  // --- Неподвижная рама (стоит на полу, y=0 локально = мировая 3.5) ---
+  const frameMat = new THREE.MeshStandardMaterial({
+    color: 0x475569,
+    metalness: 0.8,
+    roughness: 0.35,
+  });
+
+  // Перекладина поперёк трассы на уровне точки подвеса (локальная y=0).
+  const crossGeo = new THREE.CylinderGeometry(0.18, 0.18, 12, 8);
+  const cross = new THREE.Mesh(crossGeo, frameMat);
+  cross.rotation.z = Math.PI / 2; // вдоль X
+  group.add(cross);
+
+  // Две стойки от пола (локальная y=-3.5) до перекладины (y=0), по краям трассы.
+  for (const sx of [-6, 6]) {
+    const postGeo = new THREE.CylinderGeometry(0.16, 0.16, 3.5, 8);
+    const post = new THREE.Mesh(postGeo, frameMat);
+    post.position.set(sx, -1.75, 0);
+    group.add(post);
+  }
 
   return group;
 }

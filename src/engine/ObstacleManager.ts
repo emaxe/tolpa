@@ -432,8 +432,11 @@ export class ObstacleManager {
         case 'axe_pendulum':
           // Маятник качается; убивающая часть — голова-топор на конце. Её X сдвигается
           // по дуге. Активен только в нижней точке (isHazardActive |rotZ|<0.55).
-          obsVis.mesh.rotation.z = Math.sin(t) * 1.1;
-          const axeHeadX = obsVis.mesh.position.x + Math.sin(obsVis.mesh.rotation.z) * 3.0;
+          // Вращаем ТОЛЬКО подгруппу качания (children[0]) — неподвижная П-рама
+          // (перекладина + стойки) остаётся на месте.
+          obsVis.mesh.children[0].rotation.z = Math.sin(t) * 1.1;
+          const swingZ = obsVis.mesh.children[0].rotation.z;
+          const axeHeadX = obsVis.mesh.position.x + Math.sin(swingZ) * 3.0;
           obs.x = axeHeadX;
           this.setHazard(obsVis, axeHeadX, obs.z, 1.3, 0.9);
           break;
@@ -593,7 +596,7 @@ export class ObstacleManager {
       case 'crusher':
         return obsVis.mesh.position.y <= 1.2;
       case 'axe_pendulum':
-        return Math.abs(obsVis.mesh.rotation.z) < 0.55;
+        return Math.abs(obsVis.mesh.children[0].rotation.z) < 0.55;
       case 'barrier_gate':
         // Плита-ворота опасна только когда опущена вниз (мировая Y < ~2.4),
         // когда поднята — толпа проходит под ней.
