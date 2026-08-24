@@ -151,15 +151,21 @@ describe('Level Generator Smoke Tests', () => {
     }
   });
 
-  it('боссы имеют атаку "minions" (рой), которая реально исполняется', () => {
-    // Атака "minions" была "мёртвой": генерировалась для каждого босса, но
-    // executeBossAttack обрабатывал только slam/laser — рой телеграфировался и
-    // ничего не делал. Теперь она должна присутствовать у всех боссов.
+  it('боссы имеют разнообразные исполняемые атаки (minions/meteors/shield не мёртвые)', () => {
+    // Все 5 типов атак (slam/laser/minions/meteors/shield) должны быть задействованы
+    // в ротации боссов L10–L50 — ни один не остаётся "мёртвым" (в union, но не спавнится).
     const bossLevels = [10, 20, 30, 40, 50];
+    const allTypes = new Set<string>();
     for (const lvl of bossLevels) {
       const config = LevelGenerator.generateLevel(lvl);
       const types = config.boss!.attacks.map((a) => a.type);
-      expect(types).toContain('minions');
+      expect(types.length).toBeGreaterThan(0);
+      types.forEach((t) => allTypes.add(t));
+    }
+    // Раньше у всех боссов был только slam/laser/minions; meteors/shield в union,
+    // но ни один босс их не использовал. Теперь каждый тип хотя бы раз встречается.
+    for (const t of ['slam', 'laser', 'minions', 'meteors', 'shield']) {
+      expect(allTypes.has(t)).toBe(true);
     }
   });
 

@@ -36,6 +36,9 @@ export class BossManager {
   private attackCooldown: number = 0;
   private attackInterval: number = 2.5;
   private bossLevel: number = 10;
+  // Атака "shield" (энергетический купол): пока активен, босс блокирует урон толпы.
+  private isShielded: boolean = false;
+  private shieldMesh: THREE.Mesh | null = null;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -140,6 +143,10 @@ export class BossManager {
           this.isAttacking = false;
           this.attackTimer = 0;
           this.currentAttackIndex++;
+          // Атака "shield": по завершении купол спадает, босс снова уязвим.
+          if (this.isShielded) {
+            this.setShielded(false);
+          }
           // Начинаем паузу перед следующей атакой.
           this.isCoolingDown = true;
           this.attackCooldown = this.attackInterval;
@@ -160,7 +167,9 @@ export class BossManager {
       // медленнее и не зависит от размера толпы линейно.
       const crowdPower = Math.min(140, 12 + aliveMobs.length * 1.6) * dt;
       // Тактический бонус Фаланги (circle): толпа в плотном строю наносит боссу больше урона.
-      this.takeDamage(crowdPower * crowd.getBossDamageMultiplier(), particles);
+      const crowdMult = crowd.getBossDamageMultiplier();
+      // Фаланга (circle) пробивает энергетический купол на 20% от урона.
+      this.takeDamage(crowdPower * crowdMult, particles, crowdMult === 0.8);
 
       // Boss retaliation — было "8% шанс за кадр" (~4.8 смертей/сек на 60 FPS без единого
       // предупреждения). Теперь фиксированный ритм с небольшой тряской-телеграфом.
@@ -218,6 +227,54 @@ export class BossManager {
       eventBus.emit('screenShake', { intensity: 0.3 });
       particles.emitBurst(0, 1.0, this.bossArenaZ - 3, 25, 0xa855f7, 5.0);
       this.minionTickAccum = 0;
+    } else if (attack.type === 'meteors') {
+      // Метеоритный залп: серия огненных всплесков по арене перед боссом.
+      soundEngine.playSound('boss_laser');
+      eventBus.emit('screenShake', { intensity: 0.5 });
+      const strikes = attack.areaRadius ? Math.floor(attack.areaRadius) : 3;
+      for (let i = 0; i < strikes; i++) {
+        const sx = (Math.random() - 0.5) * 8;
+        const sz = this.bossArenaZ - 4 - Math.random() * 4;
+        particles.emitBurst(sx, 0.6, sz, 22, 0xf97316, 7.0);
+      }
+      // Урон ограничен безопасной долей от численности отряда, чтобы метеоры
+      // не выкашивали всю толпу на поздних уровнях.
+      const capped = Math.min(attack.damage, Math.floor(crowd.getAliveCount() * 0.2));
+      if (capped > 0) {
+        crowd.killMobs(Math.max(1, capped), 'boss_slam');
+      }
+    } else if (attack.type === 'shield') {
+      // Энергетический купол: на время атаки босс блокирует урон толпы.
+      soundEngine.playSound('boss_slam');
+      eventBus.emit('screenShake', { intensity: 0.3 });
+      particles.emitBurst(0, 2.0, this.bossArenaZ, 30, 0x00f0ff, 6.0);
+      this.setShielded(true);
+    }
+  }
+
+  /** Включает/выключает энергетический щит босса (атака "shield"). */
+  private setShielded(on: boolean): void {
+    this.isShielded = on;
+    if (on) {
+      if (!this.shieldMesh && this.bossMesh) {
+        const shieldGeo = new THREE.SphereGeometry(3.2, 24, 16);
+        const shieldMat = new THREE.MeshBasicMaterial({
+          color: 0x00f0ff,
+          transparent: true,
+          opacity: 0.28,
+          depthWrite: false,
+        });
+        this.shieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+        this.shieldMesh.position.set(0, 2.0, this.bossArenaZ);
+        this.scene.add(this.shieldMesh);
+      }
+    } else {
+      if (this.shieldMesh) {
+        this.scene.remove(this.shieldMesh);
+        this.shieldMesh.geometry.dispose();
+        (this.shieldMesh.material as THREE.Material).dispose();
+        this.shieldMesh = null;
+      }
     }
   }
 
@@ -246,8 +303,14 @@ export class BossManager {
     }
   }
 
-  public takeDamage(amount: number, particles: ParticleSystem): void {
+  public takeDamage(amount: number, particles: ParticleSystem, pierceShield: boolean = false): void {
     if (!this.bossData || this.isDefeated) return;
+
+    // Энергетический купол (атака "shield") блокирует урон толпы. Фаланга (circle)
+    // пробивает барьер на 20% от урона (тактическая синергия плотного строя).
+    if (this.isShielded) {
+      amount = pierceShield ? amount * 0.2 : 0;
+    }
 
     this.bossData.hp = Math.max(0, this.bossData.hp - amount);
     soundEngine.playSound('boss_hit');
@@ -308,6 +371,13 @@ export class BossManager {
       (this.telegraphMesh.material as THREE.Material).dispose();
       this.telegraphMesh = null;
     }
+    if (this.shieldMesh) {
+      this.scene.remove(this.shieldMesh);
+      this.shieldMesh.geometry.dispose();
+      (this.shieldMesh.material as THREE.Material).dispose();
+      this.shieldMesh = null;
+    }
+    this.isShielded = false;
     this.bossData = null;
     this.isDefeated = false;
     this.isCoolingDown = false;

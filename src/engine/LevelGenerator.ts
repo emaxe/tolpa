@@ -1247,7 +1247,36 @@ export class LevelGenerator {
 
     const slamDamage = Math.round(15 * tierScale);
     const laserDamage = Math.round(25 * tierScale);
-    const minionDamage = Math.round(10 * tierScale);
+    // Уникальные боевые паттерны под каждого босса (тир). Поздние боссы получают
+    // более широкий арсенал: метеоритный залп (meteors) и энергетический купол (shield).
+    const minionsDamage = Math.round(12 * tierScale);
+    const meteorDamage = Math.round(30 * tierScale);
+    const baseSlam = { type: 'slam' as const, telegraphTime: Math.max(1.0, 1.5 - telegraphBonus), duration: 0.8, damage: slamDamage, areaRadius: 3.5 };
+    const baseLaser = { type: 'laser' as const, telegraphTime: Math.max(1.2, 2.0 - telegraphBonus), duration: 1.2, damage: laserDamage, direction: 0 };
+    const baseMinions = { type: 'minions' as const, telegraphTime: Math.max(0.7, 1.0 - telegraphBonus), duration: 0.5, damage: minionsDamage };
+    const meteors = { type: 'meteors' as const, telegraphTime: Math.max(1.0, 1.5 - telegraphBonus), duration: 0.9, damage: meteorDamage, areaRadius: 3 };
+    const shield = { type: 'shield' as const, telegraphTime: Math.max(0.8, 1.2 - telegraphBonus), duration: 2.2, damage: 0 };
+
+    // Набор атак зависит от модели босса (тира), а не одинаков для всех.
+    let attacks: BossData['attacks'];
+    switch (def.modelType) {
+      case 'magma_colossus':
+        attacks = [baseSlam, meteors, baseMinions];
+        break;
+      case 'crystal_wyrm':
+        attacks = [baseLaser, baseMinions, baseSlam];
+        break;
+      case 'titan_nullifier':
+        attacks = [shield, baseLaser, meteors];
+        break;
+      case 'apex_overlord':
+        attacks = [meteors, shield, baseLaser, baseSlam];
+        break;
+      case 'iron_golem':
+      default:
+        attacks = [baseSlam, baseLaser, baseMinions];
+        break;
+    }
 
     return {
       id: def.id || `boss_${levelNum}`,
@@ -1257,11 +1286,7 @@ export class LevelGenerator {
       hp: def.maxHp || 200,
       biome,
       modelType: def.modelType || 'iron_golem',
-      attacks: [
-        { type: 'slam', telegraphTime: Math.max(1.0, 1.5 - telegraphBonus), duration: 0.8, damage: slamDamage, areaRadius: 3.5 },
-        { type: 'laser', telegraphTime: Math.max(1.2, 2.0 - telegraphBonus), duration: 1.2, damage: laserDamage, direction: 0 },
-        { type: 'minions', telegraphTime: Math.max(0.7, 1.0 - telegraphBonus), duration: 0.5, damage: minionDamage },
-      ],
+      attacks,
     };
   }
 
