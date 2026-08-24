@@ -366,81 +366,64 @@ export function createSawBladeMesh(): THREE.Group {
 
   // Вращающаяся группа: сам диск с зубьями (анимируется в ObstacleManager.update).
   const spin = new THREE.Group();
-  // Поднят выше над настилом — с плоского ракурса бегуна диск читается как
-  // объёмная пила, а не как чёрная линия/палка на полу.
-  spin.position.y = 0.9;
+  spin.position.y = 0.55; // чуть выше настила, чтобы диск был виден сбоку
 
-  // Ступица-вал по центру (вертикальный, ось вращения Y). Светлый с красной
-  // шапкой-индикатором, чтобы центр не сливался в тёмное пятно.
-  const hubGeo = new THREE.CylinderGeometry(0.3, 0.34, 0.5, 12);
-  const hubMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.9, roughness: 0.25 });
+  // Ступица-вал по центру (вертикальный, ось вращения Y)
+  const hubGeo = new THREE.CylinderGeometry(0.28, 0.32, 0.5, 12);
+  const hubMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.9, roughness: 0.25 });
   const hub = new THREE.Mesh(hubGeo, hubMat);
   hub.position.y = 0.05;
   spin.add(hub);
-  // Красная шапка на верхнем торце вала — сразу видно, что объект опасный.
-  const capGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.12, 12);
-  const capMat = new THREE.MeshStandardMaterial({
-    color: 0xef4444, metalness: 0.7, roughness: 0.2, emissive: 0xef4444, emissiveIntensity: 0.6,
-  });
-  const cap = new THREE.Mesh(capGeo, capMat);
-  cap.position.y = 0.34;
-  spin.add(cap);
 
-  // Диск лезвия — горизонтальная пластина, заметно светлее настила
-  const discGeo = new THREE.CylinderGeometry(1.25, 1.25, 0.1, 28);
+  // Диск лезвия — горизонтальная пластина
+  const discGeo = new THREE.CylinderGeometry(1.25, 1.25, 0.09, 28);
   const bladeMat = new THREE.MeshStandardMaterial({
-    color: 0xe2e8f0,
+    color: 0xcbd5e1,
     metalness: 0.95,
-    roughness: 0.1,
+    roughness: 0.15,
     emissive: 0x94a3b8,
-    emissiveIntensity: 0.35,
+    emissiveIntensity: 0.7,
   });
   const disc = new THREE.Mesh(discGeo, bladeMat);
   spin.add(disc);
 
-  // Толстое яркое красное кольцо по краю лезвия — главный маркер опасной зоны.
-  // Толще (0.12) и сильно светится, чтобы не теряться на тёмном настиле.
-  const ringGeo = new THREE.TorusGeometry(1.25, 0.12, 8, 48);
-  const ringMat = new THREE.MeshBasicMaterial({ color: 0xff2d2d });
+  // Высококонтрастная стрелка-спица на поверхности диска. Крутится вместе с
+  // диском и делает вращение читаемым с плоского ракурса камеры: без неё
+  // плоский светлый диск на тёмном настиле сливается в «тёмную палку».
+  // Жёлтая, яркая, не влияет на кольцо (кольцо остаётся тонким).
+  const spokeMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+  const spokeBody = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.02, 2.2), spokeMat);
+  spokeBody.position.y = 0.06;
+  spin.add(spokeBody);
+  const spokeHead = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.3, 4), spokeMat);
+  spokeHead.rotation.x = Math.PI / 2;
+  spokeHead.position.set(0, 0.06, 1.25);
+  spin.add(spokeHead);
+
+  // Светящееся кольцо по краю лезвия — обозначает опасную зону
+  const ringGeo = new THREE.TorusGeometry(1.25, 0.06, 8, 48);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
   const ring = new THREE.Mesh(ringGeo, ringMat);
   ring.rotation.x = Math.PI / 2;
   spin.add(ring);
-  // Второе внутреннее кольцо для объёма.
-  const ring2Geo = new THREE.TorusGeometry(0.85, 0.05, 6, 32);
-  const ring2Mat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
-  const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
-  ring2.rotation.x = Math.PI / 2;
-  spin.add(ring2);
 
-  // Крупные яркие зубья по периметру — вращение видно явно
-  const teethCount = 14;
+  // Крупные яркие зубья по периметру (смотрят наружу, выделяются на тёмном настиле)
+  const teethCount = 12;
   const toothMat = new THREE.MeshStandardMaterial({
     color: 0xef4444,
     metalness: 0.8,
-    roughness: 0.15,
-    emissive: 0xff2d2d,
-    emissiveIntensity: 0.7,
+    roughness: 0.2,
+    emissive: 0xef4444,
+    emissiveIntensity: 0.5,
   });
   for (let i = 0; i < teethCount; i++) {
     const angle = (i / teethCount) * Math.PI * 2;
-    const toothGeo = new THREE.BoxGeometry(0.26, 0.7, 0.26);
+    const toothGeo = new THREE.BoxGeometry(0.22, 0.5, 0.22);
     const tooth = new THREE.Mesh(toothGeo, toothMat);
-    tooth.position.set(Math.cos(angle) * 1.4, 0, Math.sin(angle) * 1.4);
+    tooth.position.set(Math.cos(angle) * 1.35, 0, Math.sin(angle) * 1.35);
     tooth.rotation.z = -angle;
     spin.add(tooth);
   }
-
-  // Стрелка-индикатор направления вращения на верхней плоскости диска — светлая,
-  // читается даже при быстром вращении как знак «крутится».
-  const arrowGeo = new THREE.ConeGeometry(0.22, 0.5, 4);
-  const arrowMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const arrow = new THREE.Mesh(arrowGeo, arrowMat);
-  arrow.rotation.x = Math.PI / 2;
-  arrow.position.set(0, 0.12, 0.55);
-  spin.add(arrow);
-  const arrowTail = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.05, 0.45), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-  arrowTail.position.set(0, 0.06, 0.2);
-  spin.add(arrowTail);
 
   group.add(spin);
   return group;
@@ -1026,39 +1009,46 @@ export function createRollingSpikeBallMesh(): THREE.Group {
 
   // 0. Вращающаяся сфера-шар
   const ballGroup = new THREE.Group();
-  ballGroup.position.y = 0.95;
+  ballGroup.position.y = 1.05;
 
-  const coreGeo = new THREE.SphereGeometry(0.95, 14, 14);
+  // Ядро — светло-металлическое с оранжевым свечением, чтобы НЕ сливаться с тёмным
+  // настилом (раньше почти чёрный 0x09090b читался как «чёрная палка на полу»).
+  const coreGeo = new THREE.SphereGeometry(1.0, 16, 16);
   const coreMat = new THREE.MeshStandardMaterial({
-    color: 0x09090b,
-    metalness: 0.9,
-    roughness: 0.15,
+    color: 0xfbbf24,
+    metalness: 0.5,
+    roughness: 0.35,
     emissive: 0xd97706,
-    emissiveIntensity: 0.25,
+    emissiveIntensity: 0.8,
   });
   const coreMesh = new THREE.Mesh(coreGeo, coreMat);
   ballGroup.add(coreMesh);
 
-  // Экваториальное светящееся кольцо
-  const ringGeo = new THREE.TorusGeometry(0.96, 0.05, 6, 16);
-  const ringMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
-  const ring = new THREE.Mesh(ringGeo, ringMat);
-  ballGroup.add(ring);
+  // Два перекрещивающихся светящихся кольца — сразу читается сфера, а не диск/палка.
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xfff7ed });
+  const ringGeo = new THREE.TorusGeometry(1.02, 0.09, 8, 24);
+  const ringA = new THREE.Mesh(ringGeo, ringMat);
+  ballGroup.add(ringA);
+  const ringB = new THREE.Mesh(ringGeo.clone(), ringMat);
+  ringB.rotation.y = Math.PI / 2;
+  ballGroup.add(ringB);
 
-  // ~10 конических шипов по поверхности
+  // Крупные ярко-оранжевые конические шипы по поверхности — вращение видно явно.
   const spikeMat = new THREE.MeshStandardMaterial({
-    color: 0xd97706,
-    metalness: 0.95,
-    roughness: 0.1,
+    color: 0xffffff,
+    metalness: 0.8,
+    roughness: 0.2,
+    emissive: 0xf97316,
+    emissiveIntensity: 1.0,
   });
-  for (let i = 0; i < 10; i++) {
-    const phi = (i / 10) * Math.PI * 2;
+  for (let i = 0; i < 12; i++) {
+    const phi = (i / 12) * Math.PI * 2;
     const theta = (i % 3) * 0.9 + 0.5;
-    const spikeGeo = new THREE.ConeGeometry(0.16, 0.45, 6);
+    const spikeGeo = new THREE.ConeGeometry(0.22, 0.65, 6);
     const spike = new THREE.Mesh(spikeGeo, spikeMat);
-    const x = Math.sin(theta) * Math.cos(phi) * 1.0;
-    const y = Math.cos(theta) * 1.0;
-    const z = Math.sin(theta) * Math.sin(phi) * 1.0;
+    const x = Math.sin(theta) * Math.cos(phi) * 1.1;
+    const y = Math.cos(theta) * 1.1;
+    const z = Math.sin(theta) * Math.sin(phi) * 1.1;
     spike.position.set(x, y, z);
     spike.quaternion.setFromUnitVectors(
       new THREE.Vector3(0, 1, 0),
