@@ -1,4 +1,5 @@
 import { SaveData, GameSettings, PlayerUpgrades, GameStats, PlayerSkin, AchievementItem } from '../types/game';
+import { getNearMissMultiplier } from '../utils/math';
 import { eventBus } from './EventBus';
 import { i18n } from './Localization';
 
@@ -426,6 +427,10 @@ export interface RunStats {
   distance: number;
   /** Число «уворотов в упор» (Near-Miss) за текущий забег. */
   nearMisses: number;
+  /** Текущая серия уворотов в упор подряд (без урона и промахов). */
+  nearMissStreak: number;
+  /** Максимальная серия уворотов в упор за текущий забег. */
+  maxNearMissStreak: number;
 }
 
 function createEmptyRun(): RunStats {
@@ -441,6 +446,8 @@ function createEmptyRun(): RunStats {
     maxCrowd: 0,
     distance: 0,
     nearMisses: 0,
+    nearMissStreak: 0,
+    maxNearMissStreak: 0,
   };
 }
 
@@ -562,6 +569,31 @@ export class StateManager {
 
   public runRecordNearMiss(count: number = 1): void {
     if (this.run) this.run.nearMisses += count;
+  }
+
+  /**
+   * Фиксирует успешный уворот в упор: инкрементирует общий счётчик, наращивает
+   * текущую серию, обновляет рекорд maxNearMissStreak и возвращает множитель награды.
+   * Без notify() — серия накапливается в RunStats и попадает в сейв только в commitRun().
+   */
+  public runRecordNearMissStreak(): { streak: number; multiplier: number } {
+    if (!this.run) return { streak: 1, multiplier: 1 };
+    this.run.nearMisses += 1;
+    this.run.nearMissStreak += 1;
+    if (this.run.nearMissStreak > this.run.maxNearMissStreak) {
+      this.run.maxNearMissStreak = this.run.nearMissStreak;
+    }
+    return { streak: this.run.nearMissStreak, multiplier: getNearMissMultiplier(this.run.nearMissStreak) };
+  }
+
+  /** Сбрасывает текущую серию уворотов (при уроне толпы или безопасном объезде ловушки). */
+  public runResetNearMissStreak(): void {
+    if (this.run) this.run.nearMissStreak = 0;
+  }
+
+  /** Возвращает текущую длину серии уворотов в активном забеге. */
+  public getNearMissStreak(): number {
+    return this.run?.nearMissStreak ?? 0;
   }
 
   public runRecordCombo(combo: number): void {

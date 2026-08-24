@@ -79,10 +79,23 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
     );
 
     // Near-Miss (уворот в упор): всплывающая бирюзовая плашка за рискованный проход
-    // вплотную к активной ловушке без касания.
-    const unsubNearMiss = eventBus.on('nearMiss', (data: { x?: number; z?: number }) => {
+    // вплотную к активной ловушке без касания. Серия уворотов эскалирует текст и цвет.
+    const unsubNearMiss = eventBus.on('nearMiss', (data: { x?: number; z?: number; streak?: number }) => {
       if (!data) return;
-      spawn(data.x || 0, data.z || 0, i18n.t('nearMiss', 'В УПОР! +⚡'), 'text-cyan-300 drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]');
+      const streak = data.streak ?? 1;
+      let text = i18n.t('nearMiss', 'В УПОР! +⚡');
+      let colorClass = 'text-cyan-300 drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]';
+      if (streak >= 10) {
+        text = i18n.t('nearMissStreak10', 'БОЖЕСТВЕННО x10! +⚡');
+        colorClass = 'text-amber-300 font-extrabold text-xl scale-110 drop-shadow-[0_0_12px_rgba(251,191,36,0.9)]';
+      } else if (streak >= 5) {
+        text = i18n.t('nearMissStreak5', 'МЕГА-СЕРИЯ x5! +⚡');
+        colorClass = 'text-purple-300 font-extrabold text-lg drop-shadow-[0_0_10px_rgba(168,85,247,0.9)]';
+      } else if (streak >= 2) {
+        text = i18n.t('nearMissStreak2', 'СЕРИЯ x2! +⚡');
+        colorClass = 'text-cyan-300 font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.9)]';
+      }
+      spawn(data.x || 0, data.z || 0, text, colorClass);
     });
 
     return () => {

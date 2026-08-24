@@ -14,7 +14,7 @@ import { soundEngine } from '../audio/SoundEngine';
 import { MusicTheme } from '../types/audio';
 import { eventBus } from '../core/EventBus';
 import { perfMonitor } from '../core/Performance';
-import { clamp } from '../utils/math';
+import { clamp, getNearMissMultiplier } from '../utils/math';
 import { createSpectatorGeometry } from '../utils/proceduralMeshes';
 
 export interface HudSnapshot {
@@ -35,6 +35,9 @@ export interface HudSnapshot {
   finishStepsDone: number;
   finishStepsTotal: number;
   isFinishActive: boolean;
+  // Серия уворотов в упор (Near-Miss Streak) — текущая длина и множитель награды.
+  nearMissStreak: number;
+  nearMissMultiplier: number;
 }
 
 export interface GameEngineCallbacks {
@@ -276,9 +279,16 @@ export class GameEngine {
 
     // Near-Miss (уворот в упор): рискованный проход вплотную к ловушке без касания
     // даёт импульс заряда адреналина — поощряет филигранное микроуправление.
-    this.unsubNearMiss = eventBus.on('nearMiss', (data: { x?: number; z?: number }) => {
-      this.adrenalineCharge = Math.min(100, this.adrenalineCharge + 12);
-      this.particles.emitBurst(data.x ?? this.crowd.leaderX, 1.2, data.z ?? this.crowd.leaderZ, 12, 0x38bdf8, 4.0);
+    // Серия уворотов эскалирует награду: множитель x2/x5/x10 даёт больше заряда и
+    // более яркий визуальный фидбек.
+    this.unsubNearMiss = eventBus.on('nearMiss', (data: { x?: number; z?: number; multiplier?: number }) => {
+      const mult = data?.multiplier ?? 1;
+      const adrenalineBonus = mult >= 10 ? 30 : mult >= 5 ? 22 : mult >= 2 ? 16 : 12;
+      this.adrenalineCharge = Math.min(100, this.adrenalineCharge + adrenalineBonus);
+      const count = mult >= 10 ? 36 : mult >= 5 ? 26 : mult >= 2 ? 18 : 12;
+      const color = mult >= 10 ? 0xfacc15 : mult >= 5 ? 0xa855f7 : mult >= 2 ? 0x00f0ff : 0x38bdf8;
+      this.particles.emitBurst(data.x ?? this.crowd.leaderX, 1.2, data.z ?? this.crowd.leaderZ, count, color, 4.0);
+      if (mult >= 10) eventBus.emit('screenShake', { intensity: 0.15 });
     });
 
     // Живое применение настроек графики: смена качества/теней в настройках сразу
@@ -1530,7 +1540,7 @@ export class GameEngine {
     const runStats: RunStats = stateManager.getRun() || {
       coins: 0, mobsSpawned: 0, gatesPassed: 0, obstaclesSmashed: 0,
       bossesDefeated: 0, bossCoins: 0, bossGems: 0, maxCombo: 0, maxCrowd: 0,
-      distance: 0, nearMisses: 0,
+      distance: 0, nearMisses: 0, nearMissStreak: 0, maxNearMissStreak: 0,
     };
     // Откатываем активные эффекты событий (ЭМИ-шторм, множители скорости), чтобы они
     // не протекли в следующий забег.
@@ -2129,6 +2139,8 @@ export class GameEngine {
       finishStepsDone: this.finishLine.getFinishStepsDone(),
       finishStepsTotal: this.finishLine.getFinishStepsTotal(),
       isFinishActive: this.finishLine.hasCrossedFinish,
+      nearMissStreak: this.obstacles.getNearMissStreak(),
+      nearMissMultiplier: getNearMissMultiplier(this.obstacles.getNearMissStreak()),
     };
   }
 

@@ -35,6 +35,8 @@ const EMPTY_SNAPSHOT: HudSnapshot = {
   finishStepsDone: 0,
   finishStepsTotal: 0,
   isFinishActive: false,
+  nearMissStreak: 0,
+  nearMissMultiplier: 1,
 };
 
 export const GameCanvas: React.FC<GameCanvasProps> = ({
@@ -165,6 +167,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         finishStepsDone={hud.finishStepsDone}
         finishStepsTotal={hud.finishStepsTotal}
         isFinishActive={hud.isFinishActive}
+        nearMissStreak={hud.nearMissStreak}
+        nearMissMultiplier={hud.nearMissMultiplier}
       />
     </div>
   );

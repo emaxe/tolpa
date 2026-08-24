@@ -19,7 +19,7 @@ import { ParticleSystem } from './ParticleSystem';
 import { soundEngine } from '../audio/SoundEngine';
 import { eventBus } from '../core/EventBus';
 import { stateManager } from '../core/StateManager';
-import { checkCircleRectCollision, circleRectGap } from '../utils/math';
+import { checkCircleRectCollision, circleRectGap, getNearMissMultiplier } from '../utils/math';
 
 interface ObstacleVisual {
   data: ObstacleData;
@@ -741,6 +741,8 @@ export class ObstacleManager {
       // Звук смерти и лёгкая тряска камеры. Никакого hitCooldown — каждый коснувшийся гибнет.
       if (vol > 0) soundEngine.playSound('mob_death', 1, vol);
       eventBus.emit('screenShake', { intensity: 0.3 });
+      // Толпа понесла урон от ловушки — серия уворотов сбрасывается.
+      stateManager.runResetNearMissStreak();
     }
   }
 
@@ -780,11 +782,23 @@ export class ObstacleManager {
       // Прошёл в зазоре (0..0.35 м от края активного хитбокса), не коснувшись.
       if (gap >= 0 && gap <= 0.35) {
         obsVis.nearMissAwarded = true;
-        stateManager.runRecordNearMiss(1);
-        stateManager.runAddCoins(8);
-        soundEngine.playSound('near_miss');
-        particles.emitBurst(obsVis.hazardX, 1.2, rz, 10, 0x38bdf8, 3.0);
-        eventBus.emit('nearMiss', { x: obsVis.hazardX, z: rz, coins: 8 });
+        // Серия уворотов: инкремент + множитель награды (x1/x2/x5/x10).
+        const { streak, multiplier } = stateManager.runRecordNearMissStreak();
+        const coins = 8 * multiplier;
+        stateManager.runAddCoins(coins);
+        // Эскалация звука по уровню серии (pitch выше на каждом увороте).
+        soundEngine.playSound('near_miss', 1.0 + Math.min(1.0, streak * 0.05));
+        // Эскалация визуального фидбека: больше частиц и ярче цвет на высоких сериях.
+        const count = multiplier >= 10 ? 36 : multiplier >= 5 ? 26 : multiplier >= 2 ? 18 : 10;
+        const color = multiplier >= 10 ? 0xfacc15 : multiplier >= 5 ? 0xa855f7 : multiplier >= 2 ? 0x00f0ff : 0x38bdf8;
+        particles.emitBurst(obsVis.hazardX, 1.2, rz, count, color, 3.0 + multiplier * 0.2);
+        eventBus.emit('nearMiss', { x: obsVis.hazardX, z: rz, coins, streak, multiplier });
+      } else if (gap > 0.35 && gap <= 2.2) {
+        // Безопасный объезд в той же полосе (0.35..2.2 м от хитбокса) — игрок не
+        // рискнул, серия уворотов сбрасывается. Полноширинные ловушки (gap <= 0)
+        // серию НЕ ломают — там награда невозможна в принципе.
+        obsVis.nearMissAwarded = true;
+        stateManager.runResetNearMissStreak();
       }
     }
     obsVis.lastLeaderZ = lz;
@@ -860,6 +874,8 @@ export class ObstacleManager {
         this.playDeathEffect(obs, m.x, 0.8, m.z, particles);
       }
     }
+    // Взрыв мины убил мобов — серия уворотов сбрасывается.
+    stateManager.runResetNearMissStreak();
   }
 
   private resolveDog(
@@ -932,6 +948,8 @@ export class ObstacleManager {
     this.playDeathEffect(obs, nearest.x, 0.8, nearest.z, particles);
     if (vol > 0) soundEngine.playSound('dog_snap', 1, vol);
     eventBus.emit('screenShake', { intensity: 0.25 });
+    // Собака укусила моба — серия уворотов сбрасывается.
+    stateManager.runResetNearMissStreak();
   }
 
   private disposeMeshTree(root: THREE.Object3D): void {
@@ -966,6 +984,11 @@ export class ObstacleManager {
       this.scene.remove(c.mesh);
     });
     this.coins = [];
+  }
+
+  /** Текущая длина серии уворотов в упор (для HUD-индикатора). */
+  public getNearMissStreak(): number {
+    return stateManager.getNearMissStreak();
   }
 
   public dispose(): void {

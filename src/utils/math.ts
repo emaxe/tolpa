@@ -12,6 +12,22 @@ export function randomRange(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
+// ==== Near-Miss Streak (серия уворотов в упор) ====
+// Пороги серии и множители награды. Декуплировано от combo ворот: серия уворотов
+// растёт только на последовательных near-miss и сбрасывается на уроне толпы или
+// безопасном объезде ловушки в той же полосе. Чистая функция, 0 аллокаций.
+export const NEAR_MISS_STREAK_TIERS = [2, 5, 10] as const; // пороги серии
+export const NEAR_MISS_STREAK_MULT = [2, 5, 10] as const;  // множители на порогах
+
+/** Возвращает множитель награды по длине серии уворотов (1 → x1, 2 → x2, 5 → x5, 10 → x10). */
+export function getNearMissMultiplier(streak: number): number {
+  let m = 1;
+  for (let i = 0; i < NEAR_MISS_STREAK_TIERS.length; i++) {
+    if (streak >= NEAR_MISS_STREAK_TIERS[i]) m = NEAR_MISS_STREAK_MULT[i];
+  }
+  return m;
+}
+
 // Минимальный зазор между кругом (моб/лидер) и прямоугольником (активный хитбокс
 // препятствия) в плоскости XZ. >=0 — снаружи (зазор), <0 — пересечение/касание.
 // Чистая числовая функция, 0 аллокаций — безопасна для горячего цикла.

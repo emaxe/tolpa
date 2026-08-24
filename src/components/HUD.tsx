@@ -33,6 +33,9 @@ interface HUDProps {
   finishStepsDone: number;
   finishStepsTotal: number;
   isFinishActive: boolean;
+  // Серия уворотов в упор (Near-Miss Streak) — текущая длина и множитель награды.
+  nearMissStreak: number;
+  nearMissMultiplier: number;
 }
 
 export const HUD: React.FC<HUDProps> = ({
@@ -60,6 +63,8 @@ export const HUD: React.FC<HUDProps> = ({
   finishStepsDone,
   finishStepsTotal,
   isFinishActive,
+  nearMissStreak,
+  nearMissMultiplier,
 }) => {
   const [bossInfo, setBossInfo] = useState<{ hp: number; maxHp: number; nameKey: string } | null>(null);
   const [damageFlashKey, setDamageFlashKey] = useState<number>(0);
@@ -164,6 +169,18 @@ export const HUD: React.FC<HUDProps> = ({
                     : `×${comboFactor.toFixed(2)}`}
                 </span>
               )}
+            </div>
+          )}
+
+          {/* Near-Miss Streak Badge — серия уворотов в упор (x2/x5/x10), декуплирована
+              от combo ворот. Показывает текущий множитель награды за рискованные проходы. */}
+          {nearMissStreak >= 2 && (
+            <div className="bg-cyan-500/90 text-zinc-950 font-orbitron font-extrabold px-3 py-1.5 rounded-lg shadow-lg animate-pulse flex items-center gap-1.5 text-sm">
+              <Zap className="w-4 h-4 fill-current" />
+              <span>{nearMissStreak} {i18n.t('nearMissStreakLabel', 'УВОРОТОВ')}!</span>
+              <span className="bg-zinc-950/25 px-1.5 py-0.5 rounded-md text-xs font-black tracking-tight">
+                ×{nearMissMultiplier}
+              </span>
             </div>
           )}
         </div>

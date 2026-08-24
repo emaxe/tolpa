@@ -508,6 +508,8 @@ export class SoundEngine {
 
       case 'near_miss': {
         // Уворот в упор — короткий нисходящий «свип» (сирена-вжик), тихий и резкий.
+        // pitchShift кодирует уровень серии уворотов (1.0..1.5): на высоких сериях
+        // добавляются гармонический слой (>=1.25) и кибер-саб (>=1.4) для эскалации.
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'triangle';
@@ -521,6 +523,36 @@ export class SoundEngine {
         gain.connect(outGain);
         osc.start(t);
         osc.stop(t + 0.12);
+
+        // Гармонический слой на серии >=5 (pitchShift >= 1.25) — футуристичный интервал.
+        if (pitchShift >= 1.25) {
+          const hOsc = this.ctx.createOscillator();
+          const hGain = this.ctx.createGain();
+          hOsc.type = 'sine';
+          hOsc.frequency.setValueAtTime(480 * pitchShift, t);
+          hOsc.frequency.exponentialRampToValueAtTime(180 * pitchShift, t + 0.12);
+          hGain.gain.setValueAtTime(0.12, t);
+          hGain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+          hOsc.connect(hGain);
+          hGain.connect(outGain);
+          hOsc.start(t);
+          hOsc.stop(t + 0.12);
+        }
+
+        // Кибер-саб слой на серии >=10 (pitchShift >= 1.4) — мощный разряд.
+        if (pitchShift >= 1.4) {
+          const sOsc = this.ctx.createOscillator();
+          const sGain = this.ctx.createGain();
+          sOsc.type = 'sawtooth';
+          sOsc.frequency.setValueAtTime(640 * pitchShift, t);
+          sOsc.frequency.exponentialRampToValueAtTime(160 * pitchShift, t + 0.12);
+          sGain.gain.setValueAtTime(0.1, t);
+          sGain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+          sOsc.connect(sGain);
+          sGain.connect(outGain);
+          sOsc.start(t);
+          sOsc.stop(t + 0.12);
+        }
         break;
       }
 

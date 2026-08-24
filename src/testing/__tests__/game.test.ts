@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { LevelGenerator, DEFAULT_TRACK_WIDTH } from '../../engine/LevelGenerator';
 import { StateManager } from '../../core/StateManager';
 import { ObjectPool, Poolable } from '../../core/ObjectPool';
-import { calculateFormationOffset, clamp, lerp, circleRectGap } from '../../utils/math';
+import { calculateFormationOffset, clamp, lerp, circleRectGap, getNearMissMultiplier } from '../../utils/math';
 
 describe('Gate & Math Operations', () => {
   it('выполняет сложение мобов (+15 к 10 = 25)', () => {
@@ -100,6 +100,30 @@ describe('Save System', () => {
     // Новый забег сбрасывает счётчик.
     mgr.beginRun();
     expect(mgr.getRun()?.nearMisses).toBe(0);
+  });
+
+  it('серия уворотов эскалирует множитель награды (x1 → x2 → x5 → x10)', () => {
+    expect(getNearMissMultiplier(1)).toBe(1);
+    expect(getNearMissMultiplier(2)).toBe(2);
+    expect(getNearMissMultiplier(4)).toBe(2);
+    expect(getNearMissMultiplier(5)).toBe(5);
+    expect(getNearMissMultiplier(9)).toBe(5);
+    expect(getNearMissMultiplier(10)).toBe(10);
+    expect(getNearMissMultiplier(15)).toBe(10);
+  });
+
+  it('runRecordNearMissStreak наращивает серию и фиксирует рекорд, сброс обнуляет текущую', () => {
+    const mgr = StateManager.getInstance();
+    mgr.beginRun();
+    expect(mgr.runRecordNearMissStreak().multiplier).toBe(1);
+    expect(mgr.runRecordNearMissStreak().multiplier).toBe(2); // streak=2 → x2
+    expect(mgr.runRecordNearMissStreak().multiplier).toBe(2); // streak=3 → x2
+    expect(mgr.runRecordNearMissStreak().multiplier).toBe(2); // streak=4 → x2
+    expect(mgr.runRecordNearMissStreak().multiplier).toBe(5); // streak=5 → x5
+    expect(mgr.getRun()?.maxNearMissStreak).toBe(5);
+    mgr.runResetNearMissStreak();
+    expect(mgr.getRun()?.nearMissStreak).toBe(0);
+    expect(mgr.getRun()?.maxNearMissStreak).toBe(5); // рекорд сохраняется
   });
 });
 
