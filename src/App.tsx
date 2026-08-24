@@ -185,7 +185,9 @@ export const App: React.FC = () => {
   }, [isEndless, activeLevel, handlePlayEndless, handlePlayLevel]);
 
   const handleToMainMenu = useCallback(() => {
-    soundEngine.stopMusic();
+    // Чилловая BGM-тема меню (dead-but-supported: тема синтезирована, но меню было в тишине).
+    // playMusic() сам переключает currentTheme и не трогает идущий интервал при возврате.
+    soundEngine.playMusic('menu');
     setPhase('main_menu');
     setEndResult(null);
   }, []);

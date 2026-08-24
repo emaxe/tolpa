@@ -742,7 +742,9 @@ export class ObstacleManager {
     }
 
     if (anyHit) {
-      // Звук смерти и лёгкая тряска камеры. Никакого hitCooldown — каждый коснувшийся гибнет.
+      // Металлический лязг удара об ловушку (отличается от гейт-урона mob_death)
+      // и лёгкая тряска камеры. Никакого hitCooldown — каждый коснувшийся гибнет.
+      if (vol > 0) soundEngine.playSound('obstacle_hit', 1, vol);
       if (vol > 0) soundEngine.playSound('mob_death', 1, vol);
       eventBus.emit('screenShake', { intensity: 0.3 });
       // Толпа понесла урон от ловушки — серия уворотов сбрасывается.

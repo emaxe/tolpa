@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { stateManager } from '../core/StateManager';
 import { i18n } from '../core/Localization';
 import { soundEngine } from '../audio/SoundEngine';
@@ -40,6 +40,22 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 }) => {
   const [showLevelSelect, setShowLevelSelect] = useState<boolean>(false);
   const state = stateManager.getState();
+
+  // При первом пользовательском взаимодействии с меню запускаем чилловую BGM-тему.
+  // playMusic() сам переключает currentTheme и не создаёт дубль-интервал (isBgmPlaying guard).
+  useEffect(() => {
+    const startMenuMusic = () => {
+      soundEngine.playMusic('menu');
+      window.removeEventListener('pointerdown', startMenuMusic);
+      window.removeEventListener('keydown', startMenuMusic);
+    };
+    window.addEventListener('pointerdown', startMenuMusic);
+    window.addEventListener('keydown', startMenuMusic);
+    return () => {
+      window.removeEventListener('pointerdown', startMenuMusic);
+      window.removeEventListener('keydown', startMenuMusic);
+    };
+  }, []);
 
   const handleStartCurrent = () => {
     soundEngine.playSound('button_click');
