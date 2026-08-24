@@ -342,7 +342,8 @@ export class CrowdManager {
     const defenseAuraLvl = stateManager.getState().upgrades.defenseAura;
     const damageReduction = defenseAuraLvl * 0.1; // up to 50%
     // Урон 0 после брони должен оставаться 0, а не превращаться в гарантированную смерть.
-    const finalCount = Math.max(0, Math.round(count * (1 - damageReduction)));
+    let finalCount = Math.max(0, Math.round(count * (1 - damageReduction)));
+    if (this.formation === 'wedge') finalCount = Math.max(1, Math.round(finalCount * 0.6));
     if (finalCount <= 0) return 0;
 
     let killed = 0;
@@ -506,7 +507,8 @@ export class CrowdManager {
     if (count <= 0) return 0;
     const defenseAuraLvl = stateManager.getState().upgrades.defenseAura;
     const damageReduction = defenseAuraLvl * 0.1;
-    const finalCount = Math.max(0, Math.round(count * (1 - damageReduction)));
+    let finalCount = Math.max(0, Math.round(count * (1 - damageReduction)));
+    if (this.formation === 'wedge') finalCount = Math.max(1, Math.round(finalCount * 0.6));
     if (finalCount <= 0) return 0;
 
     const sorted = group.filter((m) => m.alive).sort((a, b) => b.z - a.z);

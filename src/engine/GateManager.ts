@@ -212,11 +212,25 @@ export class GateManager {
       particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 35 : 6, 0x00f0ff, netChange > 0 ? 6.0 : 2.0);
       isPositive = true;
     } else if (op === 'divide') {
-      // ÷N: пропускает каждого N-го по очереди, остальных убирает.
-      netChange = -crowd.divideMobsByStep(wing, val, 'gate');
-      soundEngine.playSound('gate_pass_negative');
-      particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 20, 0xef4444, 4.0);
-      eventBus.emit('screenShake', { intensity: 0.3 });
+      const hasMage = wing.some((m) => m.type === 'mage');
+      if (hasMage) {
+        // Хроно-Маг: трансмутирует отрицательные ворота в прибавку мобов
+        const transmuteVal = Math.max(1, Math.round(val * 0.6));
+        const base = crowd.addMobsNear(transmuteVal, gateX, gateZ);
+        if (base > 0) {
+          const bonus = Math.floor(base * (comboFactor - 1));
+          netChange = bonus > 0 ? base + crowd.addMobsNear(bonus, gateX, gateZ) : base;
+        }
+        if (netChange > 0) soundEngine.playSound('gate_pass_positive');
+        particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 25 : 6, 0x10b981, netChange > 0 ? 5.0 : 2.0);
+        isPositive = true;
+      } else {
+        // ÷N: пропускает каждого N-го по очереди, остальных убирает.
+        netChange = -crowd.divideMobsByStep(wing, val, 'gate');
+        soundEngine.playSound('gate_pass_negative');
+        particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 20, 0xef4444, 4.0);
+        eventBus.emit('screenShake', { intensity: 0.3 });
+      }
     }
 
     if (isPositive) {

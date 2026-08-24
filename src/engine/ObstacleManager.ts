@@ -67,6 +67,8 @@ export class ObstacleManager {
   private coins: CoinVisual[] = [];
   private coinGeo: THREE.CylinderGeometry;
   private coinMat: THREE.MeshStandardMaterial;
+  private _vUp = new THREE.Vector3(0, 1, 0);
+  private _vDir = new THREE.Vector3();
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -371,10 +373,8 @@ export class ObstacleManager {
       const len = Math.sqrt(dogX * dogX + dogZ * dogZ);
       chain.position.set(dogX * 0.5, 0.25, dogZ * 0.5);
       chain.scale.set(1, Math.max(0.1, len), 1);
-      chain.quaternion.setFromUnitVectors(
-        new THREE.Vector3(0, 1, 0),
-        new THREE.Vector3(dogX, 0.05, dogZ).normalize()
-      );
+      this._vDir.set(dogX, 0.05, dogZ).normalize();
+      chain.quaternion.setFromUnitVectors(this._vUp, this._vDir);
     }
 
     // Hazard: зона атаки вокруг собаки (смещённая), не статика анкера
@@ -543,6 +543,10 @@ export class ObstacleManager {
           }
           break;
       }
+
+      // Ранний выход: препятствия далеко от толпы не проверяем на коллизии (CPU hot-path).
+      const dz = obs.z - crowd.leaderZ;
+      if (dz > 10 || dz < -25) return;
 
       // Check collision with crowd
       this.checkObstacleCollision(obsVis, crowd, particles);
