@@ -262,6 +262,8 @@ export interface GameStats {
   highestCombo: number;
   maxCrowdReached: number;
   totalAdrenalineActivations: number;
+  /** Общее число уворотов в упор (Near-Miss) за всё время игры. */
+  totalNearMisses: number;
   gamesPlayed: number;
   levelsCompleted: number;
 }

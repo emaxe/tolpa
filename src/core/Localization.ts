@@ -207,6 +207,10 @@ export const translations = {
     achGemCollectorDesc: 'Заработайте 100 самоцветов за всё время',
     achBossHunter: 'Охотник на Боссов',
     achBossHunterDesc: 'Уничтожьте 5 боссов в кампании или бесконечном режиме',
+    achNearMiss50: 'На волосок',
+    achNearMiss50Desc: 'Совершите 50 уворотов в упор от смертельных ловушек',
+    achNearMiss200: 'Мастер Уклонения',
+    achNearMiss200Desc: 'Совершите 200 уворотов в упор за всё время',
 
     // Скины легиона
     'skins.cyan': 'Кибер-Бирюза',
@@ -458,6 +462,10 @@ export const translations = {
     achGemCollectorDesc: 'Collect 100 gems across all runs',
     achBossHunter: 'Boss Hunter',
     achBossHunterDesc: 'Defeat 5 bosses in campaign or endless mode',
+    achNearMiss50: 'Close Call',
+    achNearMiss50Desc: 'Perform 50 near-miss dodges against lethal traps',
+    achNearMiss200: 'Evasion Master',
+    achNearMiss200Desc: 'Perform 200 near-miss dodges across all runs',
 
     // Legion skins
     'skins.cyan': 'Cyber Cyan',

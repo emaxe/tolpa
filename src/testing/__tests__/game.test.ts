@@ -482,6 +482,21 @@ describe('Skin Rewards (бонусные скины)', () => {
     expect(mgr.claimAchievement('boss_hunter')).toBe(true);
   });
 
+  it('commitRun сохраняет near-misses в totalNearMisses и продвигает достижения', () => {
+    const mgr = StateManager.getInstance();
+    mgr.resetProgress();
+    const initial = mgr.getState().stats.totalNearMisses || 0;
+
+    mgr.beginRun();
+    mgr.runRecordNearMiss(5);
+    mgr.commitRun();
+
+    const st = mgr.getState();
+    expect(st.stats.totalNearMisses).toBe(initial + 5);
+    expect(st.achievements['near_miss_50']?.progress).toBeGreaterThanOrEqual(5);
+    expect(st.achievements['near_miss_200']?.progress).toBeGreaterThanOrEqual(5);
+  });
+
   it('combo-бонус за серию позитивных ворот каппится на +80% (фактор ≤ 1.8)', () => {
     // Формула бонуса из GateManager.executeGateEffect: comboFactor = 1 + min((streak-1)*0.08, 0.8).
     // Проверяем чистую математику без движка.

@@ -40,6 +40,7 @@ export const INITIAL_STATS: GameStats = {
   highestCombo: 0,
   maxCrowdReached: 0,
   totalAdrenalineActivations: 0,
+  totalNearMisses: 0, // Начальное значение счётчика уворотов в упор
   gamesPlayed: 0,
   levelsCompleted: 0,
 };
@@ -411,6 +412,30 @@ export const INITIAL_ACHIEVEMENTS: AchievementItem[] = [
     claimed: false,
     category: 'combat',
   },
+  {
+    id: 'near_miss_50',
+    titleKey: 'achNearMiss50',
+    descKey: 'achNearMiss50Desc',
+    icon: 'Zap',
+    progress: 0,
+    goal: 50,
+    rewardCoins: 1200,
+    rewardGems: 15,
+    claimed: false,
+    category: 'combat',
+  },
+  {
+    id: 'near_miss_200',
+    titleKey: 'achNearMiss200',
+    descKey: 'achNearMiss200Desc',
+    icon: 'Flame',
+    progress: 0,
+    goal: 200,
+    rewardCoins: 3000,
+    rewardGems: 35,
+    claimed: false,
+    category: 'combat',
+  },
 ];
 
 export interface RunStats {
@@ -478,6 +503,8 @@ export class StateManager {
     this.updateAchievementProgressSilent('mob_cloner', this.state.stats.totalMobsSpawned);
     this.updateAchievementProgressSilent('gem_collector', this.state.stats.totalGemsEarned);
     this.updateAchievementProgressSilent('boss_hunter', this.state.stats.totalBossesDefeated);
+    this.updateAchievementProgressSilent('near_miss_50', this.state.stats.totalNearMisses);
+    this.updateAchievementProgressSilent('near_miss_200', this.state.stats.totalNearMisses);
 
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
@@ -637,6 +664,7 @@ export class StateManager {
     this.state.stats.totalGatesPassed += r.gatesPassed;
     this.state.stats.totalObstaclesSmashed += r.obstaclesSmashed;
     this.state.stats.totalBossesDefeated += r.bossesDefeated;
+    this.state.stats.totalNearMisses += r.nearMisses;
     if (r.maxCombo > this.state.stats.highestCombo) this.state.stats.highestCombo = r.maxCombo;
     if (r.maxCrowd > this.state.stats.maxCrowdReached) this.state.stats.maxCrowdReached = r.maxCrowd;
 
@@ -648,6 +676,8 @@ export class StateManager {
     this.updateAchievementProgressSilent('mob_cloner', this.state.stats.totalMobsSpawned);
     this.updateAchievementProgressSilent('gem_collector', this.state.stats.totalGemsEarned);
     this.updateAchievementProgressSilent('boss_hunter', this.state.stats.totalBossesDefeated);
+    this.updateAchievementProgressSilent('near_miss_50', this.state.stats.totalNearMisses);
+    this.updateAchievementProgressSilent('near_miss_200', this.state.stats.totalNearMisses);
 
     this.notify();
     this.flushSave();
