@@ -7,6 +7,12 @@ import { soundEngine } from '../audio/SoundEngine';
 import { eventBus } from '../core/EventBus';
 import { stateManager } from '../core/StateManager';
 
+// Пауза между атаками босса, масштабируемая по уровню (tier = level/10, 1..5).
+// L10 — заметная пауза (обучающий ритм), к L50 почти исчезает (эскалация).
+const BOSS_BASE_ATTACK_COOLDOWN = 2.5; // пауза на L10, сек
+const BOSS_COOLDOWN_PER_TIER = 0.55; // уменьшение паузы на каждый тир
+const BOSS_MIN_ATTACK_COOLDOWN = 0.3; // пол L50 — почти без паузы
+
 export class BossManager {
   private scene: THREE.Scene;
   public bossData: BossData | null = null;
@@ -21,12 +27,21 @@ export class BossManager {
   // Накопитель тиков урона для атаки "minions" (рой мелких тварей грызёт толпу
   // в течение всей длительности атаки, а не одним ударом как slam/laser).
   private minionTickAccum: number = 0;
+  // Пауза между атаками (attack cooldown), масштабируемая по уровню босса.
+  // Раньше босс бил непрерывно (telegraph → attack → сразу следующий telegraph)
+  // на всех уровнях — не было окна передышки для перестроения толпы. Теперь
+  // между атаками есть пауза: на L10 заметная (новичок успевает перестроиться),
+  // к L50 почти исчезает (эскалация сложности).
+  private isCoolingDown: boolean = false;
+  private attackCooldown: number = 0;
+  private attackInterval: number = 2.5;
+  private bossLevel: number = 10;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
   }
 
-  public initBoss(bossData: BossData, arenaZ: number): void {
+  public initBoss(bossData: BossData, arenaZ: number, level: number = 10): void {
     this.clear();
     this.bossData = { ...bossData, hp: bossData.maxHp };
     this.bossArenaZ = arenaZ;
@@ -34,6 +49,12 @@ export class BossManager {
     this.attackTimer = 0;
     this.currentAttackIndex = 0;
     this.retaliationTimer = 1.0;
+    this.bossLevel = level;
+    this.attackInterval = this.computeAttackInterval(level);
+    // Грейс-пауза перед первой атакой: даёт игроку время перестроить толпу
+    // после входа в арену (distanceToArena <= 35), а не получать удар сразу.
+    this.isCoolingDown = true;
+    this.attackCooldown = 1.0 + this.attackInterval;
 
     // Create 3D Mesh
     this.bossMesh = createBossMesh(this.bossData);
@@ -57,6 +78,16 @@ export class BossManager {
     soundEngine.playMusic('boss_battle');
   }
 
+  /** Рассчитывает паузу между атаками по уровню босса (tier = level/10, 1..5).
+   *  L10 — заметная пауза (обучающий ритм), к L50 почти исчезает (эскалация). */
+  private computeAttackInterval(level: number): number {
+    const tier = Math.max(1, Math.floor(level / 10));
+    return Math.max(
+      BOSS_MIN_ATTACK_COOLDOWN,
+      BOSS_BASE_ATTACK_COOLDOWN - (tier - 1) * BOSS_COOLDOWN_PER_TIER
+    );
+  }
+
   public update(
     dt: number,
     crowd: CrowdManager,
@@ -73,34 +104,48 @@ export class BossManager {
     // Only engage battle when crowd is within 35 units of boss arena
     if (distanceToArena > 35) return;
 
-    // 1. Attack cycle
-    this.attackTimer += dt;
-    const attacks = this.bossData.attacks;
-    const currentAttack = attacks[this.currentAttackIndex % attacks.length];
-
-    if (!this.isAttacking) {
-      // Telegraph phase
-      if (this.telegraphMesh) {
-        const prog = this.attackTimer / currentAttack.telegraphTime;
-        (this.telegraphMesh.material as THREE.MeshBasicMaterial).opacity = Math.min(0.7, prog * 0.7);
-        this.telegraphMesh.scale.set(prog, prog, prog);
-      }
-
-      if (this.attackTimer >= currentAttack.telegraphTime) {
-        this.isAttacking = true;
+    // 1. Attack cycle (с паузой между атаками, масштабируемой по уровню босса).
+    //    Во время паузы (isCoolingDown) attackTimer НЕ инкрементируется — иначе
+    //    первый кадр после паузы мгновенно завершил бы telegraph следующей атаки.
+    if (this.isCoolingDown) {
+      this.attackCooldown -= dt;
+      if (this.attackCooldown <= 0) {
+        this.isCoolingDown = false;
         this.attackTimer = 0;
-        this.executeBossAttack(currentAttack, crowd, particles);
       }
+      // Телеграф скрыт — opacity уже сброшен при завершении атаки.
     } else {
-      // Attack execution phase
-      // Рой мелких тварей наносит урон тиками на протяжении всей длительности атаки.
-      this.tickMinionDamage(dt, crowd, particles);
-      if (this.attackTimer >= currentAttack.duration) {
-        this.isAttacking = false;
-        this.attackTimer = 0;
-        this.currentAttackIndex++;
+      this.attackTimer += dt;
+      const attacks = this.bossData.attacks;
+      const currentAttack = attacks[this.currentAttackIndex % attacks.length];
+
+      if (!this.isAttacking) {
+        // Telegraph phase
         if (this.telegraphMesh) {
-          (this.telegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+          const prog = this.attackTimer / currentAttack.telegraphTime;
+          (this.telegraphMesh.material as THREE.MeshBasicMaterial).opacity = Math.min(0.7, prog * 0.7);
+          this.telegraphMesh.scale.set(prog, prog, prog);
+        }
+
+        if (this.attackTimer >= currentAttack.telegraphTime) {
+          this.isAttacking = true;
+          this.attackTimer = 0;
+          this.executeBossAttack(currentAttack, crowd, particles);
+        }
+      } else {
+        // Attack execution phase
+        // Рой мелких тварей наносит урон тиками на протяжении всей длительности атаки.
+        this.tickMinionDamage(dt, crowd, particles);
+        if (this.attackTimer >= currentAttack.duration) {
+          this.isAttacking = false;
+          this.attackTimer = 0;
+          this.currentAttackIndex++;
+          // Начинаем паузу перед следующей атакой.
+          this.isCoolingDown = true;
+          this.attackCooldown = this.attackInterval;
+          if (this.telegraphMesh) {
+            (this.telegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+          }
         }
       }
     }
@@ -265,5 +310,7 @@ export class BossManager {
     }
     this.bossData = null;
     this.isDefeated = false;
+    this.isCoolingDown = false;
+    this.attackCooldown = 0;
   }
 }

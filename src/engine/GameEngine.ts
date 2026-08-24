@@ -542,7 +542,7 @@ export class GameEngine {
     this.obstacles.initObstacles(levelConfig.obstacles, levelConfig.coins);
 
     if (levelConfig.boss) {
-      this.boss.initBoss(levelConfig.boss, levelConfig.trackLength - 20);
+      this.boss.initBoss(levelConfig.boss, levelConfig.trackLength - 20, levelConfig.levelNumber);
     } else {
       this.boss.clear();
     }
