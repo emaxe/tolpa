@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { LevelGenerator, DEFAULT_TRACK_WIDTH } from '../../engine/LevelGenerator';
 import { StateManager } from '../../core/StateManager';
 import { ObjectPool, Poolable } from '../../core/ObjectPool';
-import { calculateFormationOffset, clamp, lerp } from '../../utils/math';
+import { calculateFormationOffset, clamp, lerp, circleRectGap } from '../../utils/math';
 
 describe('Gate & Math Operations', () => {
   it('выполняет сложение мобов (+15 к 10 = 25)', () => {
@@ -89,6 +89,17 @@ describe('Save System', () => {
     const mgr = StateManager.getInstance();
     const result = mgr.importSave('not-valid-base64-random-string@@!#$');
     expect(result).toBe(false);
+  });
+
+  it('runRecordNearMiss накапливает счётчик уворотов в упор в RunStats', () => {
+    const mgr = StateManager.getInstance();
+    mgr.beginRun();
+    mgr.runRecordNearMiss(1);
+    mgr.runRecordNearMiss(2);
+    expect(mgr.getRun()?.nearMisses).toBe(3);
+    // Новый забег сбрасывает счётчик.
+    mgr.beginRun();
+    expect(mgr.getRun()?.nearMisses).toBe(0);
   });
 });
 
@@ -366,6 +377,17 @@ describe('Formations & Math Helpers', () => {
         }
       }
     }
+  });
+
+  it('circleRectGap: отрицательный при пересечении, ~0 при касании, положительный при зазоре', () => {
+    // Круг (0,0,r=0.3) и прямоугольник (rx=0, rz=0, rw=2, rd=2): круг внутри → gap<0.
+    expect(circleRectGap(0, 0, 0.3, 0, 0, 2, 2)).toBeLessThan(0);
+    // Круг касается правого края прямоугольника (rw/2=1): mx=1.3 → gap≈0.
+    expect(circleRectGap(1.3, 0, 0.3, 0, 0, 2, 2)).toBeCloseTo(0, 5);
+    // Круг в зазоре 0.4 от края: mx=1.7 → gap≈0.4.
+    expect(circleRectGap(1.7, 0, 0.3, 0, 0, 2, 2)).toBeCloseTo(0.4, 5);
+    // Далеко по диагонали: гипотенуза минус радиус.
+    expect(circleRectGap(2, 2, 0.3, 0, 0, 2, 2)).toBeCloseTo(Math.hypot(1, 1) - 0.3, 5);
   });
 });
 

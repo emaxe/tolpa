@@ -19,7 +19,7 @@ import { ParticleSystem } from './ParticleSystem';
 import { soundEngine } from '../audio/SoundEngine';
 import { eventBus } from '../core/EventBus';
 import { stateManager } from '../core/StateManager';
-import { checkCircleRectCollision } from '../utils/math';
+import { checkCircleRectCollision, circleRectGap } from '../utils/math';
 
 interface ObstacleVisual {
   data: ObstacleData;
@@ -50,6 +50,10 @@ interface ObstacleVisual {
   // One-shot флаг удара гидравлического молота (звук hammer_impact играет один раз
   // за проход бойка через нижнюю точку, а не каждый кадр).
   hammerImpacted?: boolean;
+  // Near-Miss (уворот в упор): one-shot флаг награды за проход вплотную к активной
+  // ловушке без касания + последняя Z-позиция лидера для детекта пересечения плоскости.
+  nearMissAwarded?: boolean;
+  lastLeaderZ?: number;
 }
 
 interface CoinVisual {
@@ -542,6 +546,8 @@ export class ObstacleManager {
 
       // Check collision with crowd
       this.checkObstacleCollision(obsVis, crowd, particles);
+      // Near-Miss: награда за проход вплотную к активной ловушке без касания.
+      this.checkNearMiss(obsVis, crowd, particles);
     });
     // 2. Update and check coins
     const crowdLeaderX = crowd.leaderX;
@@ -736,6 +742,52 @@ export class ObstacleManager {
       if (vol > 0) soundEngine.playSound('mob_death', 1, vol);
       eventBus.emit('screenShake', { intensity: 0.3 });
     }
+  }
+
+  // Near-Miss (уворот в упор): награда за проход лидера вплотную к АКТИВНОЙ ловушке
+  // без касания. Детект по пересечению плоскости Z препятствия (один замер на ловушку),
+  // зазор считается чистой функцией circleRectGap. Полноширинные ловушки (laser_grid,
+  // lava_pit, широкие spike_trap) дают gap<=0 — награды нет. 0 аллокаций в горячем цикле.
+  private checkNearMiss(
+    obsVis: ObstacleVisual,
+    crowd: CrowdManager,
+    particles: ParticleSystem
+  ): void {
+    const obs = obsVis.data;
+    const rz = obs.z;
+    const lz = crowd.leaderZ;
+
+    // Сброс, пока ловушка неактивна/уничтожена или уже позади — чтобы следующий
+    // проход (например, у качающегося маятника) мог снова дать награду.
+    if (obs.isDead || !this.isHazardActive(obsVis)) {
+      obsVis.nearMissAwarded = false;
+      obsVis.lastLeaderZ = lz;
+      return;
+    }
+
+    const prev = obsVis.lastLeaderZ ?? rz - 1000;
+    // Фиксируем момент пересечения плоскости Z лидером = один замер на препятствие.
+    if (prev < rz && lz >= rz && !obsVis.nearMissAwarded) {
+      const gap = circleRectGap(
+        crowd.leaderX,
+        rz,
+        0.3, // радиус лидера
+        obsVis.hazardX,
+        obsVis.hazardZ,
+        obsVis.hazardW,
+        obsVis.hazardD
+      );
+      // Прошёл в зазоре (0..0.35 м от края активного хитбокса), не коснувшись.
+      if (gap >= 0 && gap <= 0.35) {
+        obsVis.nearMissAwarded = true;
+        stateManager.runRecordNearMiss(1);
+        stateManager.runAddCoins(8);
+        soundEngine.playSound('near_miss');
+        particles.emitBurst(obsVis.hazardX, 1.2, rz, 10, 0x38bdf8, 3.0);
+        eventBus.emit('nearMiss', { x: obsVis.hazardX, z: rz, coins: 8 });
+      }
+    }
+    obsVis.lastLeaderZ = lz;
   }
 
   private resolveBomb(

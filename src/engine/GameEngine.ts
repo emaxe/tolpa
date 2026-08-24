@@ -168,6 +168,7 @@ export class GameEngine {
   private unsubGateCharge: (() => void) | null = null;
   private unsubMobFell: (() => void) | null = null;
   private unsubCombo: (() => void) | null = null;
+  private unsubNearMiss: (() => void) | null = null;
   private unsubSettings: (() => void) | null = null;
 
   // ==== Адаптивное разрешение (watchdog) ====
@@ -271,6 +272,13 @@ export class GameEngine {
         // Толпа на трибунах радуется серии успешных ворот — нарастающий крик.
         soundEngine.playCrowdCheer(Math.min(1, 0.3 + (data.comboStreak ?? 3) * 0.1));
       }
+    });
+
+    // Near-Miss (уворот в упор): рискованный проход вплотную к ловушке без касания
+    // даёт импульс заряда адреналина — поощряет филигранное микроуправление.
+    this.unsubNearMiss = eventBus.on('nearMiss', (data: { x?: number; z?: number }) => {
+      this.adrenalineCharge = Math.min(100, this.adrenalineCharge + 12);
+      this.particles.emitBurst(data.x ?? this.crowd.leaderX, 1.2, data.z ?? this.crowd.leaderZ, 12, 0x38bdf8, 4.0);
     });
 
     // Живое применение настроек графики: смена качества/теней в настройках сразу
@@ -1521,7 +1529,8 @@ export class GameEngine {
     // показать детали (макс. комбо, макс. толпа, сломанные препятствия) на экране итогов.
     const runStats: RunStats = stateManager.getRun() || {
       coins: 0, mobsSpawned: 0, gatesPassed: 0, obstaclesSmashed: 0,
-      bossesDefeated: 0, bossCoins: 0, bossGems: 0, maxCombo: 0, maxCrowd: 0, distance: 0,
+      bossesDefeated: 0, bossCoins: 0, bossGems: 0, maxCombo: 0, maxCrowd: 0,
+      distance: 0, nearMisses: 0,
     };
     // Откатываем активные эффекты событий (ЭМИ-шторм, множители скорости), чтобы они
     // не протекли в следующий забег.
@@ -2160,6 +2169,7 @@ export class GameEngine {
     this.unsubGateCharge?.();
     this.unsubMobFell?.();
     this.unsubCombo?.();
+    this.unsubNearMiss?.();
     this.unsubSettings?.();
 
     this.crowd.dispose();

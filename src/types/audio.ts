@@ -30,6 +30,7 @@ export type SoundEffect =
   | 'button_click'
   | 'upgrade_buy'
   | 'combo_ding'
+  | 'near_miss'
   | 'crowd_cheer';
 
 export type MusicTheme =

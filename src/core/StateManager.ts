@@ -424,6 +424,8 @@ export interface RunStats {
   maxCrowd: number;
   /** Пройденная дистанция забега в метрах (актуально для Бесконечного режима). */
   distance: number;
+  /** Число «уворотов в упор» (Near-Miss) за текущий забег. */
+  nearMisses: number;
 }
 
 function createEmptyRun(): RunStats {
@@ -438,6 +440,7 @@ function createEmptyRun(): RunStats {
     maxCombo: 0,
     maxCrowd: 0,
     distance: 0,
+    nearMisses: 0,
   };
 }
 
@@ -555,6 +558,10 @@ export class StateManager {
 
   public runRecordObstacleSmash(): void {
     if (this.run) this.run.obstaclesSmashed += 1;
+  }
+
+  public runRecordNearMiss(count: number = 1): void {
+    if (this.run) this.run.nearMisses += count;
   }
 
   public runRecordCombo(combo: number): void {

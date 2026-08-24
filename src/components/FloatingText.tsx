@@ -78,11 +78,19 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       }
     );
 
+    // Near-Miss (уворот в упор): всплывающая бирюзовая плашка за рискованный проход
+    // вплотную к активной ловушке без касания.
+    const unsubNearMiss = eventBus.on('nearMiss', (data: { x?: number; z?: number }) => {
+      if (!data) return;
+      spawn(data.x || 0, data.z || 0, i18n.t('nearMiss', 'В УПОР! +⚡'), 'text-cyan-300 drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]');
+    });
+
     return () => {
       unsubGate();
       unsubMobsKilled();
       unsubCoin();
       unsubObstacle();
+      unsubNearMiss();
     };
   }, [engine]);
 

@@ -12,6 +12,23 @@ export function randomRange(min: number, max: number): number {
   return min + Math.random() * (max - min);
 }
 
+// Минимальный зазор между кругом (моб/лидер) и прямоугольником (активный хитбокс
+// препятствия) в плоскости XZ. >=0 — снаружи (зазор), <0 — пересечение/касание.
+// Чистая числовая функция, 0 аллокаций — безопасна для горячего цикла.
+export function circleRectGap(
+  mx: number,
+  mz: number,
+  r: number,
+  rx: number,
+  rz: number,
+  rw: number,
+  rd: number
+): number {
+  const dx = Math.max(0, Math.abs(mx - rx) - rw / 2);
+  const dz = Math.max(0, Math.abs(mz - rz) - rd / 2);
+  return Math.hypot(dx, dz) - r;
+}
+
 // Зазор от лидера до рельса — общий для клампа лидера (CrowdManager) и коридора
 // препятствий (LevelGenerator), чтобы оба места не расходились по магическому числу.
 export const TRACK_RAIL_MARGIN = 1.2;

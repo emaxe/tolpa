@@ -506,6 +506,24 @@ export class SoundEngine {
         break;
       }
 
+      case 'near_miss': {
+        // Уворот в упор — короткий нисходящий «свип» (сирена-вжик), тихий и резкий.
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(320 * pitchShift, t);
+        osc.frequency.exponentialRampToValueAtTime(120 * pitchShift, t + 0.12);
+
+        gain.gain.setValueAtTime(0.18, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+
+        osc.connect(gain);
+        gain.connect(outGain);
+        osc.start(t);
+        osc.stop(t + 0.12);
+        break;
+      }
+
       case 'upgrade_buy': {
         // Покупка улучшения/скина — короткий восходящий "кассовый" звоночек
         const notes = [660, 880, 1100];

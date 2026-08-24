@@ -152,6 +152,14 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
                 </span>
                 <span className="font-orbitron font-bold text-emerald-400">{runStats.gatesPassed}</span>
               </div>
+              {runStats.nearMisses > 0 && (
+                <div className="flex items-center justify-between text-zinc-300">
+                  <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-zinc-400">
+                    <Zap className="w-3.5 h-3.5 text-cyan-400" /> {i18n.t('runNearMisses')}
+                  </span>
+                  <span className="font-orbitron font-bold text-cyan-400">{runStats.nearMisses}</span>
+                </div>
+              )}
               {runStats.bossesDefeated > 0 && (
                 <div className="flex items-center justify-between text-zinc-300 col-span-2">
                   <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-zinc-400">

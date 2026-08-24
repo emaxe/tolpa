@@ -3,6 +3,7 @@ import { CrowdManager } from './CrowdManager';
 import { ParticleSystem } from './ParticleSystem';
 import { soundEngine } from '../audio/SoundEngine';
 import { eventBus } from '../core/EventBus';
+import { stateManager } from '../core/StateManager';
 import confetti from 'canvas-confetti';
 
 interface WallStep {
@@ -169,7 +170,10 @@ export class FinishLineManager {
     // Чем больше легионеров пожертвовано на пробитие стен — тем выше итоговый бонус.
     // Коэффициент мал (0.005), чтобы не взорвать баланс: при 66 пожертвованных даёт ×1.33.
     this.finalMultiplier *= 1 + this.sacrificedTotal * 0.005;
-    const baseScore = remainingMobs * 100;
+    // Бонус за «увороты в упор» (Near-Miss): косметические очки за рискованное
+    // микроуправление, чисто аддитивно к high-score, без влияния на геймплей.
+    const nearMissBonus = (stateManager.getRun()?.nearMisses ?? 0) * 25;
+    const baseScore = remainingMobs * 100 + nearMissBonus;
     const finalScore = Math.round(baseScore * this.finalMultiplier);
 
     onLevelWon(finalScore, this.finalMultiplier, remainingMobs);
