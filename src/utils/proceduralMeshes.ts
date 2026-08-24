@@ -433,26 +433,40 @@ export function createSawBladeMesh(): THREE.Group {
 export function createPendulumAxeMesh(): THREE.Group {
   const group = new THREE.Group();
 
-  // Arm/Shaft
-  const armGeo = new THREE.CylinderGeometry(0.08, 0.08, 3.5, 8);
-  const armMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 });
+  // Arm/Shaft — светлый, чтобы не сливался с тёмным настилом.
+  const armGeo = new THREE.CylinderGeometry(0.14, 0.14, 3.5, 8);
+  const armMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.85, roughness: 0.25 });
   const arm = new THREE.Mesh(armGeo, armMat);
   arm.position.y = -1.75;
   group.add(arm);
 
-  // Crescent Blade
-  const bladeGeo = new THREE.TorusGeometry(0.8, 0.12, 8, 16, Math.PI);
+  // Crescent Blade — крупная, яркая голова-топор (главный визуальный маркер)
+  const bladeGeo = new THREE.TorusGeometry(1.1, 0.2, 12, 20, Math.PI);
   const bladeMat = new THREE.MeshStandardMaterial({
-    color: 0xe2e8f0,
+    color: 0xfdba74,
     metalness: 0.9,
-    roughness: 0.1,
-    emissive: 0x38bdf8,
-    emissiveIntensity: 0.4,
+    roughness: 0.15,
+    emissive: 0xf97316,
+    emissiveIntensity: 0.55,
   });
   const blade = new THREE.Mesh(bladeGeo, bladeMat);
-  blade.position.y = -3.2;
+  blade.position.y = -3.35;
   blade.rotation.z = Math.PI / 2;
   group.add(blade);
+
+  // Яркое лезвийное остриё в нижней точке дуги (острая часть топора)
+  const tipGeo = new THREE.ConeGeometry(0.14, 0.5, 6);
+  const tipMat = new THREE.MeshStandardMaterial({
+    color: 0xfca5a5,
+    metalness: 0.95,
+    roughness: 0.1,
+    emissive: 0xef4444,
+    emissiveIntensity: 0.6,
+  });
+  const tip = new THREE.Mesh(tipGeo, tipMat);
+  tip.position.y = -3.85;
+  tip.rotation.z = Math.PI;
+  group.add(tip);
 
   return group;
 }
