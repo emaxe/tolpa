@@ -159,8 +159,8 @@ export class BossManager {
       // (150 HP) за 0.086 секунды — "бой" не успевал начаться. Теперь урон растёт
       // медленнее и не зависит от размера толпы линейно.
       const crowdPower = Math.min(140, 12 + aliveMobs.length * 1.6) * dt;
-
-      this.takeDamage(crowdPower, particles);
+      // Тактический бонус Фаланги (circle): толпа в плотном строю наносит боссу больше урона.
+      this.takeDamage(crowdPower * crowd.getBossDamageMultiplier(), particles);
 
       // Boss retaliation — было "8% шанс за кадр" (~4.8 смертей/сек на 60 FPS без единого
       // предупреждения). Теперь фиксированный ритм с небольшой тряской-телеграфом.

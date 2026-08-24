@@ -163,10 +163,11 @@ export class BonusManager {
       const pulse = 1.0 + Math.sin(this.spinTimer * 4 + bv.spinTimer) * 0.15;
       bv.glow.scale.setScalar(pulse);
 
-      // Коллекция лидером толпы
+      // Коллекция лидером толпы. Шеренга (wide) расширяет зону захвата бонусов по X.
       const dx = b.x - leaderX;
       const dz = b.z - leaderZ;
-      if (Math.abs(dz) < 2.2 && Math.abs(dx) < 3.5) {
+      const reachX = crowd.formation === 'wide' ? 5.5 : 3.5;
+      if (Math.abs(dz) < 2.2 && Math.abs(dx) < reachX) {
         b.collected = true;
         this.scene.remove(bv.group);
         this.applyEffect(b, crowd, particles);

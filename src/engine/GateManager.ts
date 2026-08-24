@@ -119,9 +119,15 @@ export class GateManager {
   }
 
   public update(dt: number, crowd: CrowdManager, particles: ParticleSystem): void {
+    // Буфер живых мобов собирается ОДИН раз на кадр, а не для каждых ворот:
+    // aliveScratch — живой массив-объект, поэтому после executeGateEffect следующая
+    // итерация цикла увидит актуальные данные.
+    const aliveMobs = crowd.getAliveMobs();
     this.gates.forEach((gateVisual) => {
       const gate = gateVisual.data;
       if (gate.passed) return;
+      // Пространственный отсев: ворота далеко от лидера ещё не достигнуты — не сканируем.
+      if (Math.abs(gate.z - crowd.leaderZ) > 80) return;
 
       // Движение ворот.
       this.applyMotion(gateVisual, dt);
@@ -133,7 +139,6 @@ export class GateManager {
 
       // Per-mob обработка: каждый моб, прошедший через проём этих ворот, обрабатывается
       // независимо. Мобы, чей X не попадает в проём, этими воротами не затрагиваются.
-      const aliveMobs = crowd.getAliveMobs();
       const through: MobInstance[] = [];
       let any = false;
       for (const mob of aliveMobs) {

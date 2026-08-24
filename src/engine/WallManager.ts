@@ -100,6 +100,8 @@ export class WallManager {
     for (const wv of this.walls) {
       const wall = wv.data;
       if (wall.destroyed) continue;
+      // Пространственный отсев: стена далеко от лидера ещё не достигнута — не сканируем.
+      if (Math.abs(wall.z - leaderZ) > 80) continue;
 
       // Анимация падения стены (счётчик исчерпан).
       if (wv.falling) {
@@ -134,11 +136,14 @@ export class WallManager {
       if (through.length === 0) continue;
 
       // Стена бьёт ровно по стольким мобам, сколько осталось в счётчике.
-      const toConsume = Math.min(through.length, wall.killsRemaining);
+      // Фаланга (circle) пробивает стены вдвое быстрее: каждый проходящий боец
+      // снимает 2 единицы счётчика вместо 1.
+      const wallDamage = crowd.formation === 'circle' ? 2 : 1;
+      const toConsume = Math.min(through.length, Math.ceil(wall.killsRemaining / wallDamage));
       for (let i = 0; i < toConsume; i++) {
         const killed = crowd.killOneFromGroup(through, 'wall');
         if (killed) {
-          wall.killsRemaining--;
+          wall.killsRemaining -= wallDamage;
           this.updateCounterTexture(wv);
           soundEngine.playSound('gate_pass_negative');
           particles.emitBurst(wall.x, 1.5, wall.z, 12, 0xef4444, 4.0);

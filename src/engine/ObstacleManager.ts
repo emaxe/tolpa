@@ -567,10 +567,11 @@ export class ObstacleManager {
 
       coinVis.mesh.rotation.z += dt * 4;
 
-      // Distance check to crowd
+      // Distance check to crowd. Шеренга (wide) расширяет окно сбора монет по X.
       const dx = coin.x - crowdLeaderX;
       const dz = coin.z - crowdLeaderZ;
-      if (Math.abs(dz) < 2.2 && Math.abs(dx) < 3.5) {
+      const reachX = crowd.formation === 'wide' ? 5.5 : 3.5;
+      if (Math.abs(dz) < 2.2 && Math.abs(dx) < reachX) {
         coin.collected = true;
         this.scene.remove(coinVis.mesh);
 
@@ -724,8 +725,12 @@ export class ObstacleManager {
       );
 
       if (hit) {
-        if (isHyper || (obs.destructible && hasTanks)) {
-          // Сломать препятствие!
+        if (isHyper || (obs.destructible && hasTanks) || crowd.canRamObstacles()) {
+          // Сломать препятствие! Фаланга (circle) с достаточной толпой таранит ловушку
+          // силой массы — теряет лишь 1 бойца вместо уничтожения всех коснувшихся.
+          if (crowd.canRamObstacles() && !isHyper && !(obs.destructible && hasTanks)) {
+            crowd.killMobs(1, 'obstacle');
+          }
           obs.isDead = true;
           this.scene.remove(obsVis.mesh);
           if (vol > 0) soundEngine.playSound('obstacle_smash', 1, vol);

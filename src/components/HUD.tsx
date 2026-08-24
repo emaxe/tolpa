@@ -376,7 +376,16 @@ export const HUD: React.FC<HUDProps> = ({
         </div>
 
         {/* Formation Switcher Buttons */}
-        <div className="pointer-events-auto grid grid-cols-4 gap-2 bg-zinc-950/80 backdrop-blur-md p-1.5 rounded-xl border border-zinc-800 max-sm:order-1 max-sm:grid-cols-1 max-sm:gap-1 max-sm:p-1 max-sm:rounded-2xl">
+        <div className="pointer-events-auto flex flex-col items-center gap-1.5">
+          {/* Бейдж активного тактического бонуса формации — показывает, что даёт
+              текущий строй, чтобы выбор формации читался как тактический инструмент. */}
+          <div className="bg-zinc-950/80 backdrop-blur-md border border-zinc-800 rounded-lg px-2.5 py-1 text-[10px] font-orbitron font-bold text-teal-300 max-sm:hidden">
+            {currentFormation === 'wedge' && '🛡️ Урон −40%'}
+            {currentFormation === 'wide' && '🧲 Охват сбора +60%'}
+            {currentFormation === 'circle' && '💥 Таран боссов ×1.35 · Стен ×2'}
+            {currentFormation === 'arrow' && '⚡ Скорость +15%'}
+          </div>
+          <div className="pointer-events-auto grid grid-cols-4 gap-2 bg-zinc-950/80 backdrop-blur-md p-1.5 rounded-xl border border-zinc-800 max-sm:order-1 max-sm:grid-cols-1 max-sm:gap-1 max-sm:p-1 max-sm:rounded-2xl">
           <button
             onClick={() => onFormationChange('wedge')}
             className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
@@ -428,6 +437,7 @@ export const HUD: React.FC<HUDProps> = ({
             <ArrowUp className="w-4 h-4 mb-0.5 max-sm:mb-0 max-sm:w-5 max-sm:h-5" />
             <span className="text-[10px] uppercase max-sm:hidden">4: {i18n.t('formationArrow').split(' ')[0]}</span>
           </button>
+          </div>
         </div>
       </div>
     </div>
