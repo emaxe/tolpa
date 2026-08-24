@@ -11,6 +11,7 @@ interface LevelEndModalProps {
   crowdCount: number;
   stars: number;
   runStats: RunStats | null;
+  sacrificedTotal?: number;
   isEndless?: boolean;
   endless?: { distance: number; isNewRecord: boolean; coinsEarned: number };
   onNextLevel: () => void;
@@ -27,6 +28,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
   crowdCount,
   stars,
   runStats,
+  sacrificedTotal,
   isEndless = false,
   endless,
   onNextLevel,
@@ -106,6 +108,12 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
                 <span className="font-orbitron text-xs">{i18n.t('wallMultiplier')}</span>
                 <span className="font-orbitron font-bold text-amber-400">×{multiplier.toFixed(1)}</span>
               </div>
+              {sacrificedTotal !== undefined && sacrificedTotal > 0 && (
+                <div className="flex justify-between items-center text-zinc-300">
+                  <span className="font-orbitron text-xs">{i18n.t('finishSacrificed')}</span>
+                  <span className="font-orbitron font-bold text-rose-400">{sacrificedTotal}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center text-zinc-300">
                 <span className="font-orbitron text-xs">{i18n.t('crowd')}</span>
                 <span className="font-orbitron font-bold text-teal-300">{crowdCount}</span>

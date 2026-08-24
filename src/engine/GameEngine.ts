@@ -168,7 +168,7 @@ export class GameEngine {
   private eventFxAccum: number = 0;
 
   // Callbacks
-  private onLevelWinCb?: (score: number, mult: number, mobs: number, runStats: RunStats) => void;
+  private onLevelWinCb?: (score: number, mult: number, mobs: number, sacrificed: number, runStats: RunStats) => void;
   private onLevelLoseCb?: (runStats: RunStats) => void;
   private callbacks: GameEngineCallbacks;
   private unsubShake: (() => void) | null = null;
@@ -519,7 +519,7 @@ export class GameEngine {
 
   public loadLevel(
     levelNum: number,
-    onWin: (score: number, mult: number, mobs: number, runStats: RunStats) => void,
+    onWin: (score: number, mult: number, mobs: number, sacrificed: number, runStats: RunStats) => void,
     onLose: (runStats: RunStats) => void
   ): void {
     this.isEndless = false;
@@ -1512,7 +1512,7 @@ export class GameEngine {
     this.resetEventState();
     stateManager.commitRun();
     if (win) {
-      this.onLevelWinCb?.(score, mult, mobs, runStats);
+      this.onLevelWinCb?.(score, mult, mobs, this.finishLine.sacrificedTotal, runStats);
     } else {
       this.onLevelLoseCb?.(runStats);
     }

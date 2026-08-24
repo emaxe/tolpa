@@ -31,6 +31,7 @@ export const App: React.FC = () => {
     crowdCount: number;
     stars: number;
     runStats: RunStats | null;
+    sacrificedTotal?: number;
     endless?: { distance: number; isNewRecord: boolean; coinsEarned: number };
   } | null>(null);
 
@@ -109,7 +110,7 @@ export const App: React.FC = () => {
   }, []);
 
   const handleLevelWon = useCallback(
-    (score: number, mult: number, remainingMobs: number, runStats: RunStats) => {
+    (score: number, mult: number, remainingMobs: number, sacrificed: number, runStats: RunStats) => {
       const stars = remainingMobs >= 60 ? 3 : remainingMobs >= 20 ? 2 : 1;
       const coinsEarned = Math.round(score * 0.5);
       const gemsEarned = activeLevel % 10 === 0 ? 10 : 2;
@@ -128,6 +129,7 @@ export const App: React.FC = () => {
         crowdCount: remainingMobs,
         stars,
         runStats,
+        sacrificedTotal: sacrificed,
       });
       setPhase('level_won');
     },
@@ -265,6 +267,7 @@ export const App: React.FC = () => {
           crowdCount={endResult.crowdCount}
           stars={endResult.stars}
           runStats={endResult.runStats}
+          sacrificedTotal={endResult.sacrificedTotal}
           isEndless={isEndless}
           endless={endResult.endless}
           onNextLevel={handleNextLevel}

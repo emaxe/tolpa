@@ -12,7 +12,7 @@ interface GameCanvasProps {
   runId: number;
   isPaused: boolean;
   inputEnabled: boolean;
-  onLevelWon: (score: number, mult: number, remainingMobs: number, runStats: RunStats) => void;
+  onLevelWon: (score: number, mult: number, remainingMobs: number, sacrificed: number, runStats: RunStats) => void;
   onLevelLost: (runStats: RunStats) => void;
   onPauseRequest: () => void;
   onPauseButton: () => void;
@@ -81,7 +81,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     } else {
       engine.loadLevel(
         levelNumber,
-        (score, mult, mobs, runStats) => callbacksRef.current.onLevelWon(score, mult, mobs, runStats),
+        (score, mult, mobs, sacrificed, runStats) => callbacksRef.current.onLevelWon(score, mult, mobs, sacrificed, runStats),
         (runStats) => callbacksRef.current.onLevelLost(runStats)
       );
     }
