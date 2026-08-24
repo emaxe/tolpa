@@ -460,6 +460,18 @@ export const INITIAL_ACHIEVEMENTS: AchievementItem[] = [
     claimed: false,
     category: 'levels',
   },
+  {
+    id: 'games_played',
+    titleKey: 'achGamesPlayed',
+    descKey: 'achGamesPlayedDesc',
+    icon: 'Gamepad2',
+    progress: 0,
+    goal: 100,
+    rewardCoins: 1500,
+    rewardGems: 15,
+    claimed: false,
+    category: 'levels',
+  },
 ];
 
 export interface RunStats {
@@ -529,6 +541,7 @@ export class StateManager {
     this.updateAchievementProgressSilent('boss_hunter', this.state.stats.totalBossesDefeated);
     this.updateAchievementProgressSilent('near_miss_50', this.state.stats.totalNearMisses);
     this.updateAchievementProgressSilent('near_miss_200', this.state.stats.totalNearMisses);
+    this.updateAchievementProgressSilent('games_played', this.state.stats.gamesPlayed);
 
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
@@ -829,6 +842,7 @@ export class StateManager {
   public completeLevel(levelNum: number, score: number, crowdCount: number, stars: number): void {
     this.state.stats.levelsCompleted += 1;
     this.state.stats.gamesPlayed += 1;
+    this.updateAchievementProgress('games_played', this.state.stats.gamesPlayed);
 
     // High score
     if (!this.state.levelHighScores[levelNum] || score > this.state.levelHighScores[levelNum]) {

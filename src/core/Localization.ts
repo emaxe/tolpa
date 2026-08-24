@@ -220,6 +220,8 @@ export const translations = {
     achVeteran25Desc: 'Пройдите 25 уровней кампании',
     achCampaign50: 'Завоеватель',
     achCampaign50Desc: 'Пройдите все 50 уровней кампании',
+    achGamesPlayed: 'Ветеран забегов',
+    achGamesPlayedDesc: 'Пройдите 100 уровней за всё время',
 
     // Скины легиона
     'skins.cyan': 'Кибер-Бирюза',
@@ -484,6 +486,8 @@ export const translations = {
     achVeteran25Desc: 'Complete 25 campaign levels',
     achCampaign50: 'Conqueror',
     achCampaign50Desc: 'Complete all 50 campaign levels',
+    achGamesPlayed: 'Run Veteran',
+    achGamesPlayedDesc: 'Complete 100 levels in total',
 
     // Legion skins
     'skins.cyan': 'Cyber Cyan',
