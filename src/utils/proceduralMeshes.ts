@@ -126,6 +126,11 @@ export function createHumanoidGeometry(): THREE.BufferGeometry {
   crestGeo.translate(0, 1.54, 0.02);
   geometries.push(crestGeo);
 
+  // Антенна связи на шлеме (тактический штырь связи на гребне)
+  const antennaGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.14, 6);
+  antennaGeo.translate(0, 1.6, 0.02);
+  geometries.push(antennaGeo);
+
   // Шейный переход (связывает голову с плечами)
   const neckGeo = new THREE.CylinderGeometry(0.08, 0.1, 0.12, 8);
   neckGeo.translate(0, 1.18, 0);
@@ -175,6 +180,16 @@ export function createHumanoidGeometry(): THREE.BufferGeometry {
   armGeoR.rotateZ(-0.2);
   armGeoR.translate(0.28, 0.85, 0);
   geometries.push(armGeoR);
+
+  // Налокотники (защитные щитки на локтях)
+  const elbowGeoL = new THREE.BoxGeometry(0.07, 0.09, 0.07);
+  elbowGeoL.rotateZ(0.2);
+  elbowGeoL.translate(-0.30, 0.82, 0);
+  geometries.push(elbowGeoL);
+  const elbowGeoR = new THREE.BoxGeometry(0.07, 0.09, 0.07);
+  elbowGeoR.rotateZ(-0.2);
+  elbowGeoR.translate(0.30, 0.82, 0);
+  geometries.push(elbowGeoR);
 
   // Наручи / броня предплечий (заполняют пустоту между локтем и кулаком)
   const bracerGeoL = new THREE.BoxGeometry(0.08, 0.16, 0.09);
@@ -227,6 +242,11 @@ export function createHumanoidGeometry(): THREE.BufferGeometry {
   beltGeo.translate(0, 0.58, 0);
   geometries.push(beltGeo);
 
+  // Поясная пряжка (центральная пряжка тактического пояса)
+  const buckleGeo = new THREE.BoxGeometry(0.08, 0.05, 0.03);
+  buckleGeo.translate(0, 0.58, 0.12);
+  geometries.push(buckleGeo);
+
   // Knee pads — armored shin guards
   const kneeGeo = new THREE.SphereGeometry(0.05, 6, 6);
   kneeGeo.scale(1, 1, 0.6);
@@ -236,6 +256,14 @@ export function createHumanoidGeometry(): THREE.BufferGeometry {
   kneeGeoR.scale(1, 1, 0.6);
   kneeGeoR.translate(0.1, 0.42, 0.06);
   geometries.push(kneeGeoR);
+
+  // Щитки голени (броня голеней спереди)
+  const shinGeoL = new THREE.BoxGeometry(0.09, 0.18, 0.08);
+  shinGeoL.translate(-0.1, 0.25, 0.05);
+  geometries.push(shinGeoL);
+  const shinGeoR = new THREE.BoxGeometry(0.09, 0.18, 0.08);
+  shinGeoR.translate(0.1, 0.25, 0.05);
+  geometries.push(shinGeoR);
 
   // Merge geometries into single buffer
   const merged = mergeBufferGeometries(geometries);
