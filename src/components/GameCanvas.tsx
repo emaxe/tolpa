@@ -35,6 +35,8 @@ const EMPTY_SNAPSHOT: HudSnapshot = {
   finishStepsDone: 0,
   finishStepsTotal: 0,
   isFinishActive: false,
+  finishNextWallCost: -1,
+  finishNextWallAffordable: false,
   nearMissStreak: 0,
   nearMissMultiplier: 1,
 };
@@ -167,6 +169,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         finishStepsDone={hud.finishStepsDone}
         finishStepsTotal={hud.finishStepsTotal}
         isFinishActive={hud.isFinishActive}
+        finishNextWallCost={hud.finishNextWallCost}
+        finishNextWallAffordable={hud.finishNextWallAffordable}
         nearMissStreak={hud.nearMissStreak}
         nearMissMultiplier={hud.nearMissMultiplier}
       />

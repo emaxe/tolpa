@@ -35,6 +35,10 @@ export interface HudSnapshot {
   finishStepsDone: number;
   finishStepsTotal: number;
   isFinishActive: boolean;
+  // Стоимость следующей финишной стены в легионерах (-1 если финиш не активен или все стены пробиты).
+  finishNextWallCost: number;
+  // Хватает ли текущей толпы, чтобы пробить следующую стену (crowd > cost).
+  finishNextWallAffordable: boolean;
   // Серия уворотов в упор (Near-Miss Streak) — текущая длина и множитель награды.
   nearMissStreak: number;
   nearMissMultiplier: number;
@@ -2139,6 +2143,11 @@ export class GameEngine {
       finishStepsDone: this.finishLine.getFinishStepsDone(),
       finishStepsTotal: this.finishLine.getFinishStepsTotal(),
       isFinishActive: this.finishLine.hasCrossedFinish,
+      finishNextWallCost: this.finishLine.getNextWallCost(),
+      finishNextWallAffordable: (() => {
+        const cost = this.finishLine.getNextWallCost();
+        return cost >= 0 && this.crowd.getAliveCount() > cost;
+      })(),
       nearMissStreak: this.obstacles.getNearMissStreak(),
       nearMissMultiplier: getNearMissMultiplier(this.obstacles.getNearMissStreak()),
     };

@@ -33,6 +33,10 @@ interface HUDProps {
   finishStepsDone: number;
   finishStepsTotal: number;
   isFinishActive: boolean;
+  // Стоимость следующей финишной стены в легионерах (-1 если финиш не активен или все стены пробиты).
+  finishNextWallCost?: number;
+  // Хватает ли текущей толпы, чтобы пробить следующую стену (crowd > cost).
+  finishNextWallAffordable?: boolean;
   // Серия уворотов в упор (Near-Miss Streak) — текущая длина и множитель награды.
   nearMissStreak: number;
   nearMissMultiplier: number;
@@ -63,6 +67,8 @@ export const HUD: React.FC<HUDProps> = ({
   finishStepsDone,
   finishStepsTotal,
   isFinishActive,
+  finishNextWallCost = -1,
+  finishNextWallAffordable = false,
   nearMissStreak,
   nearMissMultiplier,
 }) => {
@@ -231,6 +237,19 @@ export const HUD: React.FC<HUDProps> = ({
               {finishStepsDone}/{finishStepsTotal}
             </span>
           </div>
+          {/* Readout стоимости следующей стены: хватает ли толпы её пробить. */}
+          {finishNextWallCost >= 0 && (
+            <div
+              className={`px-3 py-1 rounded-lg border font-orbitron text-xs font-extrabold tracking-wider ${
+                finishNextWallAffordable
+                  ? 'bg-emerald-950/80 border-emerald-500/70 text-emerald-300'
+                  : 'bg-red-950/80 border-red-500/70 text-red-300 animate-pulse'
+              }`}
+            >
+              {i18n.t('nextWall')}: −{finishNextWallCost} · {i18n.t('finishCrowd')}{' '}
+              {crowdCount}/{finishNextWallCost}
+            </div>
+          )}
         </div>
       )}
 

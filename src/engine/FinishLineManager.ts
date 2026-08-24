@@ -189,6 +189,16 @@ export class FinishLineManager {
     return this.wallSteps.length;
   }
 
+  /**
+   * Стоимость следующей стены в легионерах для HUD-индикатора финишной фазы.
+   * Возвращает -1, если финиш не активен (черта не пересечена) или все стены пробиты.
+   */
+  public getNextWallCost(): number {
+    if (!this.hasCrossedFinish) return -1;
+    if (this.finalStepIndex >= this.wallSteps.length) return -1;
+    return this.wallSteps[this.finalStepIndex].costMobs;
+  }
+
   public clear(): void {
     this.wallSteps.forEach((s) => {
       this.scene.remove(s.mesh);
