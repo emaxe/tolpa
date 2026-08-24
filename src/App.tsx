@@ -240,6 +240,8 @@ export const App: React.FC = () => {
         <DialogueModal
           dialogues={dialogueQueue}
           onComplete={() => {
+            // Фиксируем прогресс сюжета, чтобы пролог 1-го уровня не повторялся.
+            if (activeLevel === 1) stateManager.setStoryProgress(1);
             setDialogueQueue([]);
             setPhase('running');
           }}

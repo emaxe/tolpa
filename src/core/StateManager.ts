@@ -436,6 +436,30 @@ export const INITIAL_ACHIEVEMENTS: AchievementItem[] = [
     claimed: false,
     category: 'combat',
   },
+  {
+    id: 'veteran_25',
+    titleKey: 'achVeteran25',
+    descKey: 'achVeteran25Desc',
+    icon: 'Star',
+    progress: 0,
+    goal: 25,
+    rewardCoins: 2500,
+    rewardGems: 20,
+    claimed: false,
+    category: 'levels',
+  },
+  {
+    id: 'campaign_50',
+    titleKey: 'achCampaign50',
+    descKey: 'achCampaign50Desc',
+    icon: 'Trophy',
+    progress: 0,
+    goal: 50,
+    rewardCoins: 5000,
+    rewardGems: 50,
+    claimed: false,
+    category: 'levels',
+  },
 ];
 
 export interface RunStats {
@@ -678,6 +702,10 @@ export class StateManager {
     this.updateAchievementProgressSilent('boss_hunter', this.state.stats.totalBossesDefeated);
     this.updateAchievementProgressSilent('near_miss_50', this.state.stats.totalNearMisses);
     this.updateAchievementProgressSilent('near_miss_200', this.state.stats.totalNearMisses);
+    // Достижения легиона в Бесконечном режиме: completeLevel() не вызывается в эндлессе,
+    // поэтому прогресс legion_50/150 привязываем к lifetime-максимуму толпы.
+    this.updateAchievementProgressSilent('legion_50', this.state.stats.maxCrowdReached);
+    this.updateAchievementProgressSilent('legion_150', this.state.stats.maxCrowdReached);
 
     this.notify();
     this.flushSave();
@@ -824,6 +852,9 @@ export class StateManager {
     if (crowdCount >= 150) this.updateAchievementProgress('legion_150', crowdCount);
     if (levelNum >= 10) this.updateAchievementProgress('boss_1', 1);
     if (levelNum >= 50) this.updateAchievementProgress('boss_5', 1);
+    // Прогресс прохождения кампании (dead-статы levelsCompleted были без достижений).
+    this.updateAchievementProgress('veteran_25', this.state.stats.levelsCompleted);
+    this.updateAchievementProgress('campaign_50', this.state.stats.levelsCompleted);
 
     // Бонусный скин за прохождение 30 уровня (Босс 3 — Кристальный Змей).
     if (levelNum >= 30 && !this.state.unlockedSkins.includes('dino_rex')) {
@@ -844,6 +875,17 @@ export class StateManager {
   public setCurrentLevel(levelNum: number): void {
     if (levelNum >= 1 && levelNum <= this.state.maxUnlockedLevel) {
       this.state.currentLevel = levelNum;
+      this.notify();
+    }
+  }
+
+  /**
+   * Фиксирует прогресс сюжетного диалога. Сюжет 1-го уровня не должен повторно
+   * всплывать при каждом перезапуске уровня (dead-поле storyProgress).
+   */
+  public setStoryProgress(step: number): void {
+    if (step > this.state.storyProgress) {
+      this.state.storyProgress = step;
       this.notify();
     }
   }
@@ -1011,9 +1053,14 @@ export class StateManager {
       const decoded = atob(encodedStr);
       const parsed = JSON.parse(decoded);
       if (parsed && typeof parsed === 'object') {
+        // Глубокое слияние вложенных объектов, как в loadState(): импортированный
+        // сейв со старой версии не должен затирать отсутствующие новые поля/статы.
         this.state = {
           ...this.getInitialData(),
           ...parsed,
+          upgrades: { ...INITIAL_UPGRADES, ...(parsed.upgrades || {}) },
+          settings: { ...INITIAL_SETTINGS, ...(parsed.settings || {}) },
+          stats: { ...INITIAL_STATS, ...(parsed.stats || {}) },
         };
         i18n.setLanguage(this.state.settings.language);
         this.notify();

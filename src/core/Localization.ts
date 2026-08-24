@@ -212,6 +212,10 @@ export const translations = {
     achNearMiss50Desc: 'Совершите 50 уворотов в упор от смертельных ловушек',
     achNearMiss200: 'Мастер Уклонения',
     achNearMiss200Desc: 'Совершите 200 уворотов в упор за всё время',
+    achVeteran25: 'Ветеран',
+    achVeteran25Desc: 'Пройдите 25 уровней кампании',
+    achCampaign50: 'Завоеватель',
+    achCampaign50Desc: 'Пройдите все 50 уровней кампании',
 
     // Скины легиона
     'skins.cyan': 'Кибер-Бирюза',
@@ -468,6 +472,10 @@ export const translations = {
     achNearMiss50Desc: 'Perform 50 near-miss dodges against lethal traps',
     achNearMiss200: 'Evasion Master',
     achNearMiss200Desc: 'Perform 200 near-miss dodges across all runs',
+    achVeteran25: 'Veteran',
+    achVeteran25Desc: 'Complete 25 campaign levels',
+    achCampaign50: 'Conqueror',
+    achCampaign50Desc: 'Complete all 50 campaign levels',
 
     // Legion skins
     'skins.cyan': 'Cyber Cyan',

@@ -110,6 +110,12 @@ export class WallManager {
           wall.destroyed = true;
           this.scene.remove(wv.group);
           particles.emitBurst(wall.x, 1.5, wall.z, 30, 0xef4444, 5.0);
+          // Джуис/учёт: сломанная стена играет звук, засчитывается в
+          // obstaclesSmashed (достижение obstacle_crusher) и даёт тряску экрана.
+          soundEngine.playSound('obstacle_smash');
+          stateManager.runRecordObstacleSmash();
+          eventBus.emit('obstacleSmashed', { type: 'wall', x: wall.x, z: wall.z });
+          eventBus.emit('screenShake', { intensity: 0.35 });
         }
         continue;
       }
