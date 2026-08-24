@@ -15,7 +15,7 @@ import { MusicTheme } from '../types/audio';
 import { eventBus } from '../core/EventBus';
 import { perfMonitor } from '../core/Performance';
 import { clamp, getNearMissMultiplier } from '../utils/math';
-import { createSpectatorGeometry } from '../utils/proceduralMeshes';
+import { createSpectatorGeometry, createStreetLampMesh, createBillboardMesh } from '../utils/proceduralMeshes';
 
 export interface HudSnapshot {
   crowd: number;
@@ -1104,68 +1104,28 @@ export class GameEngine {
   // Фонари (Г-образные, emissive-плафон), рекламные щиты (CanvasTexture),
   // флаги (покачивание sin) и дроны (дрейф по X) за дальним краем.
   private buildStreetFurniture(group: THREE.Group, length: number, width: number, accent: number, biome: BiomeType): void {
-    // Фонари — низкое придорожное освещение на самом краю дорожки (x = trackHalfWidth),
-    // ниже голов зрителей, вне линии трибун.
+    // Фонари — придорожное освещение на краю дорожки (x = trackHalfWidth),
+    // ниже голов зрителей, вне линии трибун. Готовый меш createStreetLampMesh
+    // (столб 4м + изогнутый кронштейн + светящийся плафон, без PointLight).
     const lampX = width / 2;
 
     // Фонари каждые ~12м
-    const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 2.2, 6);
-    const poleMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.3 });
-    const armGeo = new THREE.BoxGeometry(0.7, 0.06, 0.06);
-    const armMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.3 });
-    const lampGeo = new THREE.SphereGeometry(0.12, 8, 8);
-    const lampMat = new THREE.MeshBasicMaterial({ color: accent });
-
     for (let z = 6; z < length; z += 12) {
       for (const side of [-1, 1]) {
-        const pole = new THREE.Mesh(poleGeo, poleMat);
-        pole.position.set(side * lampX, 1.1, z);
-        group.add(pole);
-        const arm = new THREE.Mesh(armGeo, armMat);
-        arm.position.set(side * (lampX + 0.35), 2.2, z);
-        arm.rotation.y = side > 0 ? Math.PI : 0;
-        group.add(arm);
-        const lamp = new THREE.Mesh(lampGeo, lampMat);
-        lamp.position.set(side * (lampX + 0.7), 2.2, z);
+        const lamp = createStreetLampMesh();
+        lamp.position.set(side * lampX, 0, z);
         group.add(lamp);
       }
     }
 
-    // Рекламные щиты каждые ~40м (CanvasTexture, как createGateTexture) — за трибунами.
-    const billboardGeo = new THREE.PlaneGeometry(3.2, 2.0);
+    // Рекламные щиты каждые ~40м (готовый меш createBillboardMesh с CanvasTexture) — за трибунами.
     const billboardX = 15.7 + 1.5;
     for (let z = 20; z < length; z += 40) {
       for (const side of [-1, 1]) {
-        const canvas = document.createElement('canvas');
-        canvas.width = 256;
-        canvas.height = 160;
-        const ctx = canvas.getContext('2d')!;
-        const grad = ctx.createLinearGradient(0, 0, 0, 160);
-        grad.addColorStop(0, '#0ea5e9');
-        grad.addColorStop(1, '#7c3aed');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, 256, 160);
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 40px Orbitron, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('TOLPA', 128, 60);
-        ctx.font = 'bold 22px Orbitron, sans-serif';
-        ctx.fillStyle = '#fef08a';
-        ctx.fillText('БЕГИ!', 128, 110);
-        const tex = new THREE.CanvasTexture(canvas);
-        tex.needsUpdate = true;
-        const billMat = new THREE.MeshBasicMaterial({ map: tex });
-        const bill = new THREE.Mesh(billboardGeo, billMat);
-        bill.position.set(side * billboardX, 3.0, z);
+        const bill = createBillboardMesh('TOLPA', accent);
+        bill.position.set(side * billboardX, 0, z);
         bill.rotation.y = side > 0 ? Math.PI : 0;
         group.add(bill);
-        // Опоры щита
-        const postGeo = new THREE.CylinderGeometry(0.08, 0.1, 3.0, 6);
-        const postMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.3 });
-        const post = new THREE.Mesh(postGeo, postMat);
-        post.position.set(side * billboardX, 1.5, z);
-        group.add(post);
       }
     }
 
