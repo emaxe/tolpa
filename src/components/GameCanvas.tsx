@@ -53,6 +53,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
   const [formation, setFormation] = useState<FormationType>('oval');
   const [combo, setCombo] = useState<number>(0);
+  const [comboFactor, setComboFactor] = useState<number>(1.0);
   const [hud, setHud] = useState<HudSnapshot>(EMPTY_SNAPSHOT);
 
   // Последние версии коллбэков — движок читает их через ref, поэтому эффект ниже
@@ -84,14 +85,16 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     engine.start();
     setFormation('oval');
     setCombo(0);
+    setComboFactor(1.0);
     setHud(engine.getHudSnapshot());
 
     const unsubFormation = eventBus.on('formationChanged', (f: FormationType) => {
       setFormation(f);
     });
 
-    const unsubGate = eventBus.on('gatePassed', (data: { comboStreak?: number }) => {
+    const unsubGate = eventBus.on('gatePassed', (data: { comboStreak?: number; comboFactor?: number }) => {
       setCombo(data.comboStreak || 0);
+      setComboFactor(data.comboFactor ?? 1.0);
     });
 
     // Единственный опрос снимка состояния для HUD (толпа, гипер, заряд адреналина,
@@ -148,6 +151,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         onActivateAdrenaline={handleActivateAdrenaline}
         isHyperActive={hud.isHyper}
         comboStreak={combo}
+        comboFactor={comboFactor}
         adrenalineCharge={hud.adrenalineCharge}
         progress={hud.progress}
         metersLeft={hud.metersLeft}

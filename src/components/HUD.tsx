@@ -16,6 +16,7 @@ interface HUDProps {
   onActivateAdrenaline: () => void;
   isHyperActive: boolean;
   comboStreak: number;
+  comboFactor: number; // Множитель бонуса толпы за серию позитивных ворот (1.0..1.8)
   // Снимок состояния движка — раньше адреналин заряжался собственным таймером HUD
   // независимо от игры (тикал даже на паузе), а прогресса уровня не было видно вообще.
   adrenalineCharge: number; // 0..100
@@ -45,6 +46,7 @@ export const HUD: React.FC<HUDProps> = ({
   onActivateAdrenaline,
   isHyperActive,
   comboStreak,
+  comboFactor = 1.0,
   adrenalineCharge,
   progress,
   metersLeft,
@@ -148,11 +150,20 @@ export const HUD: React.FC<HUDProps> = ({
             </div>
           </div>
 
-          {/* Combo Multiplier Badge */}
+          {/* Combo Multiplier Badge — счётчик серии + множитель бонуса толпы.
+              comboFactor (1.0..1.8) показывает реальный прирост бойцов за серию
+              позитивных ворот, который раньше был невидим. */}
           {comboStreak > 1 && (
             <div className="bg-amber-500/90 text-zinc-950 font-orbitron font-extrabold px-3 py-1.5 rounded-lg shadow-lg animate-bounce flex items-center gap-1.5 text-sm">
               <Zap className="w-4 h-4 fill-current" />
               <span>{comboStreak}x {i18n.t('combo')}!</span>
+              {comboFactor > 1 && (
+                <span className="bg-zinc-950/25 px-1.5 py-0.5 rounded-md text-xs font-black tracking-tight">
+                  {comboFactor >= 1.8
+                    ? `×${comboFactor.toFixed(1)} ${i18n.t('comboMax', 'МАКС')}`
+                    : `×${comboFactor.toFixed(2)}`}
+                </span>
+              )}
             </div>
           )}
         </div>
