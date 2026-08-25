@@ -830,6 +830,12 @@ export class ObstacleManager {
         obsVis.nearMissAwarded = true;
         // Серия уворотов: инкремент + множитель награды (x1/x2/x5/x10).
         const { streak, multiplier } = stateManager.runRecordNearMissStreak();
+        // Порог серии (пересечение x2/x5/x10) — отдельное событие для праздничного
+        // фидбека: крик толпы, крупный бурст частиц, тряска экрана, баннер в HUD.
+        const prevMult = getNearMissMultiplier(streak - 1);
+        if (multiplier > prevMult) {
+          eventBus.emit('nearMissMilestone', { x: obsVis.hazardX, z: rz, streak, multiplier });
+        }
         const coins = 8 * multiplier;
         stateManager.runAddCoins(coins);
         // Эскалация звука по уровню серии (pitch выше на каждом увороте).

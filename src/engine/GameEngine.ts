@@ -176,6 +176,7 @@ export class GameEngine {
   private unsubMobFell: (() => void) | null = null;
   private unsubCombo: (() => void) | null = null;
   private unsubNearMiss: (() => void) | null = null;
+  private unsubNearMissMilestone: (() => void) | null = null;
   private unsubSettings: (() => void) | null = null;
 
   // ==== Адаптивное разрешение (watchdog) ====
@@ -293,6 +294,17 @@ export class GameEngine {
       const color = mult >= 10 ? 0xfacc15 : mult >= 5 ? 0xa855f7 : mult >= 2 ? 0x00f0ff : 0x38bdf8;
       this.particles.emitBurst(data.x ?? this.crowd.leaderX, 1.2, data.z ?? this.crowd.leaderZ, count, color, 4.0);
       if (mult >= 10) eventBus.emit('screenShake', { intensity: 0.15 });
+    });
+
+    // Порог серии уворотов (x2/x5/x10) — праздничный фидбек: крик толпы, крупный
+    // бурст частиц, тряска экрана. Срабатывает только при пересечении нового тира.
+    this.unsubNearMissMilestone = eventBus.on('nearMissMilestone', (data: { x?: number; z?: number; multiplier?: number }) => {
+      const mult = data?.multiplier ?? 1;
+      const count = mult >= 10 ? 48 : mult >= 5 ? 34 : 22;
+      const color = mult >= 10 ? 0xfacc15 : mult >= 5 ? 0xa855f7 : 0x00f0ff;
+      this.particles.emitBurst(data.x ?? this.crowd.leaderX, 1.6, data.z ?? this.crowd.leaderZ, count, color, 5.0);
+      soundEngine.playCrowdCheer(mult >= 10 ? 1.0 : mult >= 5 ? 0.7 : 0.5);
+      if (mult >= 5) eventBus.emit('screenShake', { intensity: mult >= 10 ? 0.25 : 0.15 });
     });
 
     // Живое применение настроек графики: смена качества/теней в настройках сразу
@@ -2170,6 +2182,7 @@ export class GameEngine {
     this.unsubMobFell?.();
     this.unsubCombo?.();
     this.unsubNearMiss?.();
+    this.unsubNearMissMilestone?.();
     this.unsubSettings?.();
 
     this.crowd.dispose();

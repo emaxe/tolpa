@@ -84,6 +84,7 @@ export const HUD: React.FC<HUDProps> = ({
     emp_storm: { key: 'eventEmpStorm', cls: 'border-rose-500 text-rose-600' },
     meteor_rain: { key: 'eventMeteorRain', cls: 'border-orange-500 text-orange-600' },
     speed_boost: { key: 'eventSpeedBoost', cls: 'border-teal-500 text-teal-700' },
+    nearMissMilestone: { key: 'nearMissMilestone', cls: 'border-fuchsia-500 text-fuchsia-600' },
   };
 
   useEffect(() => {
@@ -107,11 +108,19 @@ export const HUD: React.FC<HUDProps> = ({
       window.setTimeout(() => setEventAlert(null), 3200);
     });
 
+    // Порог серии уворотов (x2/x5/x10) — центральный баннер-тост.
+    const unsubNearMissMilestone = eventBus.on('nearMissMilestone', (data: { multiplier?: number }) => {
+      const mult = data?.multiplier ?? 1;
+      setEventAlert({ type: 'nearMissMilestone', key: Date.now() });
+      window.setTimeout(() => setEventAlert(null), 3200);
+    });
+
     return () => {
       unsubBoss();
       unsubBossDefeat();
       unsubMobsKilled();
       unsubEvent();
+      unsubNearMissMilestone();
     };
   }, []);
 
