@@ -213,8 +213,14 @@ export class GateManager {
       : 1;
 
     if (op === 'add') {
-      // +N: добавляет N мобов к толпе у ворот (на всех прошедших).
-      const base = crowd.addMobsNear(val, gateX, gateZ);
+      // +N: добавляет N мобов к толпе у ворот. Срабатывает ТОЛЬКО один раз за ворота
+      // (при первом прошедшем мобе) — не на каждого прошедшего. Раньше executeGateEffect
+      // вызывался каждый кадр, пока толпа тянулась через проём, и addMobsNear выполнялся
+      // заново на каждый кадр → лавинное добавление «на каждого человечка».
+      let base = 0;
+      if (isFirstTrigger) {
+        base = crowd.addMobsNear(val, gateX, gateZ);
+      }
       if (base > 0) {
         const bonus = Math.floor(base * (comboFactor - 1));
         netChange = bonus > 0 ? base + crowd.addMobsNear(bonus, gateX, gateZ) : base;
