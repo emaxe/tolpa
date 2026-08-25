@@ -680,6 +680,8 @@ export class ObstacleManager {
           eventBus.emit('coinCollected', { value: coinVal, x: coin.x, z: coin.z });
           dirty = true;
         } else {
+          // Монета далеко от толпы — не обновляем матрицу (0-GC, экономия GPU-шины).
+          if (Math.abs(dz) > 35) continue;
           // Вращаем монету вокруг оси Z (как раньше), обновляя матрицу инстанса.
           this.coinDummy.position.set(coin.x, coin.y, coin.z);
           this.coinDummy.rotation.set(Math.PI / 2, 0, spinArr[i]);
