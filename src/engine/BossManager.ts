@@ -27,6 +27,10 @@ export class BossManager {
   // Накопитель тиков урона для атаки "minions" (рой мелких тварей грызёт толпу
   // в течение всей длительности атаки, а не одним ударом как slam/laser).
   private minionTickAccum: number = 0;
+  // Накопитель фидбек-фикций босс-урона. Меле-урон толпы приходит каждый кадр (60 Гц);
+  // без этого накопителя soundEngine boss_hit + частицы + eventBus.emit('bossDamaged')
+  // спамятся 60 раз/сек, форсируя тяжёлый ре-рендер HUD на 60 Гц. Гейтим фидбек ~6 Гц.
+  private hitFxAccum: number = 0;
   // Пауза между атаками (attack cooldown), масштабируемая по уровню босса.
   // Раньше босс бил непрерывно (telegraph → attack → сразу следующий telegraph)
   // на всех уровнях — не было окна передышки для перестроения толпы. Теперь
@@ -169,7 +173,7 @@ export class BossManager {
       // Тактический бонус Фаланги (circle): толпа в плотном строю наносит боссу больше урона.
       const crowdMult = crowd.getBossDamageMultiplier();
       // Фаланга (circle) пробивает энергетический купол на 20% от урона.
-      this.takeDamage(crowdPower * crowdMult, particles, crowdMult === 0.8);
+      this.takeDamage(crowdPower * crowdMult, particles, crowd.formation === 'circle');
 
       // Boss retaliation — было "8% шанс за кадр" (~4.8 смертей/сек на 60 FPS без единого
       // предупреждения). Теперь фиксированный ритм с небольшой тряской-телеграфом.
@@ -313,6 +317,19 @@ export class BossManager {
     }
 
     this.bossData.hp = Math.max(0, this.bossData.hp - amount);
+
+    // Фидбек-фикции гейтим ~6 Гц: меле-урон толпы приходит каждый кадр (60 Гц),
+    // спам звука/частиц/событий форсировал бы тяжёлый ре-рендер HUD на 60 Гц.
+    // HP при этом списывается непрерывно — тормозим только аудио/визуал/эмит.
+    this.hitFxAccum -= 1;
+    if (this.hitFxAccum > 0) {
+      if (this.bossData.hp <= 0) {
+        this.defeatBoss(particles);
+      }
+      return;
+    }
+    this.hitFxAccum = 10; // ~6 Гц при 60 FPS (60/10)
+
     soundEngine.playSound('boss_hit');
 
     if (this.bossMesh) {
