@@ -26,6 +26,7 @@ const WALL_HEIGHT = 4.2;
 export class WallManager {
   private scene: THREE.Scene;
   private walls: WallVisual[] = [];
+  private throughScratch: MobInstance[] = [];
   private sharedPlaneGeo: THREE.PlaneGeometry | null = null;
   private sharedPillarGeo: THREE.CylinderGeometry | null = null;
   private sharedPillarMat: THREE.MeshStandardMaterial | null = null;
@@ -124,24 +125,24 @@ export class WallManager {
 
       // Мобы, проходящие через стену: стена убивает по одному, пока счётчик > 0.
       const halfW = wall.width / 2;
-      const through: MobInstance[] = [];
+      this.throughScratch.length = 0;
       for (const mob of aliveMobs) {
         if (wv.processedMobs.has(mob.id)) continue;
         if (mob.z < wall.z - 0.5) continue;
         if (Math.abs(mob.x - wall.x) > halfW + 0.4) continue;
         wv.processedMobs.add(mob.id);
-        through.push(mob);
+        this.throughScratch.push(mob);
       }
 
-      if (through.length === 0) continue;
+      if (this.throughScratch.length === 0) continue;
 
       // Стена бьёт ровно по стольким мобам, сколько осталось в счётчике.
       // Фаланга (circle) пробивает стены вдвое быстрее: каждый проходящий боец
       // снимает 2 единицы счётчика вместо 1.
       const wallDamage = crowd.formation === 'circle' ? 2 : 1;
-      const toConsume = Math.min(through.length, Math.ceil(wall.killsRemaining / wallDamage));
+      const toConsume = Math.min(this.throughScratch.length, Math.ceil(wall.killsRemaining / wallDamage));
       for (let i = 0; i < toConsume; i++) {
-        const killed = crowd.killOneFromGroup(through, 'wall');
+        const killed = crowd.killOneFromGroup(this.throughScratch, 'wall');
         if (killed) {
           wall.killsRemaining -= wallDamage;
           this.updateCounterTexture(wv);

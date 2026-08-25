@@ -575,6 +575,15 @@ export class ObstacleManager {
     const crowdLeaderX = crowd.leaderX;
     const crowdLeaderZ = crowd.leaderZ;
 
+    // Вычисляем наличие ниндзя один раз перед циклом монет (0-GC) без повторного вызова getAliveMobs()
+    let hasNinjas = false;
+    for (let i = 0; i < aliveMobs.length; i++) {
+      if (aliveMobs[i].type === 'ninja') {
+        hasNinjas = true;
+        break;
+      }
+    }
+
     this.coins.forEach((coinVis) => {
       const coin = coinVis.data;
       if (coin.collected) return;
@@ -590,7 +599,6 @@ export class ObstacleManager {
         this.scene.remove(coinVis.mesh);
 
         // Double coins if crowd has Ninjas
-        const hasNinjas = crowd.getAliveMobs().some((m) => m.type === 'ninja');
         const coinVal = hasNinjas ? coin.value * 2 : coin.value;
 
         stateManager.runAddCoins(coinVal);
@@ -717,7 +725,13 @@ export class ObstacleManager {
 
     // Если Hyper Mode активен или есть танки — препятствие можно сломать.
     const isHyper = crowd.isHyperMode;
-    const hasTanks = aliveMobs.some((m) => m.type === 'tank');
+    let hasTanks = false;
+    for (let i = 0; i < aliveMobs.length; i++) {
+      if (aliveMobs[i].type === 'tank') {
+        hasTanks = true;
+        break;
+      }
+    }
 
     let anyHit = false;
     for (let mob of aliveMobs) {
@@ -851,7 +865,13 @@ export class ObstacleManager {
 
     // Hyper / Танки обезвреживают мину без потерь
     const isHyper = crowd.isHyperMode;
-    const hasTanks = aliveMobs.some((m) => m.type === 'tank');
+    let hasTanks = false;
+    for (let i = 0; i < aliveMobs.length; i++) {
+      if (aliveMobs[i].type === 'tank') {
+        hasTanks = true;
+        break;
+      }
+    }
     if (isHyper || (obs.destructible && hasTanks)) {
       let touched = false;
       for (const m of aliveMobs) {
@@ -926,7 +946,13 @@ export class ObstacleManager {
 
     // Танки / гипер уничтожают кибер-собаку
     const isHyper = crowd.isHyperMode;
-    const hasTanks = aliveMobs.some((m) => m.type === 'tank');
+    let hasTanks = false;
+    for (let i = 0; i < aliveMobs.length; i++) {
+      if (aliveMobs[i].type === 'tank') {
+        hasTanks = true;
+        break;
+      }
+    }
     if (isHyper || (obs.destructible && hasTanks)) {
       let touched = false;
       for (const m of aliveMobs) {

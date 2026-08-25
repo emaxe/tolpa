@@ -26,6 +26,7 @@ export class GateManager {
   private scene: THREE.Scene;
   private gates: GateVisual[] = [];
   private comboStreak: number = 0;
+  private throughScratch: MobInstance[] = [];
 
   // Все ворота уровня используют одну ширину/высоту рамок — общая геометрия.
   private sharedPlaneGeo: THREE.PlaneGeometry | null = null;
@@ -139,7 +140,7 @@ export class GateManager {
 
       // Per-mob обработка: каждый моб, прошедший через проём этих ворот, обрабатывается
       // независимо. Мобы, чей X не попадает в проём, этими воротами не затрагиваются.
-      const through: MobInstance[] = [];
+      this.throughScratch.length = 0;
       let any = false;
       for (const mob of aliveMobs) {
         if (gateVisual.processedMobs.has(mob.id)) continue;
@@ -147,12 +148,12 @@ export class GateManager {
         // Проверяем попадание в проём по X (вращение ворот учитываем упрощённо — по центру).
         if (Math.abs(mob.x - cx) > halfW + 0.4) continue;
         gateVisual.processedMobs.add(mob.id);
-        through.push(mob);
+        this.throughScratch.push(mob);
         any = true;
       }
 
-      if (any && through.length > 0) {
-        this.executeGateEffect(gate.op, gate.value, crowd, particles, cx, gate.z, through, cy);
+      if (any && this.throughScratch.length > 0) {
+        this.executeGateEffect(gate.op, gate.value, crowd, particles, cx, gate.z, this.throughScratch, cy);
         gate.passed = true;
         gateVisual.mat.opacity = 0.3;
       }
@@ -217,7 +218,13 @@ export class GateManager {
       particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 35 : 6, 0x00f0ff, netChange > 0 ? 6.0 : 2.0);
       isPositive = true;
     } else if (op === 'divide') {
-      const hasMage = wing.some((m) => m.type === 'mage');
+      let hasMage = false;
+      for (let i = 0; i < wing.length; i++) {
+        if (wing[i].type === 'mage') {
+          hasMage = true;
+          break;
+        }
+      }
       if (hasMage) {
         // Хроно-Маг: трансмутирует отрицательные ворота в прибавку мобов
         const transmuteVal = Math.max(1, Math.round(val * 0.6));

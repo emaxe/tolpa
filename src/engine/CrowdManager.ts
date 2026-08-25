@@ -22,6 +22,8 @@ export class CrowdManager {
   // Переиспользуемый буфер для killMobs/consumeMobs — раньше каждый вызов делал
   // .filter().sort() (две аллокации на каждое убийство).
   private aliveScratch: MobInstance[] = [];
+  // Переиспользуемый буфер для групповых операций killMobsFromGroup/divideMobsByStep (0-GC).
+  private groupScratch: MobInstance[] = [];
   // Таймер шагов толпы — ритмичный топот при беге (dead sound 'footstep').
   private footstepTimer: number = 0;
 
@@ -490,8 +492,9 @@ export class CrowdManager {
     const fracChance = factor - Math.floor(factor); // дробная часть [0,1)
     if (basePerMob < 0 && fracChance === 0) return 0;
     let added = 0;
-    const alive = group.filter((m) => m.alive);
-    for (const m of alive) {
+    for (let i = 0; i < group.length; i++) {
+      const m = group[i];
+      if (!m.alive) continue;
       let extra = Math.max(0, basePerMob);
       // Дробная часть: с шансом fracChance добавляем ещё одного (например ×1.5 → 50% шанс +1).
       if (Math.random() < fracChance) extra += 1;
@@ -513,10 +516,17 @@ export class CrowdManager {
     if (this.formation === 'wedge' && finalCount > 0) finalCount = Math.max(1, Math.round(finalCount * 0.6));
     if (finalCount <= 0) return 0;
 
-    const sorted = group.filter((m) => m.alive).sort((a, b) => b.z - a.z);
+    if (group !== this.groupScratch) {
+      this.groupScratch.length = 0;
+      for (let i = 0; i < group.length; i++) {
+        if (group[i].alive) this.groupScratch.push(group[i]);
+      }
+    }
+    this.groupScratch.sort((a, b) => b.z - a.z);
     let killed = 0;
     let budget = finalCount;
-    for (const mob of sorted) {
+    for (let i = 0; i < this.groupScratch.length; i++) {
+      const mob = this.groupScratch[i];
       if (budget <= 0) break;
       if (mob.invulnerableTime > 0) continue;
       if (mob.type === 'ninja' && Math.random() < 0.5) { budget--; continue; }
@@ -543,34 +553,46 @@ export class CrowdManager {
    *  Возвращает число убранных. divisor — целое >= 2. */
   public divideMobsByStep(group: MobInstance[], divisor: number, reason: string = 'gate'): number {
     if (divisor < 2) return 0;
-    const alive = group.filter((m) => m.alive);
-    if (alive.length <= 1) return 0;
-    const toRemove: MobInstance[] = [];
+    let aliveCount = 0;
+    for (let i = 0; i < group.length; i++) {
+      if (group[i].alive) aliveCount++;
+    }
+    if (aliveCount <= 1) return 0;
+
+    this.groupScratch.length = 0;
     // Счётчик: 1,2,...,N — когда счётчик достигает N, этот моб ВЫЖИВАЕТ (каждый N-й),
     // все остальные мобы убираются.
     let step = 0;
-    for (const mob of alive) {
+    for (let i = 0; i < group.length; i++) {
+      const mob = group[i];
+      if (!mob.alive) continue;
       step++;
       if (step === divisor) {
         step = 0; // этот моб выживает — сбрасываем отсчёт
       } else {
-        toRemove.push(mob); // не N-й — умирает
+        this.groupScratch.push(mob); // не N-й — умирает
       }
     }
-    if (toRemove.length === 0) return 0;
-    return this.killMobsFromGroup(toRemove, toRemove.length, reason);
+    if (this.groupScratch.length === 0) return 0;
+    return this.killMobsFromGroup(this.groupScratch, this.groupScratch.length, reason);
   }
 
   /** Убивает ровно одного моба из группы (для стены со счётчиком −N). Возвращает true,
    *  если кого-то убрали. Стена вызывает это по мере прохода каждого моба. */
   public killOneFromGroup(group: MobInstance[], reason: string = 'wall'): boolean {
     if (this.isHyperMode) return false;
-    const alive = group.filter((m) => m.alive);
-    if (alive.length === 0) return false;
+    let hasAlive = false;
+    for (let i = 0; i < group.length; i++) {
+      if (group[i].alive) {
+        hasAlive = true;
+        break;
+      }
+    }
+    if (!hasAlive) return false;
     const defenseAuraLvl = stateManager.getState().upgrades.defenseAura;
     const damageReduction = defenseAuraLvl * 0.1;
     const finalCount = Math.max(1, Math.round(1 * (1 - damageReduction)));
-    const killed = this.killMobsFromGroup(alive, finalCount, reason);
+    const killed = this.killMobsFromGroup(group, finalCount, reason);
     return killed > 0;
   }
 
