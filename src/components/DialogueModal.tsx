@@ -74,10 +74,10 @@ export const DialogueModal: React.FC<DialogueModalProps> = ({ dialogues, onCompl
   if (!currentLine) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 md:p-8 bg-zinc-950/70 backdrop-blur-sm select-none">
-      <div className="w-full max-w-2xl bg-zinc-900/95 border-2 border-amber-500/60 rounded-2xl p-5 shadow-2xl shadow-amber-950/80 relative flex flex-col md:flex-row gap-4 items-start animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 md:p-8 bg-slate-100/70 backdrop-blur-sm select-none">
+      <div className="w-full max-w-2xl bg-white/95 border-2 border-amber-500/60 rounded-2xl p-5 shadow-2xl shadow-amber-950/80 relative flex flex-col md:flex-row gap-4 items-start animate-fade-in">
         {/* Avatar Box */}
-        <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-zinc-950 border-2 border-amber-400/50 flex items-center justify-center shrink-0 shadow-inner">
+        <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-slate-100 border-2 border-amber-400/50 flex items-center justify-center shrink-0 shadow-inner">
           {getAvatarIcon(currentLine.speaker)}
         </div>
 
@@ -90,13 +90,13 @@ export const DialogueModal: React.FC<DialogueModalProps> = ({ dialogues, onCompl
               </span>
               <button
                 onClick={onComplete}
-                className="text-xs text-zinc-400 hover:text-white flex items-center gap-1 font-orbitron cursor-pointer"
+                className="text-xs text-slate-600 hover:text-slate-900 flex items-center gap-1 font-orbitron cursor-pointer"
               >
                 <FastForward className="w-3.5 h-3.5" />
                 <span>ПРОПУСК</span>
               </button>
             </div>
-            <p className="text-zinc-200 text-sm md:text-base leading-relaxed font-sans">
+            <p className="text-slate-800 text-sm md:text-base leading-relaxed font-sans">
               {displayedText}
               {isTyping && <span className="inline-block w-2 h-4 bg-amber-400 ml-1 animate-pulse" />}
             </p>

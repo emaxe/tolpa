@@ -136,20 +136,20 @@ export const HUD: React.FC<HUDProps> = ({
       <div className="flex justify-between items-start">
         {/* Level and Crowd Badge */}
         <div className="flex items-center gap-3">
-          <div className="bg-zinc-900/80 backdrop-blur-md border border-teal-500/40 rounded-xl px-4 py-2 shadow-lg shadow-teal-950/50">
+          <div className="bg-white/80 backdrop-blur-md border border-teal-500/40 rounded-xl px-4 py-2 shadow-lg shadow-slate-300/40">
             <span className="text-xs uppercase text-teal-300 font-orbitron tracking-wider">
               {isEndless ? i18n.t('endlessMode') : `${i18n.t('level')} ${levelNumber}`}
             </span>
             <div className="flex items-center gap-2 mt-0.5">
               <Users className="w-5 h-5 text-teal-300 animate-pulse" />
-              <span className="text-2xl font-bold font-orbitron text-white">
+              <span className="text-2xl font-bold font-orbitron text-slate-900">
                 {crowdCount}
               </span>
             </div>
           </div>
 
           {/* Live Run Coins Badge — собранные за забег монеты (сырое значение, без множителя экономики) */}
-          <div className="bg-zinc-900/80 backdrop-blur-md border border-amber-500/40 rounded-xl px-4 py-2 shadow-lg shadow-amber-950/50">
+          <div className="bg-white/80 backdrop-blur-md border border-amber-500/40 rounded-xl px-4 py-2 shadow-lg shadow-amber-950/50">
             <span className="text-xs uppercase text-amber-400 font-orbitron tracking-wider">
               {i18n.t('coins')}
             </span>
@@ -169,7 +169,7 @@ export const HUD: React.FC<HUDProps> = ({
               <Zap className="w-4 h-4 fill-current" />
               <span>{comboStreak}x {i18n.t('combo')}!</span>
               {comboFactor > 1 && (
-                <span className="bg-zinc-950/25 px-1.5 py-0.5 rounded-md text-xs font-black tracking-tight">
+                <span className="bg-slate-100/25 px-1.5 py-0.5 rounded-md text-xs font-black tracking-tight">
                   {comboFactor >= 1.8
                     ? `×${comboFactor.toFixed(1)} ${i18n.t('comboMax', 'МАКС')}`
                     : `×${comboFactor.toFixed(2)}`}
@@ -184,7 +184,7 @@ export const HUD: React.FC<HUDProps> = ({
             <div className="bg-cyan-500/90 text-zinc-950 font-orbitron font-extrabold px-3 py-1.5 rounded-lg shadow-lg animate-pulse flex items-center gap-1.5 text-sm">
               <Zap className="w-4 h-4 fill-current" />
               <span>{nearMissStreak} {i18n.t('nearMissStreakLabel', 'УВОРОТОВ')}!</span>
-              <span className="bg-zinc-950/25 px-1.5 py-0.5 rounded-md text-xs font-black tracking-tight">
+              <span className="bg-slate-100/25 px-1.5 py-0.5 rounded-md text-xs font-black tracking-tight">
                 ×{nearMissMultiplier}
               </span>
             </div>
@@ -194,7 +194,7 @@ export const HUD: React.FC<HUDProps> = ({
         {/* Top Right Controls & Debug info */}
         <div className="flex items-center gap-2">
           {/* Debug performance stats */}
-          <div className="bg-zinc-950/70 border border-zinc-800 rounded-lg px-2.5 py-1 text-[11px] text-zinc-400 font-mono flex gap-2">
+          <div className="bg-slate-100/70 border border-slate-300 rounded-lg px-2.5 py-1 text-[11px] text-slate-600 font-mono flex gap-2">
             <span>FPS: <strong className="text-emerald-400">{fps}</strong></span>
             <span>DC: <strong className="text-teal-300">{drawCalls}</strong></span>
           </div>
@@ -202,7 +202,7 @@ export const HUD: React.FC<HUDProps> = ({
           {/* Pause Button */}
           <button
             onClick={onPause}
-            className="pointer-events-auto p-2.5 bg-zinc-900/80 hover:bg-zinc-800 active:scale-95 border border-zinc-700 rounded-xl text-zinc-300 hover:text-white transition-all shadow-md cursor-pointer"
+            className="pointer-events-auto p-2.5 bg-white/80 hover:bg-slate-200 active:scale-95 border border-slate-300 rounded-xl text-slate-700 hover:text-slate-900 transition-all shadow-md cursor-pointer"
           >
             <Pause className="w-5 h-5" />
           </button>
@@ -213,7 +213,7 @@ export const HUD: React.FC<HUDProps> = ({
       {eventAlert && EVENT_ALERT_MAP[eventAlert.type] && (
         <div
           key={eventAlert.key}
-          className={`absolute left-1/2 -translate-x-1/2 top-24 z-20 pointer-events-none px-6 py-2 rounded-xl border-2 bg-zinc-950/85 backdrop-blur-md font-orbitron font-extrabold text-sm md:text-base tracking-wider animate-pulse shadow-2xl ${EVENT_ALERT_MAP[eventAlert.type].cls}`}
+          className={`absolute left-1/2 -translate-x-1/2 top-24 z-20 pointer-events-none px-6 py-2 rounded-xl border-2 bg-slate-100/85 backdrop-blur-md font-orbitron font-extrabold text-sm md:text-base tracking-wider animate-pulse shadow-2xl ${EVENT_ALERT_MAP[eventAlert.type].cls}`}
         >
           {i18n.t(EVENT_ALERT_MAP[eventAlert.type].key)}
         </div>
@@ -223,7 +223,7 @@ export const HUD: React.FC<HUDProps> = ({
           Показывает текущий множитель бонуса и прогресс по стенам замка. */}
       {isFinishActive && !isEndless && (
         <div className="absolute left-1/2 -translate-x-1/2 top-12 z-20 pointer-events-none flex flex-col items-center gap-1">
-          <div className="bg-zinc-950/90 border-2 border-amber-400/80 rounded-2xl px-5 py-2 shadow-[0_0_25px_rgba(251,191,36,0.5)] backdrop-blur-md flex items-center gap-3">
+          <div className="bg-slate-100/90 border-2 border-amber-400/80 rounded-2xl px-5 py-2 shadow-[0_0_25px_rgba(251,191,36,0.5)] backdrop-blur-md flex items-center gap-3">
             <Trophy className="w-5 h-5 text-amber-400 fill-amber-400 animate-bounce" />
             <div className="flex flex-col items-center">
               <span className="text-[10px] uppercase font-orbitron tracking-widest text-amber-300">
@@ -233,7 +233,7 @@ export const HUD: React.FC<HUDProps> = ({
                 ×{finishMultiplier.toFixed(1)}
               </span>
             </div>
-            <span className="text-xs font-orbitron text-zinc-400 ml-1">
+            <span className="text-xs font-orbitron text-slate-600 ml-1">
               {finishStepsDone}/{finishStepsTotal}
             </span>
           </div>
@@ -256,7 +256,7 @@ export const HUD: React.FC<HUDProps> = ({
       {/* Progress bar to finish — тонкая полоска в самом верху экрана, не перекрывает
           центр (раньше висела по центру и мешала обзору/свайпам). pointer-events-none. */}
       {!isEndless && (
-        <div className="absolute top-0 left-0 right-0 h-1.5 bg-zinc-950/80 pointer-events-none">
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-slate-100/80 pointer-events-none">
           <div
             className="h-full bg-gradient-to-r from-teal-400 via-amber-400 to-orange-500 transition-[width] duration-200"
             style={{ width: `${Math.round(progress * 100)}%` }}
@@ -276,7 +276,7 @@ export const HUD: React.FC<HUDProps> = ({
       {!isEndless && (
         <div className="absolute bottom-24 left-4 max-sm:hidden pointer-events-none flex items-center gap-3">
           {metersLeft >= 0 && (
-            <span className="text-[10px] font-orbitron text-zinc-400">
+            <span className="text-[10px] font-orbitron text-slate-600">
               {metersLeft} м до финиша
             </span>
           )}
@@ -305,7 +305,7 @@ export const HUD: React.FC<HUDProps> = ({
             {distanceTraveled.toLocaleString()} м
           </span>
           {stateManager.getState().endlessHighScore > 0 && (
-            <span className="text-[10px] font-orbitron text-zinc-400">
+            <span className="text-[10px] font-orbitron text-slate-600">
               {i18n.t('endlessRecord')}: {stateManager.getState().endlessHighScore.toLocaleString()} м
             </span>
           )}
@@ -314,17 +314,17 @@ export const HUD: React.FC<HUDProps> = ({
 
       {/* Boss Health Bar if Active */}
       {bossInfo && (
-        <div className="w-full max-w-md mx-auto bg-zinc-900/90 border-2 border-red-500/80 rounded-xl p-3 shadow-2xl shadow-red-950/80 pointer-events-auto animate-pulse">
+        <div className="w-full max-w-md mx-auto bg-white/90 border-2 border-red-500/80 rounded-xl p-3 shadow-2xl shadow-red-950/80 pointer-events-auto animate-pulse">
           <div className="flex justify-between items-center mb-1 font-orbitron text-xs">
             <span className="text-red-400 font-bold tracking-wider flex items-center gap-1">
               <Skull className="w-3.5 h-3.5" />
               {i18n.t(bossInfo.nameKey, 'BOSS')}
             </span>
-            <span className="text-zinc-300">
+            <span className="text-slate-700">
               {Math.max(0, Math.round(bossInfo.hp))} / {bossInfo.maxHp} HP
             </span>
           </div>
-          <div className="w-full h-3 bg-zinc-950 rounded-full overflow-hidden border border-red-900">
+          <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-red-900">
             <div
               className="h-full bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 transition-all duration-150"
               style={{ width: `${Math.max(0, (bossInfo.hp / bossInfo.maxHp) * 100)}%` }}
@@ -349,7 +349,7 @@ export const HUD: React.FC<HUDProps> = ({
                 ? 'bg-gradient-to-r from-yellow-500 via-amber-400 to-orange-500 text-zinc-950 border-yellow-300 animate-pulse scale-[1.02]'
                 : adrenalineCharge >= 100
                 ? 'bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-400 hover:from-amber-300 hover:to-yellow-300 text-zinc-950 border-amber-300 shadow-amber-500/40 cursor-pointer animate-bounce'
-                : 'bg-zinc-900/80 text-zinc-400 border-zinc-700 opacity-90 cursor-not-allowed'
+                : 'bg-white/80 text-slate-600 border-slate-300 opacity-90 cursor-not-allowed'
             } w-full p-3 max-sm:w-16 max-sm:h-16 max-sm:p-0 max-sm:justify-center max-sm:rounded-full max-sm:border-2`}
           >
             <div className="flex items-center gap-2 relative z-10 text-sm md:text-base max-sm:hidden">
@@ -379,20 +379,20 @@ export const HUD: React.FC<HUDProps> = ({
         <div className="pointer-events-auto flex flex-col items-center gap-1.5">
           {/* Бейдж активного тактического бонуса формации — показывает, что даёт
               текущий строй, чтобы выбор формации читался как тактический инструмент. */}
-          <div className="bg-zinc-950/80 backdrop-blur-md border border-zinc-800 rounded-lg px-2.5 py-1 text-[10px] font-orbitron font-bold text-teal-300 max-sm:hidden">
+          <div className="bg-slate-100/80 backdrop-blur-md border border-slate-300 rounded-lg px-2.5 py-1 text-[10px] font-orbitron font-bold text-teal-300 max-sm:hidden">
             {currentFormation === 'wedge' && '🛡️ Урон −40%'}
             {currentFormation === 'wide' && '🧲 Охват сбора +60%'}
             {currentFormation === 'circle' && '💥 Таран боссов ×1.35 · Стен ×2'}
             {currentFormation === 'arrow' && '⚡ Скорость +15%'}
             {currentFormation === 'oval' && '⚖️ Баланс · Универсальный строй'}
           </div>
-          <div className="pointer-events-auto grid grid-cols-5 gap-2 bg-zinc-950/80 backdrop-blur-md p-1.5 rounded-xl border border-zinc-800 max-sm:order-1 max-sm:grid-cols-1 max-sm:gap-1 max-sm:p-1 max-sm:rounded-2xl">
+          <div className="pointer-events-auto grid grid-cols-5 gap-2 bg-slate-100/80 backdrop-blur-md p-1.5 rounded-xl border border-slate-300 max-sm:order-1 max-sm:grid-cols-1 max-sm:gap-1 max-sm:p-1 max-sm:rounded-2xl">
           <button
             onClick={() => onFormationChange('wedge')}
             className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
               currentFormation === 'wedge'
                 ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-zinc-950 font-bold shadow-md shadow-teal-500/30'
-                : 'bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800'
+                : 'bg-white/60 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
             }`}
             title={i18n.t('wedgeDesc')}
           >
@@ -405,7 +405,7 @@ export const HUD: React.FC<HUDProps> = ({
             className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
               currentFormation === 'wide'
                 ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-zinc-950 font-bold shadow-md shadow-teal-500/30'
-                : 'bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800'
+                : 'bg-white/60 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
             }`}
             title={i18n.t('wideDesc')}
           >
@@ -418,7 +418,7 @@ export const HUD: React.FC<HUDProps> = ({
             className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
               currentFormation === 'circle'
                 ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-zinc-950 font-bold shadow-md shadow-teal-500/30'
-                : 'bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800'
+                : 'bg-white/60 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
             }`}
             title={i18n.t('circleDesc')}
           >
@@ -431,7 +431,7 @@ export const HUD: React.FC<HUDProps> = ({
             className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
               currentFormation === 'arrow'
                 ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-zinc-950 font-bold shadow-md shadow-teal-500/30'
-                : 'bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800'
+                : 'bg-white/60 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
             }`}
             title={i18n.t('arrowDesc')}
           >
@@ -444,7 +444,7 @@ export const HUD: React.FC<HUDProps> = ({
             className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
               currentFormation === 'oval'
                 ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-zinc-950 font-bold shadow-md shadow-teal-500/30'
-                : 'bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800'
+                : 'bg-white/60 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
             }`}
             title={i18n.t('ovalDesc')}
           >

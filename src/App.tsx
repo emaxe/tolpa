@@ -209,7 +209,7 @@ export const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="w-screen h-screen overflow-hidden bg-zinc-950 text-white font-sans relative">
+    <div className="w-screen h-screen overflow-hidden bg-slate-100 text-slate-900 font-sans relative">
       {/* 3D Game Canvas — остаётся смонтированным на паузе и на экране победы/поражения,
           чтобы движок не пересоздавался (и, соответственно, не перезапускал уровень) */}
       {(phase === 'running' || phase === 'paused' || phase === 'level_won' || phase === 'level_lost') && (

@@ -56,12 +56,18 @@ export function createGateTexture(
   if (op === 'multiply') symbol = '×';
   if (op === 'divide') symbol = '÷';
 
-  ctx.fillStyle = '#ffffff';
   ctx.font = '900 140px Orbitron, sans-serif';
+  ctx.lineWidth = 12;
+  ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
+  ctx.strokeText(`${symbol}${val}`, 256, 240);
+  ctx.fillStyle = '#ffffff';
   ctx.fillText(`${symbol}${val}`, 256, 240);
 
   ctx.font = 'bold 44px Orbitron, sans-serif';
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+  ctx.lineWidth = 8;
+  ctx.strokeStyle = 'rgba(15, 23, 42, 0.85)';
+  ctx.strokeText(isPositive ? 'БОНУС' : 'КВОТА', 256, 380);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
   ctx.fillText(isPositive ? 'БОНУС' : 'КВОТА', 256, 380);
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -99,11 +105,17 @@ export function createWallTexture(count: number): THREE.CanvasTexture {
   ctx.shadowBlur = 12;
 
   // Большой «−N» (сколько мобов сожрёт).
-  ctx.fillStyle = '#ffffff';
   ctx.font = '900 150px Orbitron, sans-serif';
+  ctx.lineWidth = 14;
+  ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
+  ctx.strokeText(`−${count}`, 256, 240);
+  ctx.fillStyle = '#ffffff';
   ctx.fillText(`−${count}`, 256, 240);
 
   ctx.font = 'bold 46px Orbitron, sans-serif';
+  ctx.lineWidth = 8;
+  ctx.strokeStyle = 'rgba(15, 23, 42, 0.85)';
+  ctx.strokeText('СТЕНА', 256, 380);
   ctx.fillStyle = '#fca5a5';
   ctx.fillText('СТЕНА', 256, 380);
 
@@ -398,7 +410,7 @@ export function createSawBladeMesh(): THREE.Group {
 
   // Ступица-вал по центру (вертикальный, ось вращения Y)
   const hubGeo = new THREE.CylinderGeometry(0.28, 0.32, 0.5, 12);
-  const hubMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.9, roughness: 0.25 });
+  const hubMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.9, roughness: 0.25 });
   const hub = new THREE.Mesh(hubGeo, hubMat);
   hub.position.y = 0.05;
   spin.add(hub);
@@ -513,7 +525,7 @@ export function createPendulumAxeMesh(): THREE.Group {
 
   // --- Неподвижная рама (стоит на полу, поднимается до перекладины PIVOT_Y) ---
   const frameMat = new THREE.MeshStandardMaterial({
-    color: 0x475569,
+    color: 0x94a3b8,
     metalness: 0.8,
     roughness: 0.35,
   });
@@ -542,7 +554,7 @@ export function createCrusherMesh(): THREE.Group {
 
   // Upper support pillar
   const pillarGeo = new THREE.BoxGeometry(0.4, 2.5, 0.4);
-  const pillarMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.3 });
+  const pillarMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8, roughness: 0.3 });
   const pillar = new THREE.Mesh(pillarGeo, pillarMat);
   pillar.position.y = 2.0;
   group.add(pillar);
@@ -550,7 +562,7 @@ export function createCrusherMesh(): THREE.Group {
   // Heavy crushing block
   const blockGeo = new THREE.BoxGeometry(2.2, 1.4, 1.2);
   const blockMat = new THREE.MeshStandardMaterial({
-    color: 0x334155,
+    color: 0x64748b,
     metalness: 0.7,
     roughness: 0.4,
     emissive: 0xf97316,
@@ -581,7 +593,7 @@ export function createLaserGridMesh(width: number): THREE.Group {
 
   // Left & Right Emitter Posts
   const postGeo = new THREE.CylinderGeometry(0.2, 0.25, 2.5, 8);
-  const postMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9, roughness: 0.2, emissive: 0x06b6d4, emissiveIntensity: 0.4 });
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.9, roughness: 0.2, emissive: 0x06b6d4, emissiveIntensity: 0.4 });
   
   const leftPost = new THREE.Mesh(postGeo, postMat);
   leftPost.position.set(-width / 2, 1.25, 0);
@@ -611,7 +623,7 @@ export function createSpikeTrapMesh(): THREE.Group {
   // Base plate
   const baseGeo = new THREE.BoxGeometry(2.2, 0.15, 2.2);
   const baseMat = new THREE.MeshStandardMaterial({
-    color: 0x1e293b,
+    color: 0x475569,
     metalness: 0.8,
     roughness: 0.3,
     emissive: 0xdc2626,
@@ -658,14 +670,14 @@ export function createWreckingBallMesh(): THREE.Group {
 
   // Верхняя балка-портальчик (гантри)
   const beamGeo = new THREE.BoxGeometry(4.2, 0.25, 0.25);
-  const beamMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.3 });
+  const beamMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.85, roughness: 0.3 });
   const beam = new THREE.Mesh(beamGeo, beamMat);
   beam.position.y = 3.6;
   group.add(beam);
 
   // Опорные столбы гантри
   const postGeo = new THREE.CylinderGeometry(0.12, 0.12, 3.6, 8);
-  const postMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.85, roughness: 0.3 });
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.85, roughness: 0.3 });
   const postL = new THREE.Mesh(postGeo, postMat);
   postL.position.set(-2.0, 1.8, 0);
   group.add(postL);
@@ -675,7 +687,7 @@ export function createWreckingBallMesh(): THREE.Group {
 
   // Цепь от балки к шару
   const chainGeo = new THREE.CylinderGeometry(0.05, 0.05, 2.6, 6);
-  const chainMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.9, roughness: 0.2 });
+  const chainMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.2 });
   const chain = new THREE.Mesh(chainGeo, chainMat);
   chain.position.y = 2.3;
   group.add(chain);
@@ -683,7 +695,7 @@ export function createWreckingBallMesh(): THREE.Group {
   // Тяжёлый шипастый шар
   const ballGeo = new THREE.SphereGeometry(1.0, 20, 20);
   const ballMat = new THREE.MeshStandardMaterial({
-    color: 0x1f2937,
+    color: 0x475569,
     metalness: 0.95,
     roughness: 0.15,
     emissive: 0xf97316,
@@ -726,7 +738,7 @@ export function createLavaPitMesh(): THREE.Group {
 
   // Каменная окантовка
   const rimGeo = new THREE.BoxGeometry(2.6, 0.2, 2.6);
-  const rimMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, metalness: 0.6, roughness: 0.8 });
+  const rimMat = new THREE.MeshStandardMaterial({ color: 0x52525b, metalness: 0.6, roughness: 0.8 });
   const rim = new THREE.Mesh(rimGeo, rimMat);
   rim.position.y = 0.1;
   group.add(rim);
@@ -776,7 +788,7 @@ export function createBarrierGateMesh(): THREE.Group {
   // Опорные стойки по краям
   const postGeo = new THREE.CylinderGeometry(0.15, 0.15, 3.4, 8);
   const postMat = new THREE.MeshStandardMaterial({
-    color: 0x1e293b,
+    color: 0x475569,
     metalness: 0.85,
     roughness: 0.3,
   });
@@ -790,7 +802,7 @@ export function createBarrierGateMesh(): THREE.Group {
   // Верхняя перекладина
   const topGeo = new THREE.BoxGeometry(3.4, 0.2, 0.25);
   const topMat = new THREE.MeshStandardMaterial({
-    color: 0x334155,
+    color: 0x64748b,
     metalness: 0.85,
     roughness: 0.3,
   });
@@ -802,7 +814,7 @@ export function createBarrierGateMesh(): THREE.Group {
   // Индекс 3 — дочерний меш, чью Y-позицию читает isHazardActive и update().
   const gateGeo = new THREE.BoxGeometry(3.3, 0.35, 0.3);
   const gateMat = new THREE.MeshStandardMaterial({
-    color: 0x0f172a,
+    color: 0x334155,
     metalness: 0.9,
     roughness: 0.15,
     emissive: 0xef4444,
@@ -845,7 +857,7 @@ export function createBombMesh(): THREE.Group {
 
   // 1. Нижняя магнитная подставка-диск
   const baseGeo = new THREE.CylinderGeometry(0.7, 0.85, 0.16, 12);
-  const baseMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.3 });
+  const baseMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.85, roughness: 0.3 });
   const base = new THREE.Mesh(baseGeo, baseMat);
   base.position.y = 0.08;
   group.add(base);
@@ -853,7 +865,7 @@ export function createBombMesh(): THREE.Group {
   // 2. Сферический корпус мины
   const bodyGeo = new THREE.SphereGeometry(0.85, 14, 14);
   const bodyMat = new THREE.MeshStandardMaterial({
-    color: 0x18181b,
+    color: 0x52525b,
     metalness: 0.8,
     roughness: 0.2,
     emissive: 0xef4444,
@@ -890,7 +902,7 @@ export function createGuardDogMesh(): THREE.Group {
   // 0. Анкерный столб на полу
   const postGeo = new THREE.CylinderGeometry(0.2, 0.28, 0.45, 8);
   const postMat = new THREE.MeshStandardMaterial({
-    color: 0x1e293b,
+    color: 0x475569,
     metalness: 0.9,
     roughness: 0.25,
     emissive: 0xa855f7,
@@ -920,7 +932,7 @@ export function createGuardDogMesh(): THREE.Group {
   // 2.0. Угловатый торс
   const bodyGeo = new THREE.BoxGeometry(0.55, 0.42, 0.9);
   const bodyMat = new THREE.MeshStandardMaterial({
-    color: 0x0f172a,
+    color: 0x334155,
     metalness: 0.8,
     roughness: 0.3,
     emissive: 0xa855f7,
@@ -935,7 +947,7 @@ export function createGuardDogMesh(): THREE.Group {
   headPivot.position.set(0, 0.62, 0.55);
 
   const headGeo = new THREE.BoxGeometry(0.38, 0.3, 0.42);
-  const headMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.2 });
+  const headMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8, roughness: 0.2 });
   const head = new THREE.Mesh(headGeo, headMat);
   head.position.set(0, 0.03, 0);
   headPivot.add(head);
@@ -950,7 +962,7 @@ export function createGuardDogMesh(): THREE.Group {
   // 2.3. Подвижная пасть / нижняя челюсть (открывается при атаке)
   const jawGeo = new THREE.BoxGeometry(0.32, 0.1, 0.32);
   const jawMat = new THREE.MeshStandardMaterial({
-    color: 0x0f172a,
+    color: 0x334155,
     metalness: 0.85,
     roughness: 0.2,
     emissive: 0xef4444,
@@ -965,7 +977,7 @@ export function createGuardDogMesh(): THREE.Group {
   // 2.4..2.7. Кибер-лапы (4 лапы-шарнира, качаются при ходьбе).
   // Каждая лапа = pivot (вверху) + нога-цилиндр вниз.
   const legGeo = new THREE.CylinderGeometry(0.06, 0.05, 0.35, 6);
-  const legMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.85, roughness: 0.2 });
+  const legMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.85, roughness: 0.2 });
   const legPositions = [
     [-0.24, 0.32, 0.35],
     [0.24, 0.32, 0.35],
@@ -1015,14 +1027,14 @@ export function createSwingingHammerMesh(): THREE.Group {
 
   // 0. Верхняя балка-портал
   const beamGeo = new THREE.BoxGeometry(3.6, 0.35, 0.35);
-  const beamMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.25 });
+  const beamMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.85, roughness: 0.25 });
   const beam = new THREE.Mesh(beamGeo, beamMat);
   beam.position.y = 3.6;
   group.add(beam);
 
   // 1. Левая опорная стойка
   const postGeo = new THREE.CylinderGeometry(0.14, 0.16, 3.6, 8);
-  const postMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 });
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8, roughness: 0.3 });
   const postL = new THREE.Mesh(postGeo, postMat);
   postL.position.set(-1.7, 1.8, 0);
   group.add(postL);
@@ -1035,7 +1047,7 @@ export function createSwingingHammerMesh(): THREE.Group {
   // 3. Плита-наковальня на настиле
   const anvilGeo = new THREE.BoxGeometry(2.4, 0.16, 2.0);
   const anvilMat = new THREE.MeshStandardMaterial({
-    color: 0x0f172a,
+    color: 0x334155,
     metalness: 0.9,
     roughness: 0.2,
     emissive: 0xf59e0b,
@@ -1051,7 +1063,7 @@ export function createSwingingHammerMesh(): THREE.Group {
 
   // Штанга молота
   const shaftGeo = new THREE.CylinderGeometry(0.09, 0.09, 2.9, 8);
-  const shaftMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.9, roughness: 0.2 });
+  const shaftMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.2 });
   const shaft = new THREE.Mesh(shaftGeo, shaftMat);
   shaft.position.y = -1.45;
   hammerPivot.add(shaft);
@@ -1059,7 +1071,7 @@ export function createSwingingHammerMesh(): THREE.Group {
   // Массивная ударная голова молота
   const headGeo = new THREE.BoxGeometry(1.8, 0.85, 1.1);
   const headMat = new THREE.MeshStandardMaterial({
-    color: 0x334155,
+    color: 0x64748b,
     metalness: 0.85,
     roughness: 0.25,
     emissive: 0xfacc15,
@@ -1149,7 +1161,7 @@ export function createBossMesh(boss: BossData): THREE.Group {
       // Mecha Titan
       const bodyGeo = new THREE.BoxGeometry(2.5, 3.2, 1.8);
       const bodyMat = new THREE.MeshStandardMaterial({
-        color: 0x1e293b,
+        color: 0x64748b,
         metalness: 0.8,
         roughness: 0.2,
         emissive: 0x0ea5e9,
@@ -1168,7 +1180,7 @@ export function createBossMesh(boss: BossData): THREE.Group {
 
       // Massive Arms
       const armGeo = new THREE.BoxGeometry(0.8, 2.4, 0.8);
-      const armMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.9, roughness: 0.2 });
+      const armMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.2 });
       
       const leftArm = new THREE.Mesh(armGeo, armMat);
       leftArm.position.set(-1.8, 2.5, 0);
@@ -1197,7 +1209,7 @@ export function createBossMesh(boss: BossData): THREE.Group {
       // Fiery Rock Titan
       const rockGeo = new THREE.DodecahedronGeometry(2.0, 1);
       const rockMat = new THREE.MeshStandardMaterial({
-        color: 0x451a03,
+        color: 0xa8a29e,
         metalness: 0.3,
         roughness: 0.9,
         emissive: 0xf97316,
@@ -1268,7 +1280,7 @@ export function createBossMesh(boss: BossData): THREE.Group {
       // Apex Overlord Malakor
       const baseGeo = new THREE.CylinderGeometry(1.2, 1.8, 3.5, 12);
       const baseMat = new THREE.MeshStandardMaterial({
-        color: 0x09090b,
+        color: 0x3f3f46,
         metalness: 0.95,
         roughness: 0.1,
         emissive: 0xd946ef,
@@ -1282,7 +1294,7 @@ export function createBossMesh(boss: BossData): THREE.Group {
       for (let side of [-1, 1]) {
         const wingGeo = new THREE.BoxGeometry(0.2, 3.0, 1.5);
         const wingMat = new THREE.MeshStandardMaterial({
-          color: 0x18181b,
+          color: 0x52525b,
           metalness: 0.9,
           emissive: 0xec4899,
           emissiveIntensity: 0.8,
@@ -1306,13 +1318,13 @@ export function createStreetLampMesh(): THREE.Group {
 
   // Столб
   const poleGeo = new THREE.CylinderGeometry(0.12, 0.16, 4.0, 8);
-  const poleMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.3 });
+  const poleMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.85, roughness: 0.3 });
   const pole = new THREE.Mesh(poleGeo, poleMat);
   pole.position.y = 2.0;
   group.add(pole);
 
   // Изогнутый кронштейн (сегменты, образующие дугу к плафону)
-  const armMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.85, roughness: 0.3 });
+  const armMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.85, roughness: 0.3 });
   const segments = 5;
   for (let i = 0; i < segments; i++) {
     const t = i / (segments - 1);
@@ -1348,7 +1360,7 @@ export function createBillboardMesh(text: string, accent: number): THREE.Group {
 
   // Рама
   const frameGeo = new THREE.BoxGeometry(3.0, 2.0, 0.15);
-  const frameMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.3 });
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 });
   const frame = new THREE.Mesh(frameGeo, frameMat);
   frame.position.y = 2.0;
   group.add(frame);
@@ -1376,8 +1388,11 @@ export function createBillboardMesh(text: string, accent: number): THREE.Group {
   ctx.textBaseline = 'middle';
   ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
   ctx.shadowBlur = 12;
-  ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 64px Orbitron, sans-serif';
+  ctx.lineWidth = 8;
+  ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
+  ctx.strokeText(text, 256, 128);
+  ctx.fillStyle = '#ffffff';
   ctx.fillText(text, 256, 128);
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -1391,7 +1406,7 @@ export function createBillboardMesh(text: string, accent: number): THREE.Group {
 
   // Опорные ножки
   const legGeo = new THREE.CylinderGeometry(0.1, 0.12, 1.0, 6);
-  const legMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.3 });
+  const legMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.85, roughness: 0.3 });
   const legL = new THREE.Mesh(legGeo, legMat);
   legL.position.set(-1.2, 0.5, 0);
   group.add(legL);

@@ -49,17 +49,17 @@ export const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose })
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-md select-none animate-fade-in">
-      <div className="w-full max-w-xl bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-100/80 backdrop-blur-md select-none animate-fade-in">
+      <div className="w-full max-w-xl bg-white border border-slate-300 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="p-4 bg-zinc-950/70 border-b border-zinc-800 flex justify-between items-center">
-          <h2 className="font-orbitron font-extrabold text-lg text-white tracking-wider flex items-center gap-2">
+        <div className="p-4 bg-slate-100/70 border-b border-slate-300 flex justify-between items-center">
+          <h2 className="font-orbitron font-extrabold text-lg text-slate-900 tracking-wider flex items-center gap-2">
             <Award className="w-5 h-5 text-amber-400" />
             <span>{i18n.t('achievTitle')}</span>
           </h2>
           <button
             onClick={onClose}
-            className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 cursor-pointer transition-colors"
+            className="p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-200 cursor-pointer transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -78,10 +78,10 @@ export const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose })
                 key={ach.id}
                 className={`p-3.5 rounded-xl border flex items-center justify-between gap-4 transition-all ${
                   isClaimed
-                    ? 'bg-zinc-950/40 border-zinc-800/60 opacity-60'
+                    ? 'bg-slate-100/40 border-slate-300/60 opacity-60'
                     : isCompleted
-                    ? 'bg-zinc-900/90 border-amber-500/60 shadow-lg shadow-amber-950/40'
-                    : 'bg-zinc-950/60 border-zinc-800'
+                    ? 'bg-white/90 border-amber-500/60 shadow-lg shadow-amber-950/40'
+                    : 'bg-slate-100/60 border-slate-300'
                 }`}
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -89,28 +89,28 @@ export const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose })
                     className={`p-2.5 rounded-xl border shrink-0 ${
                       isCompleted
                         ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
-                        : 'bg-zinc-900 text-zinc-400 border-zinc-800'
+                        : 'bg-white text-slate-600 border-slate-300'
                     }`}
                   >
                     {getIcon(ach.icon)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-orbitron font-bold text-sm text-white truncate">
+                    <h4 className="font-orbitron font-bold text-sm text-slate-900 truncate">
                       {i18n.t(ach.titleKey)}
                     </h4>
-                    <p className="text-xs text-zinc-400 truncate mt-0.5">
+                    <p className="text-xs text-slate-600 truncate mt-0.5">
                       {i18n.t(ach.descKey)}
                     </p>
 
                     {/* Progress Bar */}
                     <div className="mt-2 flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                      <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-gradient-to-r from-teal-400 to-amber-400 transition-all duration-300"
                           style={{ width: `${progressPercent}%` }}
                         />
                       </div>
-                      <span className="text-[10px] font-mono text-zinc-400 shrink-0">
+                      <span className="text-[10px] font-mono text-slate-600 shrink-0">
                         {userAch.progress}/{ach.goal}
                       </span>
                     </div>
@@ -132,7 +132,7 @@ export const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose })
                       {i18n.t('claim')}
                     </button>
                   ) : (
-                    <div className="flex items-center gap-2 text-xs font-orbitron font-semibold text-zinc-400">
+                    <div className="flex items-center gap-2 text-xs font-orbitron font-semibold text-slate-600">
                       <span className="flex items-center gap-1 text-amber-400">
                         <Coins className="w-3.5 h-3.5" />
                         {ach.rewardCoins}

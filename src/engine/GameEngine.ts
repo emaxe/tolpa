@@ -193,7 +193,7 @@ export class GameEngine {
 
     // 1. Scene
     this.scene = new THREE.Scene();
-    this.scene.fog = new THREE.FogExp2(0x080c14, 0.015);
+    this.scene.fog = new THREE.FogExp2(0xe0eefb, 0.008);
 
     // 2. Camera (Third person chase camera)
     const aspect = container.clientWidth / container.clientHeight;
@@ -211,12 +211,12 @@ export class GameEngine {
     this.renderer.setSize(container.clientWidth, container.clientHeight);
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.1;
+    this.renderer.toneMappingExposure = 1.05;
 
     container.appendChild(this.renderer.domElement);
 
     // 4. Lights
-    this.hemiLight = new THREE.HemisphereLight(0x38bdf8, 0x0f172a, 0.7);
+    this.hemiLight = new THREE.HemisphereLight(0x93c5fd, 0xcbd5e1, 0.7);
     this.scene.add(this.hemiLight);
 
     this.dirLight = new THREE.DirectionalLight(0xffffff, 1.4);
@@ -620,17 +620,18 @@ export class GameEngine {
 
   private setupBiomeEnvironment(biome: BiomeType): void {
     const colors: Record<BiomeType, { sky: number; fog: number; light: number; ground: number }> = {
-      cyber_city: { sky: 0x080c14, fog: 0x080c14, light: 0x38bdf8, ground: 0x0f172a },
-      magma_citadel: { sky: 0x1c0c08, fog: 0x260a08, light: 0xf97316, ground: 0x1e1210 },
-      crystal_cavern: { sky: 0x051a14, fog: 0x061e18, light: 0x10b981, ground: 0x08201a },
-      quantum_void: { sky: 0x120824, fog: 0x140828, light: 0xa855f7, ground: 0x180f2d },
-      celestial_core: { sky: 0x181404, fog: 0x1f1908, light: 0xfacc15, ground: 0x241d0c },
+      cyber_city: { sky: 0xdbeafe, fog: 0xe0f2fe, light: 0x38bdf8, ground: 0xcbd5e1 },
+      magma_citadel: { sky: 0xffedd5, fog: 0xfed7aa, light: 0xf97316, ground: 0xd6d3d1 },
+      crystal_cavern: { sky: 0xdcfce7, fog: 0xd1fae5, light: 0x10b981, ground: 0xcbd5e1 },
+      quantum_void: { sky: 0xeef2f7, fog: 0xe2e8f0, light: 0xa855f7, ground: 0x94a3b8 },
+      celestial_core: { sky: 0xfef9c3, fog: 0xfef08a, light: 0xfacc15, ground: 0xd6d3d1 },
     };
 
     const cfg = colors[biome] || colors.cyber_city;
     this.scene.background = new THREE.Color(cfg.sky);
-    this.scene.fog = new THREE.FogExp2(cfg.fog, 0.014);
+    this.scene.fog = new THREE.FogExp2(cfg.fog, 0.008);
     this.hemiLight.color.setHex(cfg.light);
+    this.hemiLight.groundColor.setHex(cfg.ground);
   }
 
   private disposeTrackMeshes(): void {
@@ -687,11 +688,11 @@ export class GameEngine {
     // Track Surface
     const trackGeo = new THREE.PlaneGeometry(width, length + 80);
     const trackMat = new THREE.MeshStandardMaterial({
-      color: 0x0f172a,
+      color: 0xe2e8f0,
       metalness: 0.8,
       roughness: 0.3,
-      emissive: biome === 'magma_citadel' ? 0x451a03 : 0x0284c7,
-      emissiveIntensity: 0.15,
+      emissive: biome === 'magma_citadel' ? 0xfed7aa : 0xbae6fd,
+      emissiveIntensity: 0.12,
     });
     this.trackMesh = new THREE.Mesh(trackGeo, trackMat);
     this.trackMesh.rotation.x = -Math.PI / 2;
@@ -780,7 +781,7 @@ export class GameEngine {
     // ниже голов зрителей, вне линии трибун. В зонах трибун не ставим.
     const pylonGeo = new THREE.CylinderGeometry(0.12, 0.18, 1.4, 6);
     const pylonMat = new THREE.MeshStandardMaterial({
-      color: 0x1e293b,
+      color: 0x94a3b8,
       metalness: 0.85,
       roughness: 0.25,
       emissive: accent,
@@ -908,7 +909,7 @@ export class GameEngine {
     ];
 
     // Материал ступеней — тёмный, с лёгким акцентным кантом.
-    const stepMat = new THREE.MeshStandardMaterial({ color: 0x1a2233, metalness: 0.5, roughness: 0.6 });
+    const stepMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.5, roughness: 0.6 });
     const stepEdgeMat = new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.5 });
 
     // Собираем позиции зрителей (массив чисел, не объектов — 0-GC в цикле).
@@ -1133,7 +1134,7 @@ export class GameEngine {
 
     // Флаги (покачивание sin) за дальним краем (за трибунами)
     const flagPoleGeo = new THREE.CylinderGeometry(0.04, 0.05, 2.6, 6);
-    const flagPoleMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.7, roughness: 0.4 });
+    const flagPoleMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.7, roughness: 0.4 });
     const flagGeo = new THREE.PlaneGeometry(0.9, 0.55);
     const flagMat = new THREE.MeshBasicMaterial({ color: accent, side: THREE.DoubleSide });
     const flagX = 15.7 + 2.5;
@@ -1182,7 +1183,7 @@ export class GameEngine {
         const h = 4 + rnd() * 6;
         const towerGeo = new THREE.BoxGeometry(w, h, d);
         const towerMat = new THREE.MeshStandardMaterial({
-          color: 0x1e293b,
+          color: 0x94a3b8,
           metalness: 0.6,
           roughness: 0.4,
           emissive: accent,
@@ -1215,7 +1216,7 @@ export class GameEngine {
           const th = 1.6 + rnd() * 1.4;
           const tierGeo = new THREE.BoxGeometry(tw, th, d * 0.55);
           const tierMat = new THREE.MeshStandardMaterial({
-            color: 0x1e293b,
+            color: 0x94a3b8,
             metalness: 0.6,
             roughness: 0.4,
             emissive: accent,
@@ -1253,7 +1254,7 @@ export class GameEngine {
         // лавовые скалы с огненными прожилками
         const rockGeo = new THREE.DodecahedronGeometry(1.6 + rnd() * 1.8, 1);
         const rockMat = new THREE.MeshStandardMaterial({
-          color: 0x451a03,
+          color: 0xa8a29e,
           roughness: 0.9,
           emissive: 0x7c2d12,
           emissiveIntensity: 0.5,
@@ -1290,7 +1291,7 @@ export class GameEngine {
         if (rnd() < 0.6) {
           const basGeo = new THREE.CylinderGeometry(0.4, 0.6, 2.6 + rnd() * 1.4, 6);
           const basMat = new THREE.MeshStandardMaterial({
-            color: 0x2d1505,
+            color: 0xa8a29e,
             roughness: 0.9,
             emissive: 0x7c2d12,
             emissiveIntensity: 0.35,
@@ -1352,7 +1353,7 @@ export class GameEngine {
         // парящие энерго-монолиты / колонны
         const monoGeo = new THREE.BoxGeometry(1.4, 5 + rnd() * 4, 1.4);
         const monoMat = new THREE.MeshStandardMaterial({
-          color: biome === 'quantum_void' ? 0x180f2d : 0x241d0c,
+          color: biome === 'quantum_void' ? 0x94a3b8 : 0xa8a29e,
           metalness: 0.4,
           roughness: 0.3,
           emissive: accent,

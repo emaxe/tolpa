@@ -40,9 +40,9 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
   const gemsEarned = isVictory && levelNumber % 10 === 0 ? 10 : isVictory ? 2 : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/85 backdrop-blur-md select-none animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-100/85 backdrop-blur-md select-none animate-fade-in">
       <div
-        className={`w-full max-w-md bg-zinc-900 rounded-3xl shadow-2xl p-6 border-2 text-center relative overflow-hidden ${
+        className={`w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 border-2 text-center relative overflow-hidden ${
           isVictory
             ? 'border-amber-400/80 shadow-amber-950/60'
             : 'border-red-500/80 shadow-red-950/80'
@@ -54,7 +54,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
             className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-3 shadow-xl ${
               isVictory
                 ? 'bg-gradient-to-tr from-amber-400 via-orange-400 to-yellow-300 text-zinc-950 animate-bounce'
-                : 'bg-gradient-to-tr from-red-600 to-rose-950 text-white'
+                : 'bg-gradient-to-tr from-red-600 to-rose-950 text-slate-900'
             }`}
           >
             {isVictory ? <Trophy className="w-10 h-10 fill-current" /> : <Skull className="w-10 h-10" />}
@@ -67,7 +67,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
           >
             {isEndless ? i18n.t('endlessRunOver') : isVictory ? i18n.t('victory') : i18n.t('defeat')}
           </h2>
-          <p className="text-xs text-zinc-400 font-orbitron mt-1">
+          <p className="text-xs text-slate-600 font-orbitron mt-1">
             {isEndless
               ? `${endless?.distance?.toLocaleString() ?? 0} м`
               : isVictory
@@ -101,20 +101,20 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
         )}
 
         {/* Score and Multiplier stats */}
-        <div className="bg-zinc-950/80 rounded-2xl p-4 border border-zinc-800 space-y-2.5 mb-5 text-sm">
+        <div className="bg-slate-100/80 rounded-2xl p-4 border border-slate-300 space-y-2.5 mb-5 text-sm">
           {isVictory && !isEndless && (
             <>
-              <div className="flex justify-between items-center text-zinc-300">
+              <div className="flex justify-between items-center text-slate-700">
                 <span className="font-orbitron text-xs">{i18n.t('wallMultiplier')}</span>
                 <span className="font-orbitron font-bold text-amber-400">×{multiplier.toFixed(1)}</span>
               </div>
               {sacrificedTotal !== undefined && sacrificedTotal > 0 && (
-                <div className="flex justify-between items-center text-zinc-300">
+                <div className="flex justify-between items-center text-slate-700">
                   <span className="font-orbitron text-xs">{i18n.t('finishSacrificed')}</span>
                   <span className="font-orbitron font-bold text-rose-400">{sacrificedTotal}</span>
                 </div>
               )}
-              <div className="flex justify-between items-center text-zinc-300">
+              <div className="flex justify-between items-center text-slate-700">
                 <span className="font-orbitron text-xs">{i18n.t('crowd')}</span>
                 <span className="font-orbitron font-bold text-teal-300">{crowdCount}</span>
               </div>
@@ -123,8 +123,8 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
 
           {/* Endless: дистанция забега как главная метрика */}
           {isEndless && (
-            <div className="flex justify-between items-center text-zinc-300">
-              <span className="flex items-center gap-1.5 font-orbitron text-xs text-zinc-400">
+            <div className="flex justify-between items-center text-slate-700">
+              <span className="flex items-center gap-1.5 font-orbitron text-xs text-slate-600">
                 <Route className="w-4 h-4 text-teal-300" /> {i18n.t('endlessDistance')}
               </span>
               <span className="font-orbitron font-bold text-teal-300">
@@ -135,56 +135,56 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
 
           {/* Run-detail stats (макс. комбо, макс. толпа, сломанные препятствия, ворота, боссы) */}
           {runStats && (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-2 border-t border-zinc-800/80">
-              <div className="flex items-center justify-between text-zinc-300">
-                <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-zinc-400">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-2 border-t border-slate-300/80">
+              <div className="flex items-center justify-between text-slate-700">
+                <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-600">
                   <Zap className="w-3.5 h-3.5 text-amber-400" /> {i18n.t('runMaxCombo')}
                 </span>
                 <span className="font-orbitron font-bold text-amber-400">×{runStats.maxCombo}</span>
               </div>
-              <div className="flex items-center justify-between text-zinc-300">
-                <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-zinc-400">
+              <div className="flex items-center justify-between text-slate-700">
+                <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-600">
                   <Users className="w-3.5 h-3.5 text-teal-300" /> {i18n.t('runMaxCrowd')}
                 </span>
                 <span className="font-orbitron font-bold text-teal-300">{runStats.maxCrowd}</span>
               </div>
-              <div className="flex items-center justify-between text-zinc-300">
-                <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-zinc-400">
+              <div className="flex items-center justify-between text-slate-700">
+                <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-600">
                   <Users className="w-3.5 h-3.5 text-indigo-400" /> {i18n.t('runMobsSpawned')}
                 </span>
                 <span className="font-orbitron font-bold text-indigo-400">{runStats.mobsSpawned}</span>
               </div>
-              <div className="flex items-center justify-between text-zinc-300">
-                <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-zinc-400">
+              <div className="flex items-center justify-between text-slate-700">
+                <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-600">
                   <Swords className="w-3.5 h-3.5 text-red-400" /> {i18n.t('runObstaclesSmashed')}
                 </span>
                 <span className="font-orbitron font-bold text-red-400">{runStats.obstaclesSmashed}</span>
               </div>
-              <div className="flex items-center justify-between text-zinc-300">
-                <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-zinc-400">
+              <div className="flex items-center justify-between text-slate-700">
+                <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-600">
                   <DoorOpen className="w-3.5 h-3.5 text-emerald-400" /> {i18n.t('runGatesPassed')}
                 </span>
                 <span className="font-orbitron font-bold text-emerald-400">{runStats.gatesPassed}</span>
               </div>
               {runStats.nearMisses > 0 && (
-                <div className="flex items-center justify-between text-zinc-300">
-                  <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-zinc-400">
+                <div className="flex items-center justify-between text-slate-700">
+                  <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-600">
                     <Zap className="w-3.5 h-3.5 text-cyan-400" /> {i18n.t('runNearMisses')}
                   </span>
                   <span className="font-orbitron font-bold text-cyan-400">{runStats.nearMisses}</span>
                 </div>
               )}
               {runStats.maxNearMissStreak > 1 && (
-                <div className="flex items-center justify-between text-zinc-300">
-                  <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-zinc-400">
+                <div className="flex items-center justify-between text-slate-700">
+                  <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-600">
                     <Zap className="w-3.5 h-3.5 text-amber-400" /> {i18n.t('runMaxNearMissStreak')}
                   </span>
                   <span className="font-orbitron font-bold text-amber-400">×{runStats.maxNearMissStreak}</span>
                 </div>
               )}
               {runStats.bossesDefeated > 0 && (
-                <div className="flex items-center justify-between text-zinc-300 col-span-2">
-                  <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-zinc-400">
+                <div className="flex items-center justify-between text-slate-700 col-span-2">
+                  <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-600">
                     <Shield className="w-3.5 h-3.5 text-rose-400" /> {i18n.t('runBossesDefeated')}
                   </span>
                   <span className="font-orbitron font-bold text-rose-400">{runStats.bossesDefeated}</span>
@@ -193,8 +193,8 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
             </div>
           )}
 
-          <div className="flex justify-between items-center pt-2 border-t border-zinc-800/80">
-            <span className="font-orbitron font-bold text-xs text-zinc-400">{i18n.t('totalReward')}</span>
+          <div className="flex justify-between items-center pt-2 border-t border-slate-300/80">
+            <span className="font-orbitron font-bold text-xs text-slate-600">{i18n.t('totalReward')}</span>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1 font-orbitron font-bold text-amber-400 text-sm">
                 <Coins className="w-4 h-4" />
@@ -231,7 +231,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
               </button>
               <button
                 onClick={onOpenShop}
-                className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 text-amber-400 font-orbitron font-bold text-xs uppercase rounded-xl border border-amber-500/40 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                className="flex-1 py-3 bg-slate-200 hover:bg-slate-300 text-amber-400 font-orbitron font-bold text-xs uppercase rounded-xl border border-amber-500/40 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <ShoppingCart className="w-4 h-4" />
                 <span>{i18n.t('upgrades')}</span>
@@ -243,7 +243,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
             {isVictory && !isEndless && (
               <button
                 onClick={onRetry}
-                className="flex-1 py-2 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 rounded-xl font-orbitron text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                className="flex-1 py-2 bg-slate-200/80 hover:bg-slate-300 text-slate-700 rounded-xl font-orbitron text-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>{i18n.t('retry')}</span>
@@ -251,7 +251,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
             )}
             <button
               onClick={onHome}
-              className="flex-1 py-2 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 rounded-xl font-orbitron text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 py-2 bg-slate-200/80 hover:bg-slate-300 text-slate-700 rounded-xl font-orbitron text-xs flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Home className="w-3.5 h-3.5" />
               <span>{i18n.t('toMenu')}</span>

@@ -58,17 +58,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-md select-none animate-fade-in">
-      <div className="w-full max-w-xl bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-100/80 backdrop-blur-md select-none animate-fade-in">
+      <div className="w-full max-w-xl bg-white border border-slate-300 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="p-4 bg-zinc-950/70 border-b border-zinc-800 flex justify-between items-center">
-          <h2 className="font-orbitron font-extrabold text-lg text-white tracking-wider flex items-center gap-2">
+        <div className="p-4 bg-slate-100/70 border-b border-slate-300 flex justify-between items-center">
+          <h2 className="font-orbitron font-extrabold text-lg text-slate-900 tracking-wider flex items-center gap-2">
             <Settings className="w-5 h-5 text-amber-400" />
             <span>{i18n.t('settingsTitle')}</span>
           </h2>
           <button
             onClick={onClose}
-            className="p-2 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 cursor-pointer transition-colors"
+            className="p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-200 cursor-pointer transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -77,16 +77,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
         {/* Content */}
         <div className="p-5 overflow-y-auto space-y-5 text-sm">
           {/* Language Toggle */}
-          <div className="flex justify-between items-center pb-3 border-b border-zinc-800">
+          <div className="flex justify-between items-center pb-3 border-b border-slate-300">
             <div>
-              <h4 className="font-orbitron font-bold text-white">{i18n.t('language')}</h4>
-              <p className="text-xs text-zinc-400">RU (Русский) / EN (English)</p>
+              <h4 className="font-orbitron font-bold text-slate-900">{i18n.t('language')}</h4>
+              <p className="text-xs text-slate-600">RU (Русский) / EN (English)</p>
             </div>
-            <div className="flex bg-zinc-950 p-1 rounded-xl border border-zinc-800">
+            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-300">
               <button
                 onClick={() => updateSetting('language', 'ru')}
                 className={`px-3 py-1.5 rounded-lg font-orbitron font-bold text-xs transition-all cursor-pointer ${
-                  settings.language === 'ru' ? 'bg-amber-400 text-zinc-950 shadow shadow-amber-500/25' : 'text-zinc-400 hover:text-white'
+                  settings.language === 'ru' ? 'bg-amber-400 text-zinc-950 shadow shadow-amber-500/25' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Русский
@@ -94,7 +94,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
               <button
                 onClick={() => updateSetting('language', 'en')}
                 className={`px-3 py-1.5 rounded-lg font-orbitron font-bold text-xs transition-all cursor-pointer ${
-                  settings.language === 'en' ? 'bg-amber-400 text-zinc-950 shadow shadow-amber-500/25' : 'text-zinc-400 hover:text-white'
+                  settings.language === 'en' ? 'bg-amber-400 text-zinc-950 shadow shadow-amber-500/25' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 English
@@ -103,9 +103,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
           </div>
 
           {/* Sound & Music Sliders */}
-          <div className="space-y-3 pb-3 border-b border-zinc-800">
+          <div className="space-y-3 pb-3 border-b border-slate-300">
             <div className="flex justify-between items-center">
-              <span className="font-orbitron font-medium text-zinc-300 flex items-center gap-2">
+              <span className="font-orbitron font-medium text-slate-700 flex items-center gap-2">
                 <Volume2 className="w-4 h-4 text-amber-400" />
                 <span>{i18n.t('soundVol')}</span>
               </span>
@@ -122,7 +122,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
             />
 
             <div className="flex justify-between items-center mt-2">
-              <span className="font-orbitron font-medium text-zinc-300 flex items-center gap-2">
+              <span className="font-orbitron font-medium text-slate-700 flex items-center gap-2">
                 <Music className="w-4 h-4 text-rose-400" />
                 <span>{i18n.t('musicVol')}</span>
               </span>
@@ -140,9 +140,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
           </div>
 
           {/* Graphics Quality */}
-          <div className="space-y-3 pb-3 border-b border-zinc-800">
+          <div className="space-y-3 pb-3 border-b border-slate-300">
             <div className="flex justify-between items-center">
-              <span className="font-orbitron font-medium text-zinc-300 flex items-center gap-2">
+              <span className="font-orbitron font-medium text-slate-700 flex items-center gap-2">
                 <Eye className="w-4 h-4 text-amber-400" />
                 <span>{i18n.t('graphics')}</span>
               </span>
@@ -156,7 +156,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
                   className={`py-2 rounded-xl font-orbitron font-bold text-xs uppercase transition-all cursor-pointer ${
                     settings.graphicsQuality === q
                       ? 'bg-amber-400 text-zinc-950 shadow shadow-amber-500/25'
-                      : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
+                      : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-300'
                   }`}
                 >
                   {q}
@@ -165,7 +165,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
             </div>
 
             {/* Описание выбранного качества */}
-            <p className="text-xs text-zinc-400 leading-relaxed">
+            <p className="text-xs text-slate-600 leading-relaxed">
               {settings.graphicsQuality === 'high' && i18n.t('qualityHigh')}
               {settings.graphicsQuality === 'medium' && i18n.t('qualityMed')}
               {settings.graphicsQuality === 'low' && i18n.t('qualityLow')}
@@ -173,7 +173,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
 
             {/* Checkboxes for FX */}
             <div className="grid grid-cols-2 gap-3 pt-2">
-              <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={settings.enableShadows}
@@ -183,7 +183,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
                 <span>{i18n.t('shadows')}</span>
               </label>
 
-              <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+              <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={settings.enableScreenShake}
@@ -196,9 +196,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
           </div>
 
           {/* Controls Sensitivity */}
-          <div className="space-y-3 pb-3 border-b border-zinc-800">
+          <div className="space-y-3 pb-3 border-b border-slate-300">
             <div className="flex justify-between items-center">
-              <span className="font-orbitron font-medium text-zinc-300 flex items-center gap-2">
+              <span className="font-orbitron font-medium text-slate-700 flex items-center gap-2">
                 <Sliders className="w-4 h-4 text-amber-400" />
                 <span>{i18n.t('sensitivity')}</span>
               </span>
@@ -214,7 +214,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
               className="w-full accent-amber-400 cursor-pointer"
             />
 
-            <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer pt-1">
+            <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer pt-1">
               <input
                 type="checkbox"
                 checked={settings.invertX}
@@ -227,14 +227,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
 
           {/* Save Management */}
           <div className="space-y-3">
-            <h4 className="font-orbitron font-bold text-white text-xs uppercase tracking-wider">
+            <h4 className="font-orbitron font-bold text-slate-900 text-xs uppercase tracking-wider">
               {i18n.t('exportSave')} / {i18n.t('importSave')}
             </h4>
 
             <div className="flex gap-2">
               <button
                 onClick={handleExport}
-                className="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl font-orbitron text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                className="flex-1 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl font-orbitron text-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>{i18n.t('exportSave')}</span>
@@ -247,7 +247,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
                 placeholder="Вставьте код сохранения..."
                 value={importStr}
                 onChange={(e) => setImportStr(e.target.value)}
-                className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-zinc-200 outline-none focus:border-amber-500"
+                className="flex-1 bg-slate-100 border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-amber-500"
               />
               <button
                 onClick={handleImport}
@@ -266,7 +266,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
             )}
 
             {/* Reset Progress */}
-            <div className="pt-3 border-t border-zinc-800">
+            <div className="pt-3 border-t border-slate-300">
               {!showResetConfirm ? (
                 <button
                   onClick={() => setShowResetConfirm(true)}
@@ -281,13 +281,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
                   <div className="flex gap-2">
                     <button
                       onClick={handleReset}
-                      className="flex-1 py-1.5 bg-red-600 hover:bg-red-500 text-white font-orbitron font-bold text-xs rounded-lg cursor-pointer"
+                      className="flex-1 py-1.5 bg-red-600 hover:bg-red-500 text-slate-900 font-orbitron font-bold text-xs rounded-lg cursor-pointer"
                     >
                       ДА, СБРОСИТЬ
                     </button>
                     <button
                       onClick={() => setShowResetConfirm(false)}
-                      className="flex-1 py-1.5 bg-zinc-800 text-zinc-300 font-orbitron text-xs rounded-lg cursor-pointer"
+                      className="flex-1 py-1.5 bg-slate-200 text-slate-700 font-orbitron text-xs rounded-lg cursor-pointer"
                     >
                       ОТМЕНА
                     </button>

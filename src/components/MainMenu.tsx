@@ -71,17 +71,17 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   };
 
   return (
-    <div className="absolute inset-0 z-20 flex flex-col justify-between p-4 md:p-8 bg-gradient-to-b from-zinc-950/90 via-zinc-950/75 to-zinc-950/95 select-none overflow-y-auto">
+    <div className="absolute inset-0 z-20 flex flex-col justify-between p-4 md:p-8 bg-gradient-to-b from-slate-100/90 via-slate-100/75 to-slate-100/95 select-none overflow-y-auto">
       {/* Top Bar: Currencies & Quick settings */}
       <div className="flex justify-between items-center max-w-5xl mx-auto w-full">
         {/* Currencies */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-zinc-900/90 border border-amber-500/40 px-3.5 py-1.5 rounded-full shadow-lg text-amber-400 font-orbitron font-bold text-xs md:text-sm">
+          <div className="flex items-center gap-2 bg-white/90 border border-amber-500/40 px-3.5 py-1.5 rounded-full shadow-lg text-amber-400 font-orbitron font-bold text-xs md:text-sm">
             <Coins className="w-4 h-4 text-amber-400" />
             <span>{state.coins.toLocaleString()}</span>
           </div>
 
-          <div className="flex items-center gap-2 bg-zinc-900/90 border border-rose-500/40 px-3.5 py-1.5 rounded-full shadow-lg text-rose-400 font-orbitron font-bold text-xs md:text-sm">
+          <div className="flex items-center gap-2 bg-white/90 border border-rose-500/40 px-3.5 py-1.5 rounded-full shadow-lg text-rose-400 font-orbitron font-bold text-xs md:text-sm">
             <Gem className="w-4 h-4 text-rose-400" />
             <span>{state.gems.toLocaleString()}</span>
           </div>
@@ -94,7 +94,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               soundEngine.playSound('button_click');
               onOpenGuide();
             }}
-            className="p-2.5 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-300 hover:text-white transition-all shadow cursor-pointer"
+            className="p-2.5 bg-white/80 hover:bg-slate-200 border border-slate-300 rounded-xl text-slate-700 hover:text-slate-900 transition-all shadow cursor-pointer"
             title={i18n.t('loreGuide')}
           >
             <BookOpen className="w-4 h-4" />
@@ -105,7 +105,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               soundEngine.playSound('button_click');
               onOpenTests();
             }}
-            className="p-2.5 bg-zinc-900/80 hover:bg-zinc-800 border border-emerald-500/40 text-emerald-400 hover:text-emerald-300 rounded-xl transition-all shadow cursor-pointer"
+            className="p-2.5 bg-white/80 hover:bg-slate-200 border border-emerald-500/40 text-emerald-400 hover:text-emerald-300 rounded-xl transition-all shadow cursor-pointer"
             title={i18n.t('testSuite')}
           >
             <FileCode className="w-4 h-4" />
@@ -116,7 +116,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               soundEngine.playSound('button_click');
               onOpenSettings();
             }}
-            className="p-2.5 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700 rounded-xl text-zinc-300 hover:text-white transition-all shadow cursor-pointer"
+            className="p-2.5 bg-white/80 hover:bg-slate-200 border border-slate-300 rounded-xl text-slate-700 hover:text-slate-900 transition-all shadow cursor-pointer"
             title={i18n.t('settings')}
           >
             <Settings className="w-4 h-4" />
@@ -135,7 +135,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             <h1 className="font-orbitron font-black text-4xl md:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-100 to-orange-400 drop-shadow-[0_0_25px_rgba(245,158,11,0.5)] tracking-wider">
               {i18n.t('gameTitle')}
             </h1>
-            <p className="text-zinc-400 text-xs md:text-sm font-sans tracking-wide mt-2">
+            <p className="text-slate-600 text-xs md:text-sm font-sans tracking-wide mt-2">
               {i18n.t('gameSubtitle')}
             </p>
           </div>
@@ -156,7 +156,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 soundEngine.playSound('button_click');
                 setShowLevelSelect(true);
               }}
-              className="py-3 bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-zinc-200 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="py-3 bg-white/90 hover:bg-slate-200 border border-slate-300 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-slate-800 flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <Grid className="w-4 h-4 text-teal-300" />
               <span>{i18n.t('levelSelect')} (50)</span>
@@ -167,7 +167,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 soundEngine.playSound('button_click');
                 onPlayEndless();
               }}
-              className="py-3 bg-zinc-900/90 hover:bg-zinc-800 border border-rose-500/40 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-rose-300 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="py-3 bg-white/90 hover:bg-slate-200 border border-rose-500/40 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-rose-300 flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <InfinityIcon className="w-4 h-4 text-rose-400" />
               <span>{i18n.t('endlessMode')}</span>
@@ -186,7 +186,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 soundEngine.playSound('button_click');
                 onOpenShop();
               }}
-              className="py-3 bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-zinc-200 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="py-3 bg-white/90 hover:bg-slate-200 border border-slate-300 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-slate-800 flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <ShoppingCart className="w-4 h-4 text-amber-400" />
               <span>{i18n.t('shop')}</span>
@@ -197,7 +197,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 soundEngine.playSound('button_click');
                 onOpenAchievements();
               }}
-              className="py-3 bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-zinc-200 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="py-3 bg-white/90 hover:bg-slate-200 border border-slate-300 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-slate-800 flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <Award className="w-4 h-4 text-emerald-400" />
               <span>{i18n.t('achievements')}</span>
@@ -206,11 +206,11 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         </div>
       ) : (
         /* 50 Levels Selector Grid */
-        <div className="max-w-4xl mx-auto w-full bg-zinc-900/90 border border-zinc-700 rounded-2xl p-4 md:p-6 shadow-2xl my-auto max-h-[75vh] flex flex-col">
+        <div className="max-w-4xl mx-auto w-full bg-white/90 border border-slate-300 rounded-2xl p-4 md:p-6 shadow-2xl my-auto max-h-[75vh] flex flex-col">
           <div className="flex justify-between items-center mb-4">
             <button
               onClick={() => setShowLevelSelect(false)}
-              className="flex items-center gap-1.5 text-xs font-orbitron font-bold text-zinc-300 hover:text-white bg-zinc-800 px-3 py-1.5 rounded-lg cursor-pointer"
+              className="flex items-center gap-1.5 text-xs font-orbitron font-bold text-slate-700 hover:text-slate-900 bg-slate-200 px-3 py-1.5 rounded-lg cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
               <span>{i18n.t('back')}</span>
@@ -239,8 +239,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       : isUnlocked
                       ? isBoss
                         ? 'bg-red-950/80 border-red-500/60 text-red-300 hover:bg-red-900/80'
-                        : 'bg-zinc-950/80 border-zinc-800 text-zinc-200 hover:border-zinc-600'
-                      : 'bg-zinc-950/40 border-zinc-900 text-zinc-600 cursor-not-allowed opacity-60'
+                        : 'bg-slate-100/80 border-slate-300 text-slate-800 hover:border-slate-400'
+                      : 'bg-slate-100/40 border-slate-300 text-slate-600 cursor-not-allowed opacity-60'
                   }`}
                 >
                   {isBoss && isUnlocked && (
@@ -269,7 +269,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       )}
 
       {/* Footer controls hint */}
-      <div className="text-center text-xs text-zinc-400 font-sans tracking-wide">
+      <div className="text-center text-xs text-slate-600 font-sans tracking-wide">
         <span>Управление: Мышь/Свайпы для маневров • Клавиши 1-4 для смены формаций • ПРОБЕЛ для Гипер-режима</span>
       </div>
     </div>

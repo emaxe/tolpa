@@ -10,8 +10,8 @@ interface PauseModalProps {
 
 export const PauseModal: React.FC<PauseModalProps> = ({ onResume, onRestart, onHome }) => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/85 backdrop-blur-md select-none animate-fade-in">
-      <div className="w-full max-w-sm bg-zinc-900 rounded-3xl shadow-2xl p-6 border-2 border-amber-500/70 shadow-amber-950/80 text-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-100/85 backdrop-blur-md select-none animate-fade-in">
+      <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-6 border-2 border-amber-500/70 shadow-amber-950/80 text-center">
         <div className="flex flex-col items-center mb-6">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3 shadow-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-zinc-950">
             <Pause className="w-8 h-8 fill-current" />
@@ -32,7 +32,7 @@ export const PauseModal: React.FC<PauseModalProps> = ({ onResume, onRestart, onH
 
           <button
             onClick={onRestart}
-            className="w-full py-2.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 rounded-xl font-orbitron text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+            className="w-full py-2.5 bg-slate-200/80 hover:bg-slate-300 text-slate-700 rounded-xl font-orbitron text-xs flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>{i18n.t('retry')}</span>
@@ -40,7 +40,7 @@ export const PauseModal: React.FC<PauseModalProps> = ({ onResume, onRestart, onH
 
           <button
             onClick={onHome}
-            className="w-full py-2.5 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 rounded-xl font-orbitron text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+            className="w-full py-2.5 bg-slate-200/80 hover:bg-slate-300 text-slate-700 rounded-xl font-orbitron text-xs flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <Home className="w-3.5 h-3.5" />
             <span>{i18n.t('toMenu')}</span>

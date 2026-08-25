@@ -136,7 +136,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   };
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-slate-950">
+    <div className="relative w-full h-full overflow-hidden bg-slate-100">
       {/* Three.js canvas container */}
       <div ref={containerRef} className="w-full h-full select-none touch-none" />
 

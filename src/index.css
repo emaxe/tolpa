@@ -46,3 +46,31 @@
 .animate-damage-flash {
   animation: damage-flash 350ms ease-out forwards;
 }
+
+/* LIGHT THEME — body/root фон и скроллбар (светлый фрост-вид) */
+body {
+  background-color: #f1f5f9; /* slate-100 */
+  color: #0f172a; /* slate-900 */
+}
+
+#root {
+  background-color: #f1f5f9; /* slate-100 */
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #e2e8f0; /* slate-200 */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* slate-300 */
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; /* slate-400 */
+}
