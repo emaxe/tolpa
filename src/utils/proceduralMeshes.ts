@@ -1806,6 +1806,83 @@ export function createSkinLeaderModel(style: string, colorHex: string, emissiveH
       return group;
     }
 
+    case 'dino': {
+      // Кибер-динозавр: массивный корпус, зубастая челюсть, спинные пластины, хвост-противовес.
+      // Таз/бедро — наклонный корпус (повёрнут вперёд)
+      const torso = boxGeo(0.44, 0.5, 0.78);
+      torso.rotateX(-0.55); // наклон корпуса вперёд
+      torso.translate(0, 0.98, 0.05);
+      make(torso);
+      // Грудная клетка
+      const chest = boxGeo(0.42, 0.5, 0.5);
+      chest.translate(0, 1.15, 0.32);
+      make(chest);
+      // Шея
+      const neck = boxGeo(0.22, 0.42, 0.22);
+      neck.translate(0, 1.55, 0.28);
+      make(neck);
+      // Голова с вытянутой зубастой челюстью
+      const head = boxGeo(0.3, 0.24, 0.62);
+      head.translate(0, 1.78, 0.45);
+      make(head);
+      // Верхняя челюсть/нос
+      const snout = boxGeo(0.2, 0.14, 0.3);
+      snout.translate(0, 1.78, 0.9);
+      make(snout);
+      // Зубы
+      for (let i = -1; i <= 1; i++) {
+        const tooth = boxGeo(0.045, 0.12, 0.045);
+        tooth.translate(0.07 * i, 1.66, 0.82);
+        make(tooth);
+      }
+      // Гребень с имплантом (светится)
+      const crest = boxGeo(0.06, 0.16, 0.3);
+      crest.translate(0, 2.02, 0.45);
+      make(crest);
+      // Спинные пластины
+      const plate1 = boxGeo(0.05, 0.28, 0.2);
+      plate1.translate(0, 1.42, -0.08);
+      make(plate1);
+      const plate2 = boxGeo(0.05, 0.22, 0.18);
+      plate2.translate(0, 1.32, -0.42);
+      make(plate2);
+      // Хвост-противовес (три сегмента назад)
+      const tail1 = boxGeo(0.18, 0.18, 0.4);
+      tail1.rotateX(0.3);
+      tail1.translate(0, 1.0, -0.62);
+      make(tail1);
+      const tail2 = boxGeo(0.12, 0.12, 0.35);
+      tail2.rotateX(0.5);
+      tail2.translate(0, 0.86, -0.95);
+      make(tail2);
+      const tailTip = boxGeo(0.07, 0.07, 0.3);
+      tailTip.rotateX(0.7);
+      tailTip.translate(0, 0.68, -1.22);
+      make(tailTip);
+      // Задние лапы (мощные)
+      const hindLeg = boxGeo(0.2, 0.6, 0.28);
+      hindLeg.translate(-0.16, 0.3, 0.18);
+      make(hindLeg);
+      const hindLeg2 = boxGeo(0.2, 0.6, 0.28);
+      hindLeg2.translate(0.16, 0.3, 0.18);
+      make(hindLeg2);
+      // Ступни
+      const foot = boxGeo(0.22, 0.12, 0.42);
+      foot.translate(-0.16, 0.06, 0.24);
+      make(foot);
+      const foot2 = boxGeo(0.22, 0.12, 0.42);
+      foot2.translate(0.16, 0.06, 0.24);
+      make(foot2);
+      // Передние лапки (короткие)
+      const foreArm = boxGeo(0.12, 0.16, 0.12);
+      foreArm.translate(-0.22, 0.72, 0.28);
+      make(foreArm);
+      const foreArm2 = boxGeo(0.12, 0.16, 0.12);
+      foreArm2.translate(0.22, 0.72, 0.28);
+      make(foreArm2);
+      return group;
+    }
+
     // Базовые humanoid-скины и всё остальное — стандартная модель бойца.
     case 'cyber':
     case 'neon':
