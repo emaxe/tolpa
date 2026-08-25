@@ -46,6 +46,8 @@ export class GateManager {
   // trailing-мобов формаций (oval/wide/circle держат часть толпы позади лидера на
   // 3-6+ единиц), чтобы каждый реально прошедший через проём моб получил эффект.
   private static readonly GATE_DEACTIVATE_MARGIN = 8;
+  // Дистанция позади лидера, за пределами которой пройденные ворота удаляются (endless-режим).
+  private static readonly PRUNE_MARGIN = 40;
   // Бонус за комбо-серию позитивных ворот: +8% мобов за каждый шаг серии > 1,
   // максимум +80% (фактор ≤ 1.8). Награждает удержание серии правильных крыльев.
   private static readonly COMBO_BONUS_PER_STEP = 0.08;
@@ -172,6 +174,30 @@ export class GateManager {
         gateVisual.mat.opacity = 0.3;
       }
     });
+
+    if (!this.empActive) {
+      this.prune(crowd.leaderZ);
+    }
+  }
+
+  /**
+   * Удаляет пройденные ворота далеко позади игрока (endless-режим, 0-GC compaction).
+   * Не вызывается во время EMP-шторма, чтобы не нарушать соответствие empOriginals.
+   */
+  public prune(leaderZ: number): void {
+    const threshold = leaderZ - GateManager.PRUNE_MARGIN;
+    let writeIdx = 0;
+    for (let i = 0; i < this.gates.length; i++) {
+      const gv = this.gates[i];
+      if (gv.data.z < threshold) {
+        this.scene.remove(gv.group);
+        gv.texture.dispose();
+        gv.mat.dispose();
+      } else {
+        this.gates[writeIdx++] = gv;
+      }
+    }
+    this.gates.length = writeIdx;
   }
 
   private applyMotion(gv: GateVisual, dt: number): void {

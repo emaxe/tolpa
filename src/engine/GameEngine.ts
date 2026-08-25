@@ -2227,6 +2227,10 @@ export class GameEngine {
       this.walls.appendWalls(seg.walls);
       this.bonus.appendBonuses(seg.bonuses);
       this.obstacles.appendObstacles(seg.obstacles, seg.coins);
+      this.gates.prune(this.crowd.leaderZ);
+      this.walls.prune(this.crowd.leaderZ);
+      this.bonus.prune(this.crowd.leaderZ);
+      this.obstacles.prune(this.crowd.leaderZ);
       this.currentEndlessZ += seg.length;
     }
   }

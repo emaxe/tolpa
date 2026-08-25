@@ -68,6 +68,7 @@ interface CoinVisual {
 }
 
 export class ObstacleManager {
+  private static readonly PRUNE_MARGIN = 40;
   private scene: THREE.Scene;
   private obstacles: ObstacleVisual[] = [];
   // Монеты: вместо сотен отдельных Mesh — ОДИН InstancedMesh (1 draw call на все).
@@ -645,6 +646,9 @@ export class ObstacleManager {
       // Near-Miss: награда за проход вплотную к активной ловушке без касания.
       this.checkNearMiss(obsVis, crowd, particles);
     });
+
+    this.prune(crowd.leaderZ);
+
     // 2. Update and check coins
     const crowdLeaderX = crowd.leaderX;
     const crowdLeaderZ = crowd.leaderZ;
@@ -1137,6 +1141,57 @@ export class ObstacleManager {
       if (d > 0 && (closest === -1 || d < closest)) closest = d;
     }
     return closest;
+  }
+
+  /**
+   * Удаляет пройденные и мёртвые препятствия/монеты позади игрока (endless-режим, 0-GC compaction).
+   */
+  public prune(leaderZ: number): void {
+    const threshold = leaderZ - ObstacleManager.PRUNE_MARGIN;
+
+    // 1. Препятствия
+    let writeIdx = 0;
+    for (let i = 0; i < this.obstacles.length; i++) {
+      const obsVis = this.obstacles[i];
+      const obs = obsVis.data;
+      if (obs.isDead || obs.z < threshold) {
+        if (!obs.isDead) {
+          this.scene.remove(obsVis.mesh);
+        }
+        this.disposeMeshTree(obsVis.mesh);
+      } else {
+        this.obstacles[writeIdx++] = obsVis;
+      }
+    }
+    this.obstacles.length = writeIdx;
+
+    // 2. Монеты (InstancedMesh)
+    if (this.coinMesh && this.coinActiveCount > 0) {
+      let coinWrite = 0;
+      let dirty = false;
+      for (let i = 0; i < this.coinActiveCount; i++) {
+        const coin = this.coinData[i];
+        if (!coin.collected && coin.z >= threshold) {
+          if (coinWrite !== i) {
+            this.coinData[coinWrite] = coin;
+            this.coinSpin[coinWrite] = this.coinSpin[i];
+            this.coinMesh.getMatrixAt(i, this.coinDummy.matrix);
+            this.coinMesh.setMatrixAt(coinWrite, this.coinDummy.matrix);
+            dirty = true;
+          }
+          coinWrite++;
+        } else {
+          dirty = true;
+        }
+      }
+      this.coinData.length = coinWrite;
+      this.coinSpin.length = coinWrite;
+      this.coinActiveCount = coinWrite;
+      this.coinMesh.count = coinWrite;
+      if (dirty) {
+        this.coinMesh.instanceMatrix.needsUpdate = true;
+      }
+    }
   }
 
   public clear(): void {

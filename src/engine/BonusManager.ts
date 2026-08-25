@@ -54,6 +54,7 @@ function createBonusTexture(color: number, label: string): THREE.CanvasTexture {
 }
 
 export class BonusManager {
+  private static readonly PRUNE_MARGIN = 40;
   private scene: THREE.Scene;
   private bonuses: BonusVisual[] = [];
   private coreGeo: THREE.SphereGeometry;
@@ -173,6 +174,37 @@ export class BonusManager {
         this.applyEffect(b, crowd, particles);
       }
     }
+
+    this.prune(leaderZ);
+  }
+
+  /**
+   * Удаляет собранные и оставшиеся позади бонусы (endless-режим, 0-GC compaction).
+   */
+  public prune(leaderZ: number): void {
+    const threshold = leaderZ - BonusManager.PRUNE_MARGIN;
+    let writeIdx = 0;
+    for (let i = 0; i < this.bonuses.length; i++) {
+      const bv = this.bonuses[i];
+      if (bv.data.collected || bv.data.z < threshold) {
+        if (!bv.data.collected) {
+          this.scene.remove(bv.group);
+        }
+        bv.group.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            const mat = child.material as THREE.Material | THREE.Material[];
+            if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+            else mat?.dispose();
+            if (child.geometry && child.geometry !== this.coreGeo && child.geometry !== this.ringGeo) {
+              child.geometry.dispose();
+            }
+          }
+        });
+      } else {
+        this.bonuses[writeIdx++] = bv;
+      }
+    }
+    this.bonuses.length = writeIdx;
   }
 
   private applyEffect(b: BonusData, crowd: CrowdManager, particles: ParticleSystem): void {

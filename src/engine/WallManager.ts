@@ -24,6 +24,7 @@ interface WallVisual {
 const WALL_HEIGHT = 4.2;
 
 export class WallManager {
+  private static readonly PRUNE_MARGIN = 40;
   private scene: THREE.Scene;
   private walls: WallVisual[] = [];
   private throughScratch: MobInstance[] = [];
@@ -156,6 +157,29 @@ export class WallManager {
         }
       }
     }
+
+    this.prune(leaderZ);
+  }
+
+  /**
+   * Удаляет пройденные и уничтоженные стены позади игрока (endless-режим, 0-GC compaction).
+   */
+  public prune(leaderZ: number): void {
+    const threshold = leaderZ - WallManager.PRUNE_MARGIN;
+    let writeIdx = 0;
+    for (let i = 0; i < this.walls.length; i++) {
+      const wv = this.walls[i];
+      if ((wv.data.destroyed || wv.data.z < threshold) && !wv.falling) {
+        if (!wv.data.destroyed) {
+          this.scene.remove(wv.group);
+        }
+        wv.baseTexture.dispose();
+        wv.mat.dispose();
+      } else {
+        this.walls[writeIdx++] = wv;
+      }
+    }
+    this.walls.length = writeIdx;
   }
 
   private updateCounterTexture(wv: WallVisual): void {
