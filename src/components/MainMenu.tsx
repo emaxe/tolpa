@@ -71,18 +71,25 @@ export const MainMenu: React.FC<MainMenuProps> = ({
   };
 
   return (
-    <div className="absolute inset-0 z-20 flex flex-col justify-between p-4 md:p-8 bg-gradient-to-b from-slate-100/90 via-slate-100/75 to-slate-100/95 select-none overflow-y-auto">
+    <div className="absolute inset-0 z-20 flex flex-col justify-between p-4 md:p-8 bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 select-none overflow-y-auto">
+      {/* Ambient neon glow blobs for depth */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-amber-300/25 blur-3xl" />
+        <div className="absolute top-1/3 -right-32 w-[28rem] h-[28rem] rounded-full bg-orange-300/20 blur-3xl" />
+        <div className="absolute -bottom-32 left-1/4 w-80 h-80 rounded-full bg-cyan-300/15 blur-3xl" />
+      </div>
+
       {/* Top Bar: Currencies & Quick settings */}
       <div className="flex justify-between items-center max-w-5xl mx-auto w-full">
         {/* Currencies */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white/90 border border-amber-500/40 px-3.5 py-1.5 rounded-full shadow-lg text-amber-400 font-orbitron font-bold text-xs md:text-sm">
-            <Coins className="w-4 h-4 text-amber-400" />
+          <div className="flex items-center gap-2 bg-white/90 border border-amber-500/40 px-3.5 py-1.5 rounded-full shadow-lg text-amber-700 font-orbitron font-bold text-xs md:text-sm">
+            <Coins className="w-4 h-4 text-amber-600" />
             <span>{state.coins.toLocaleString()}</span>
           </div>
 
-          <div className="flex items-center gap-2 bg-white/90 border border-rose-500/40 px-3.5 py-1.5 rounded-full shadow-lg text-rose-400 font-orbitron font-bold text-xs md:text-sm">
-            <Gem className="w-4 h-4 text-rose-400" />
+          <div className="flex items-center gap-2 bg-white/90 border border-rose-500/40 px-3.5 py-1.5 rounded-full shadow-lg text-rose-700 font-orbitron font-bold text-xs md:text-sm">
+            <Gem className="w-4 h-4 text-rose-600" />
             <span>{state.gems.toLocaleString()}</span>
           </div>
         </div>
@@ -105,7 +112,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               soundEngine.playSound('button_click');
               onOpenTests();
             }}
-            className="p-2.5 bg-white/80 hover:bg-slate-200 border border-emerald-500/40 text-emerald-600 hover:text-emerald-700 rounded-xl transition-all shadow cursor-pointer"
+            className="p-2.5 bg-white/80 hover:bg-amber-50 border border-amber-500/40 text-amber-700 hover:text-amber-900 rounded-xl transition-all shadow cursor-pointer"
             title={i18n.t('testSuite')}
           >
             <FileCode className="w-4 h-4" />
@@ -129,13 +136,13 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         <div className="flex flex-col items-center justify-center my-auto py-6 max-w-lg mx-auto w-full text-center">
           {/* Glowing Game Title */}
           <div className="mb-8">
-            <div className="inline-block px-3 py-1 bg-amber-950/80 border border-amber-500/50 rounded-full text-[11px] font-orbitron font-bold text-amber-300 uppercase tracking-widest mb-3">
+            <div className="inline-block px-3 py-1 bg-amber-100 border border-amber-300 rounded-full text-[11px] font-orbitron font-bold text-amber-800 uppercase tracking-widest mb-3">
               3D Crowd Tactical Runner
             </div>
-            <h1 className="font-orbitron font-black text-4xl md:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-100 to-orange-400 drop-shadow-[0_0_25px_rgba(245,158,11,0.5)] tracking-wider">
+            <h1 className="font-orbitron font-black text-4xl md:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-orange-500 to-amber-700 drop-shadow-[0_0_20px_rgba(245,158,11,0.35)] tracking-wider">
               {i18n.t('gameTitle')}
             </h1>
-            <p className="text-slate-600 text-xs md:text-sm font-sans tracking-wide mt-2">
+            <p className="text-slate-700 text-xs md:text-sm font-sans tracking-wide mt-2">
               {i18n.t('gameSubtitle')}
             </p>
           </div>
@@ -156,9 +163,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 soundEngine.playSound('button_click');
                 setShowLevelSelect(true);
               }}
-              className="py-3 bg-white/90 hover:bg-slate-200 border border-slate-300 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-slate-800 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="py-3 bg-gradient-to-b from-white to-amber-50 hover:from-amber-50 hover:to-amber-100 border border-amber-500/40 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-amber-800 shadow-md shadow-amber-500/10 flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
-              <Grid className="w-4 h-4 text-teal-700" />
+              <Grid className="w-4 h-4 text-amber-600" />
               <span>{i18n.t('levelSelect')} (50)</span>
             </button>
 
@@ -167,12 +174,12 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 soundEngine.playSound('button_click');
                 onPlayEndless();
               }}
-              className="py-3 bg-white/90 hover:bg-slate-200 border border-rose-500/40 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-rose-600 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="py-3 bg-gradient-to-b from-white to-amber-50 hover:from-amber-50 hover:to-amber-100 border border-amber-500/40 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-amber-800 shadow-md shadow-amber-500/10 flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
-              <InfinityIcon className="w-4 h-4 text-rose-400" />
+              <InfinityIcon className="w-4 h-4 text-amber-600" />
               <span>{i18n.t('endlessMode')}</span>
               {state.endlessHighScore > 0 && (
-                <span className="text-[9px] text-rose-600/80">
+                <span className="text-[9px] text-amber-700/80">
                   {i18n.t('endlessRecord')}: {state.endlessHighScore.toLocaleString()} м
                 </span>
               )}
@@ -186,9 +193,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 soundEngine.playSound('button_click');
                 onOpenShop();
               }}
-              className="py-3 bg-white/90 hover:bg-slate-200 border border-slate-300 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-slate-800 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="py-3 bg-gradient-to-b from-white to-amber-50 hover:from-amber-50 hover:to-amber-100 border border-amber-500/40 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-amber-800 shadow-md shadow-amber-500/10 flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
-              <ShoppingCart className="w-4 h-4 text-amber-400" />
+              <ShoppingCart className="w-4 h-4 text-amber-600" />
               <span>{i18n.t('shop')}</span>
             </button>
 
@@ -197,9 +204,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 soundEngine.playSound('button_click');
                 onOpenAchievements();
               }}
-              className="py-3 bg-white/90 hover:bg-slate-200 border border-slate-300 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-slate-800 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="py-3 bg-gradient-to-b from-white to-amber-50 hover:from-amber-50 hover:to-amber-100 border border-amber-500/40 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-amber-800 shadow-md shadow-amber-500/10 flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
-              <Award className="w-4 h-4 text-emerald-400" />
+              <Award className="w-4 h-4 text-amber-600" />
               <span>{i18n.t('achievements')}</span>
             </button>
           </div>
@@ -255,7 +262,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       {stars > 0 && (
                         <div className="flex gap-0.5 mt-1">
                           {Array.from({ length: stars }).map((_, s) => (
-                            <Star key={s} className="w-2 h-2 text-amber-400 fill-amber-400" />
+                            <Star key={s} className="w-2 h-2 text-amber-600 fill-amber-600" />
                           ))}
                         </div>
                       )}
@@ -269,7 +276,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
       )}
 
       {/* Footer controls hint */}
-      <div className="text-center text-xs text-slate-600 font-sans tracking-wide">
+      <div className="text-center text-xs text-slate-700 font-sans tracking-wide">
         <span>Управление: Мышь/Свайпы для маневров • Клавиши 1-4 для смены формаций • ПРОБЕЛ для Гипер-режима</span>
       </div>
     </div>

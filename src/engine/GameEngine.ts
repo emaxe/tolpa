@@ -145,7 +145,7 @@ export class GameEngine {
   // анимируются только при пересечении границы (scale=0), а не каждый кадр. Запас
   // назад > CAMERA_BASE_DISTANCE + speedLag, вперёд — до предела читаемости силуэта.
   private static readonly SPECTATOR_WINDOW_BACK = 30.0;
-  private static readonly SPECTATOR_WINDOW_AHEAD = 90.0;
+  private static readonly SPECTATOR_WINDOW_AHEAD = 60.0;
 
   // Adrenaline (перенесено сюда из HUD-таймера — заряд должен стоять на паузе
   // и не быть отвязан от реальной игры)
@@ -204,13 +204,17 @@ export class GameEngine {
 
     // 3. Renderer
     const settings = stateManager.getState().settings;
+    // Большой экран: MSAA (antialias) на 4K/больших мониторах очень дорог — отключаем,
+    // чтобы поднять FPS. На обычных экранах оставляем по настройкам качества.
+    const bigScreen = window.innerWidth >= 1920 || window.innerHeight >= 1080;
     this.renderer = new THREE.WebGLRenderer({
-      antialias: settings.graphicsQuality !== 'low',
+      antialias: !bigScreen && settings.graphicsQuality !== 'low',
       powerPreference: 'high-performance',
       alpha: false,
     });
     this.renderer.setSize(container.clientWidth, container.clientHeight);
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // PCF (не PCFSoft) — дешевле, на большом экране разница в мягкости краёв незаметна.
+    this.renderer.shadowMap.type = bigScreen ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
 
@@ -223,8 +227,10 @@ export class GameEngine {
     this.dirLight = new THREE.DirectionalLight(0xffffff, 1.4);
     this.dirLight.position.set(15, 30, 20);
     this.dirLight.castShadow = settings.enableShadows;
-    this.dirLight.shadow.mapSize.width = 1024;
-    this.dirLight.shadow.mapSize.height = 1024;
+    // На большом экране тени 1024² дороги — снижаем до 512² (вдвое меньше работы GPU).
+    const shadowSize = bigScreen ? 512 : 1024;
+    this.dirLight.shadow.mapSize.width = shadowSize;
+    this.dirLight.shadow.mapSize.height = shadowSize;
     this.dirLight.shadow.camera.near = 1;
     this.dirLight.shadow.camera.far = 120;
     this.dirLight.shadow.camera.left = -20;
@@ -319,8 +325,12 @@ export class GameEngine {
   private applyGraphicsSettings(): void {
     const settings = stateManager.getState().settings;
     const dpr = window.devicePixelRatio || 1;
-    // Целевой pixelRatio по качеству: high = до 2.0, medium/low = 1.0 (дешевле на мобильных).
-    const target = settings.graphicsQuality === 'high' ? Math.min(dpr, 2.0) : 1.0;
+    // Большой экран (широкий viewport) = огромный fill rate при высоком pixelRatio.
+    // На 4K/больших мониторах 2.0 даёт 4× пикселей — главный убийца FPS. Снижаем потолок.
+    const bigScreen = window.innerWidth >= 1920 || window.innerHeight >= 1080;
+    const highCap = bigScreen ? 1.5 : 2.0;
+    // Целевой pixelRatio по качеству: high = до highCap, medium/low = 1.0 (дешевле на мобильных).
+    const target = settings.graphicsQuality === 'high' ? Math.min(dpr, highCap) : 1.0;
     // Не поднимаем выше, чем уже установил адаптивный watchdog (если он снизил из-за FPS).
     this.currentPixelRatio = Math.min(target, this.currentPixelRatio || target);
     if (this.renderer) {
@@ -334,10 +344,12 @@ export class GameEngine {
 
   /** Адаптивный watchdog разрешения: накапливает среднее время кадра и при просадке
    *  FPS плавно снижает pixelRatio (до 0.75), восстанавливая его, когда кадр снова
-   *  быстрый. Работает только на high-качестве (там есть запас по разрешению). */
+   *  быстрый. Работает на всех качествах (не только high) — на большом экране даже
+   *  medium/low могут проседать из-за fill rate. При сильной просадке дополнительно
+   *  отключает тени (самый дорогой эффект), возвращая их при восстановлении FPS. */
   private updateAdaptiveResolution(dt: number): void {
     const settings = stateManager.getState().settings;
-    if (settings.graphicsQuality !== 'high') return;
+    if (settings.graphicsQuality === 'low') return; // low уже минимальный — нечего снижать
 
     this.adaptiveAccum += dt;
     this.adaptiveFrames++;
@@ -348,9 +360,16 @@ export class GameEngine {
     this.adaptiveFrames = 0;
     const now = performance.now();
 
-    // Просадка: средний кадр > 33мс (~30 FPS) и прошло >2.5с с последнего изменения.
-    if (avgFrame > 0.033 && now - this.adaptiveLastChange > 2500) {
-      const next = Math.max(0.75, this.currentPixelRatio * 0.9);
+    // Просадка: средний кадр > 28мс (~35 FPS) и прошло >2с с последнего изменения.
+    if (avgFrame > 0.028 && now - this.adaptiveLastChange > 2000) {
+      // Сначала пробуем снять тени (дёшево, заметно ускоряет), потом режем разрешение.
+      if (this.dirLight.castShadow) {
+        this.dirLight.castShadow = false;
+        this.renderer.shadowMap.enabled = false;
+        this.adaptiveLastChange = now;
+        return;
+      }
+      const next = Math.max(0.75, this.currentPixelRatio * 0.85);
       if (next < this.currentPixelRatio) {
         this.currentPixelRatio = next;
         this.renderer.setPixelRatio(this.currentPixelRatio);
@@ -359,11 +378,18 @@ export class GameEngine {
     } else if (avgFrame < 0.02 && now - this.adaptiveLastChange > 2500) {
       // Кадр быстрый — восстанавливаем к целевому качеству.
       const dpr = window.devicePixelRatio || 1;
-      const target = Math.min(dpr, 2.0);
+      const bigScreen = window.innerWidth >= 1920 || window.innerHeight >= 1080;
+      const target = Math.min(dpr, bigScreen ? 1.5 : 2.0);
       const next = Math.min(target, this.currentPixelRatio * 1.1);
       if (next > this.currentPixelRatio) {
         this.currentPixelRatio = next;
         this.renderer.setPixelRatio(this.currentPixelRatio);
+        this.adaptiveLastChange = now;
+      }
+      // Тени возвращаем только если игрок их включил в настройках.
+      if (settings.enableShadows && !this.dirLight.castShadow) {
+        this.dirLight.castShadow = true;
+        this.renderer.shadowMap.enabled = true;
         this.adaptiveLastChange = now;
       }
     }
@@ -926,30 +952,61 @@ export class GameEngine {
 
     // Собираем позиции зрителей (массив чисел, не объектов — 0-GC в цикле).
     const seats: number[] = [];
-    const tiers = 4; // ярусов ступеней
+    const tiers = 3; // ярусов ступеней (было 4 — меньше объектов на сцене)
     const stepDepth = 1.1;
     const stepHeight = 0.5;
 
+    // Ступени и канты — InstancedMesh (по одному на зону), вместо 8 отдельных Mesh
+    // на зону. Это убирает ~56 draw calls и 112 лишних BoxGeometry.
+    const stepDummy = new THREE.Object3D();
+    const edgeDummy = new THREE.Object3D();
+
     for (const [z0, z1] of zones) {
+      const zoneLen = z1 - z0;
+      const stepGeo = new THREE.BoxGeometry(stepDepth, stepHeight, zoneLen);
+      const edgeGeo = new THREE.BoxGeometry(0.06, 0.05, zoneLen);
+      const stepCount = 2 * tiers; // 2 стороны × tiers ярусов
+      const stepMesh = new THREE.InstancedMesh(stepGeo, stepMat, stepCount);
+      const edgeMesh = new THREE.InstancedMesh(edgeGeo, stepEdgeMat, stepCount);
+      stepMesh.frustumCulled = false;
+      edgeMesh.frustumCulled = false;
+      let inst = 0;
+
       for (const side of [-1, 1]) {
-        // Ступени трибуны
         for (let tier = 0; tier < tiers; tier++) {
-          const stepGeo = new THREE.BoxGeometry(stepDepth, stepHeight, z1 - z0);
-          const step = new THREE.Mesh(stepGeo, stepMat);
-          step.position.set(side * (tribuneX + tier * stepDepth), stepHeight / 2 + tier * stepHeight, (z0 + z1) / 2);
-          group.add(step);
+          const x = side * (tribuneX + tier * stepDepth);
+          const y = stepHeight / 2 + tier * stepHeight;
+          const z = (z0 + z1) / 2;
+
+          stepDummy.position.set(x, y, z);
+          stepDummy.rotation.set(0, 0, 0);
+          stepDummy.scale.setScalar(1);
+          stepDummy.updateMatrix();
+          stepMesh.setMatrixAt(inst, stepDummy.matrix);
+
           // Светящийся кант передней кромки ступени
-          const edgeGeo = new THREE.BoxGeometry(0.06, 0.05, z1 - z0);
-          const edge = new THREE.Mesh(edgeGeo, stepEdgeMat);
-          edge.position.set(side * (tribuneX + tier * stepDepth) - side * stepDepth / 2, stepHeight + tier * stepHeight, (z0 + z1) / 2);
-          group.add(edge);
+          edgeDummy.position.set(x - side * stepDepth / 2, stepHeight + tier * stepHeight, z);
+          edgeDummy.rotation.set(0, 0, 0);
+          edgeDummy.scale.setScalar(1);
+          edgeDummy.updateMatrix();
+          edgeMesh.setMatrixAt(inst, edgeDummy.matrix);
+
+          inst++;
         }
-        // Зрители на ступенях (кроме самого нижнего ряда — там барьер)
+      }
+      stepMesh.instanceMatrix.needsUpdate = true;
+      edgeMesh.instanceMatrix.needsUpdate = true;
+      group.add(stepMesh);
+      group.add(edgeMesh);
+
+      // Зрители на ступенях (кроме самого нижнего ряда — там барьер).
+      // Реже (шаг 1.4 вместо 0.9) и на 2 рядах вместо 3 — меньше зрителей в одном месте.
+      for (const side of [-1, 1]) {
         for (let tier = 1; tier < tiers; tier++) {
           const rowZ = z0 + 1.5;
-          const rowCount = Math.floor((z1 - z0 - 3) / 0.9); // реже (0.9 вместо 0.7) — меньше объектов на экране
+          const rowCount = Math.floor((zoneLen - 3) / 1.4);
           for (let i = 0; i < rowCount; i++) {
-            const z = rowZ + i * 0.9 + (Math.random() - 0.5) * 0.3;
+            const z = rowZ + i * 1.4 + (Math.random() - 0.5) * 0.4;
             const x = side * (tribuneX + tier * stepDepth + (Math.random() - 0.5) * 0.4);
             const y = stepHeight * tier + 0.1;
             seats.push(x, y, z);
