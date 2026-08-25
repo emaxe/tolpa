@@ -270,7 +270,9 @@ export class CrowdManager {
       const mob = this.mobs[i];
       // Пропускаем слоты, где моб ещё проигрывает death-анимацию, — иначе новый
       // персонаж перезапишет матрицу умирающего в одном и том же инстансе.
-      if (!mob.alive && !mob.dying) {
+      // Также не переиспользуем падающие слоты (falling=true): моб уже выбыл из
+      // живых (alive=false), но слот удерживается до конца анимации падения.
+      if (!mob.alive && !mob.dying && !mob.falling) {
         mob.alive = true;
         this.aliveCount++;
         mob.type = mobType;
@@ -691,11 +693,11 @@ export class CrowdManager {
       this.dummy.updateMatrix();
       this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
 
-      // Улетел достаточно далеко — удаляем окончательно
+      // Улетел достаточно далеко — удаляем окончательно.
+      // aliveCount уже списан в момент срыва (updateMobPositions), здесь только
+      // очистка геометрии — повторный декремент дал бы двойное списание.
       if (mob.y < -12) {
         mob.falling = false;
-        mob.alive = false;
-        this.aliveCount--;
         mob.y = -100;
         this.dummy.position.set(0, -100, 0);
         this.dummy.updateMatrix();
@@ -791,6 +793,12 @@ export class CrowdManager {
       // updateFallingMobs().
       if (Math.abs(mob.x) > this.trackHalfWidth && !mob.falling) {
         mob.falling = true;
+        // Моб выбывает из геймплея СРАЗУ в момент срыва с края: иначе он ~0.7с
+        // остаётся в aliveMobs (надувает aliveCount, попадает в зоны коллизий
+        // гейтов/ловушек/босса) и может быть повторно «убит», что даёт двойное
+        // списание aliveCount в updateFallingMobs → рассинхронизация → ложное поражение.
+        mob.alive = false;
+        this.aliveCount--;
         mob.fallVy = 0;
         mob.fallRotX = (Math.random() - 0.5) * 0.6;
         mob.fallRotZ = (Math.random() - 0.5) * 0.6;
