@@ -193,7 +193,12 @@ export class ObstacleManager {
    *   [0] body, [1] headPivot (внутри head, eyes, jaw), [2..5] лапы,
    *   [6] tailPivot, [7] stripeL, [8] stripeR.
    */
-  private updateGuardDog(vis: ObstacleVisual, crowd: CrowdManager, dt: number): void {
+  private updateGuardDog(
+    vis: ObstacleVisual,
+    crowd: CrowdManager,
+    dt: number,
+    aliveMobs: MobInstance[]
+  ): void {
     const obs = vis.data;
 
     // Кулдаун между укусами
@@ -218,8 +223,7 @@ export class ObstacleManager {
     // Цель — ближайший живой моб в радиусе атаки ОТ ПОЗИЦИИ СОБАКИ (не анкера).
     let nearestMob: MobInstance | null = null;
     let bestSq = 1e9;
-    const alive = crowd.getAliveMobs();
-    for (const m of alive) {
+    for (const m of aliveMobs) {
       if (!m.alive) continue;
       const dx = m.x - dogX;
       const dz = m.z - dogZ;
@@ -412,6 +416,8 @@ export class ObstacleManager {
     crowd: CrowdManager,
     particles: ParticleSystem
   ): void {
+    const aliveMobs = crowd.getAliveMobs();
+
     // 1. Update and animate obstacles
     this.obstacles.forEach((obsVis) => {
       const obs = obsVis.data;
@@ -510,7 +516,7 @@ export class ObstacleManager {
           break;
 
         case 'guard_dog':
-          this.updateGuardDog(obsVis, crowd, dt);
+          this.updateGuardDog(obsVis, crowd, dt, aliveMobs);
           break;
 
         case 'swinging_hammer':
@@ -561,7 +567,7 @@ export class ObstacleManager {
       if (dz > 10 || dz < -25) return;
 
       // Check collision with crowd
-      this.checkObstacleCollision(obsVis, crowd, particles);
+      this.checkObstacleCollision(obsVis, crowd, particles, aliveMobs);
       // Near-Miss: награда за проход вплотную к активной ловушке без касания.
       this.checkNearMiss(obsVis, crowd, particles);
     });
@@ -686,7 +692,8 @@ export class ObstacleManager {
   private checkObstacleCollision(
     obsVis: ObstacleVisual,
     crowd: CrowdManager,
-    particles: ParticleSystem
+    particles: ParticleSystem,
+    aliveMobs: MobInstance[]
   ): void {
     if (!this.isHazardActive(obsVis)) return;
 
@@ -698,17 +705,15 @@ export class ObstacleManager {
 
     // Кастомная обработка для бомбы (AoE детонация)
     if (obs.type === 'bomb') {
-      this.resolveBomb(obsVis, crowd, particles, vol);
+      this.resolveBomb(obsVis, crowd, particles, vol, aliveMobs);
       return;
     }
 
     // Кастомная обработка для кибер-собаки (атака 1 моба с кулдауном)
     if (obs.type === 'guard_dog') {
-      this.resolveDog(obsVis, crowd, particles, vol);
+      this.resolveDog(obsVis, crowd, particles, vol, aliveMobs);
       return;
     }
-
-    const aliveMobs = crowd.getAliveMobs();
 
     // Если Hyper Mode активен или есть танки — препятствие можно сломать.
     const isHyper = crowd.isHyperMode;
@@ -831,21 +836,21 @@ export class ObstacleManager {
     vis: ObstacleVisual,
     crowd: CrowdManager,
     particles: ParticleSystem,
-    vol: number
+    vol: number,
+    aliveMobs: MobInstance[]
   ): void {
     if (vis.exploded || vis.data.isDead) return;
     const obs = vis.data;
     const r = obs.range;
     const rSq = r * r;
-    const alive = crowd.getAliveMobs();
-    if (alive.length === 0) return;
+    if (aliveMobs.length === 0) return;
 
     // Hyper / Танки обезвреживают мину без потерь
     const isHyper = crowd.isHyperMode;
-    const hasTanks = alive.some((m) => m.type === 'tank');
+    const hasTanks = aliveMobs.some((m) => m.type === 'tank');
     if (isHyper || (obs.destructible && hasTanks)) {
       let touched = false;
-      for (const m of alive) {
+      for (const m of aliveMobs) {
         if (!m.alive) continue;
         const dx = m.x - obs.x;
         const dz = m.z - obs.z;
@@ -868,7 +873,7 @@ export class ObstacleManager {
 
     // Проверяем, коснулся ли хоть один живой моб зоны взрыва
     let triggered = false;
-    for (const m of alive) {
+    for (const m of aliveMobs) {
       if (!m.alive) continue;
       const dx = m.x - obs.x;
       const dz = m.z - obs.z;
@@ -888,7 +893,7 @@ export class ObstacleManager {
     particles.emitBurst(obs.x, 1.0, obs.z, 50, 0xff4400, 8.5, 3.0);
     eventBus.emit('screenShake', { intensity: 0.7 });
 
-    for (const m of alive) {
+    for (const m of aliveMobs) {
       if (!m.alive) continue;
       const dx = m.x - obs.x;
       const dz = m.z - obs.z;
@@ -905,22 +910,22 @@ export class ObstacleManager {
     vis: ObstacleVisual,
     crowd: CrowdManager,
     particles: ParticleSystem,
-    vol: number
+    vol: number,
+    aliveMobs: MobInstance[]
   ): void {
     if (vis.data.isDead) return;
     const obs = vis.data;
     // Радиус укуса чуть больше длины цепи, чтобы собака реально доставала моба.
     const r = obs.range + 0.8;
     const rSq = r * r;
-    const alive = crowd.getAliveMobs();
-    if (alive.length === 0) return;
+    if (aliveMobs.length === 0) return;
 
     // Танки / гипер уничтожают кибер-собаку
     const isHyper = crowd.isHyperMode;
-    const hasTanks = alive.some((m) => m.type === 'tank');
+    const hasTanks = aliveMobs.some((m) => m.type === 'tank');
     if (isHyper || (obs.destructible && hasTanks)) {
       let touched = false;
-      for (const m of alive) {
+      for (const m of aliveMobs) {
         if (!m.alive) continue;
         const dx = m.x - obs.x;
         const dz = m.z - obs.z;
@@ -951,7 +956,7 @@ export class ObstacleManager {
     // Поиск ближайшего живого моба в радиусе укуса (вокруг собаки)
     let nearest: MobInstance | null = null;
     let bestDistSq = 1e9;
-    for (const m of alive) {
+    for (const m of aliveMobs) {
       if (!m.alive) continue;
       const dx = m.x - dogX;
       const dz = m.z - dogZ;
