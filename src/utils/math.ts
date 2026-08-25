@@ -8,10 +8,6 @@ export function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-export function randomRange(min: number, max: number): number {
-  return min + Math.random() * (max - min);
-}
-
 // ==== Near-Miss Streak (серия уворотов в упор) ====
 // Пороги серии и множители награды. Декуплировано от combo ворот: серия уворотов
 // растёт только на последовательных near-miss и сбрасывается на уроне толпы или
@@ -146,13 +142,6 @@ export function calculateFormationOffset(
     default:
       return { x: 0, z: 0 };
   }
-}
-
-// Distance 2D
-export function dist2D(x1: number, z1: number, x2: number, z2: number): number {
-  const dx = x1 - x2;
-  const dz = z1 - z2;
-  return Math.sqrt(dx * dx + dz * dz);
 }
 
 // AABB / Circle overlap
