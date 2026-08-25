@@ -65,7 +65,15 @@ interface CoinVisual {
 export class ObstacleManager {
   private scene: THREE.Scene;
   private obstacles: ObstacleVisual[] = [];
-  private coins: CoinVisual[] = [];
+  // Монеты: вместо сотен отдельных Mesh — ОДИН InstancedMesh (1 draw call на все).
+  // Хранение позиций в Float32Array (0-GC), анимация через dummy. В endless-режиме
+  // монеты накапливаются — пул динамически расширяется (удвоение при нехватке).
+  private coinData: CoinData[] = [];
+  private coinMesh: THREE.InstancedMesh | null = null;
+  private coinCapacity: number = 0;
+  private coinActiveCount: number = 0;
+  private coinDummy: THREE.Object3D = new THREE.Object3D();
+  private coinSpin: number[] = [];
   private coinGeo: THREE.CylinderGeometry;
   private coinMat: THREE.MeshStandardMaterial;
   private _vUp = new THREE.Vector3(0, 1, 0);
@@ -81,6 +89,51 @@ export class ObstacleManager {
       emissive: 0xeab308,
       emissiveIntensity: 0.4,
     });
+  }
+
+  /** Гарантирует, что InstancedMesh монет вмещает `needed` инстансов.
+   *  Удваивает ёмкость при нехватке (endless-накопление), сохраняя уже активные. */
+  private ensureCoinCapacity(needed: number): void {
+    if (needed <= this.coinCapacity && this.coinMesh) return;
+    let newCap = this.coinCapacity === 0 ? Math.max(needed, 256) : this.coinCapacity * 2;
+    while (newCap < needed) newCap *= 2;
+
+    const newMesh = new THREE.InstancedMesh(this.coinGeo, this.coinMat, newCap);
+    newMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    newMesh.frustumCulled = false; // инстансы широко разбросаны — culling по boundingSphere лжёт
+    newMesh.count = 0;
+
+    // Перенос уже активных монет в новый буфер.
+    if (this.coinMesh && this.coinActiveCount > 0) {
+      const src = this.coinMesh.instanceMatrix.array;
+      const dst = newMesh.instanceMatrix.array;
+      for (let i = 0; i < this.coinActiveCount; i++) {
+        dst[i * 16] = src[i * 16];
+        dst[i * 16 + 1] = src[i * 16 + 1];
+        dst[i * 16 + 2] = src[i * 16 + 2];
+        dst[i * 16 + 3] = src[i * 16 + 3];
+        dst[i * 16 + 4] = src[i * 16 + 4];
+        dst[i * 16 + 5] = src[i * 16 + 5];
+        dst[i * 16 + 6] = src[i * 16 + 6];
+        dst[i * 16 + 7] = src[i * 16 + 7];
+        dst[i * 16 + 8] = src[i * 16 + 8];
+        dst[i * 16 + 9] = src[i * 16 + 9];
+        dst[i * 16 + 10] = src[i * 16 + 10];
+        dst[i * 16 + 11] = src[i * 16 + 11];
+        dst[i * 16 + 12] = src[i * 16 + 12];
+        dst[i * 16 + 13] = src[i * 16 + 13];
+        dst[i * 16 + 14] = src[i * 16 + 14];
+        dst[i * 16 + 15] = src[i * 16 + 15];
+      }
+      newMesh.count = this.coinActiveCount;
+      newMesh.instanceMatrix.needsUpdate = true;
+      this.scene.remove(this.coinMesh);
+      this.coinMesh.dispose();
+    }
+
+    this.coinMesh = newMesh;
+    this.coinCapacity = newCap;
+    this.scene.add(newMesh);
   }
 
   private buildObstacleVisual(obs: ObstacleData): ObstacleVisual {
@@ -398,17 +451,28 @@ export class ObstacleManager {
       this.obstacles.push(this.buildObstacleVisual(obs));
     });
 
-    coinData.forEach((coin) => {
-      const mesh = new THREE.Mesh(this.coinGeo, this.coinMat);
-      mesh.position.set(coin.x, coin.y, coin.z);
-      mesh.rotation.x = Math.PI / 2;
-      this.scene.add(mesh);
+    if (coinData.length === 0) return;
+    const startIdx = this.coinActiveCount;
+    const needed = startIdx + coinData.length;
+    this.ensureCoinCapacity(needed);
 
-      this.coins.push({
-        data: coin,
-        mesh,
-      });
-    });
+    const mesh = this.coinMesh!;
+    for (let i = 0; i < coinData.length; i++) {
+      const coin = coinData[i];
+      const idx = startIdx + i;
+      this.coinDummy.position.set(coin.x, coin.y, coin.z);
+      this.coinDummy.rotation.set(Math.PI / 2, 0, 0);
+      this.coinDummy.scale.setScalar(1);
+      this.coinDummy.updateMatrix();
+      mesh.setMatrixAt(idx, this.coinDummy.matrix);
+    }
+    this.coinData.push(...coinData);
+    for (let i = 0; i < coinData.length; i++) {
+      this.coinSpin.push(Math.random() * Math.PI * 2);
+    }
+    this.coinActiveCount = needed;
+    mesh.count = needed;
+    mesh.instanceMatrix.needsUpdate = true;
   }
 
   public update(
@@ -584,29 +648,49 @@ export class ObstacleManager {
       }
     }
 
-    this.coins.forEach((coinVis) => {
-      const coin = coinVis.data;
-      if (coin.collected) return;
+    if (this.coinMesh && this.coinActiveCount > 0) {
+      const mesh = this.coinMesh;
+      const spinArr = this.coinSpin;
+      let dirty = false;
+      for (let i = 0; i < this.coinActiveCount; i++) {
+        const coin = this.coinData[i];
+        if (coin.collected) continue;
 
-      coinVis.mesh.rotation.z += dt * 4;
+        spinArr[i] += dt * 4;
 
-      // Distance check to crowd. Шеренга (wide) расширяет окно сбора монет по X.
-      const dx = coin.x - crowdLeaderX;
-      const dz = coin.z - crowdLeaderZ;
-      const reachX = crowd.formation === 'wide' ? 5.5 : 3.5;
-      if (Math.abs(dz) < 2.2 && Math.abs(dx) < reachX) {
-        coin.collected = true;
-        this.scene.remove(coinVis.mesh);
+        // Distance check to crowd. Шеренга (wide) расширяет окно сбора монет по X.
+        const dx = coin.x - crowdLeaderX;
+        const dz = coin.z - crowdLeaderZ;
+        const reachX = crowd.formation === 'wide' ? 5.5 : 3.5;
+        if (Math.abs(dz) < 2.2 && Math.abs(dx) < reachX) {
+          coin.collected = true;
+          // Прячем инстанс (scale 0) — монета больше не рендерится, но слот занят.
+          this.coinDummy.position.set(coin.x, coin.y, coin.z);
+          this.coinDummy.rotation.set(Math.PI / 2, 0, 0);
+          this.coinDummy.scale.setScalar(0);
+          this.coinDummy.updateMatrix();
+          mesh.setMatrixAt(i, this.coinDummy.matrix);
 
-        // Double coins if crowd has Ninjas
-        const coinVal = hasNinjas ? coin.value * 2 : coin.value;
+          // Double coins if crowd has Ninjas
+          const coinVal = hasNinjas ? coin.value * 2 : coin.value;
 
-        stateManager.runAddCoins(coinVal);
-        soundEngine.playSound('coin_pickup');
-        particles.emitBurst(coin.x, coin.y, coin.z, 8, 0xfacc15, 3.5);
-        eventBus.emit('coinCollected', { value: coinVal, x: coin.x, z: coin.z });
+          stateManager.runAddCoins(coinVal);
+          soundEngine.playSound('coin_pickup');
+          particles.emitBurst(coin.x, coin.y, coin.z, 8, 0xfacc15, 3.5);
+          eventBus.emit('coinCollected', { value: coinVal, x: coin.x, z: coin.z });
+          dirty = true;
+        } else {
+          // Вращаем монету вокруг оси Z (как раньше), обновляя матрицу инстанса.
+          this.coinDummy.position.set(coin.x, coin.y, coin.z);
+          this.coinDummy.rotation.set(Math.PI / 2, 0, spinArr[i]);
+          this.coinDummy.scale.setScalar(1);
+          this.coinDummy.updateMatrix();
+          mesh.setMatrixAt(i, this.coinDummy.matrix);
+          dirty = true;
+        }
       }
-    });
+      if (dirty) mesh.instanceMatrix.needsUpdate = true;
+    }
   }
 
   /**
@@ -1044,10 +1128,14 @@ export class ObstacleManager {
     });
     this.obstacles = [];
 
-    this.coins.forEach((c) => {
-      this.scene.remove(c.mesh);
-    });
-    this.coins = [];
+    // Монеты: сбрасываем счётчик и скрываем все инстансы (не удаляем InstancedMesh —
+    // он переиспользуется между уровнями, это 1 draw call).
+    this.coinData = [];
+    this.coinSpin = [];
+    if (this.coinMesh) {
+      this.coinMesh.count = 0;
+    }
+    this.coinActiveCount = 0;
   }
 
   /** Текущая длина серии уворотов в упор (для HUD-индикатора). */
@@ -1057,6 +1145,11 @@ export class ObstacleManager {
 
   public dispose(): void {
     this.clear();
+    if (this.coinMesh) {
+      this.scene.remove(this.coinMesh);
+      this.coinMesh.dispose();
+      this.coinMesh = null;
+    }
     this.coinGeo.dispose();
     this.coinMat.dispose();
   }

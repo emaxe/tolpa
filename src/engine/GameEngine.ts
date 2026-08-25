@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { BiomeType, FormationType, LevelConfig, LevelDynamicEvent, CoinData } from '../types/game';
 import { CrowdManager } from './CrowdManager';
 import { GateManager } from './GateManager';
@@ -15,7 +16,7 @@ import { MusicTheme } from '../types/audio';
 import { eventBus } from '../core/EventBus';
 import { perfMonitor } from '../core/Performance';
 import { clamp, getNearMissMultiplier } from '../utils/math';
-import { createSpectatorGeometry, createStreetLampMesh, createBillboardMesh } from '../utils/proceduralMeshes';
+import { createSpectatorGeometry, getBillboardTexture } from '../utils/proceduralMeshes';
 
 export interface HudSnapshot {
   crowd: number;
@@ -145,7 +146,7 @@ export class GameEngine {
   // анимируются только при пересечении границы (scale=0), а не каждый кадр. Запас
   // назад > CAMERA_BASE_DISTANCE + speedLag, вперёд — до предела читаемости силуэта.
   private static readonly SPECTATOR_WINDOW_BACK = 30.0;
-  private static readonly SPECTATOR_WINDOW_AHEAD = 60.0;
+  private static readonly SPECTATOR_WINDOW_AHEAD = 45.0;
 
   // Adrenaline (перенесено сюда из HUD-таймера — заряд должен стоять на паузе
   // и не быть отвязан от реальной игры)
@@ -198,7 +199,10 @@ export class GameEngine {
 
     // 2. Camera (Third person chase camera)
     const aspect = container.clientWidth / container.clientHeight;
-    this.camera = new THREE.PerspectiveCamera(55, aspect, 0.1, 800);
+    // far plane 400 (было 800): камера следует за игроком, дальше ~380м по треку
+    // уже вне видимости — меньше объектов проходит через frustum culling и меньше
+    // глубина буфера (лучше для z-fighting). Не влияет на длину трека.
+    this.camera = new THREE.PerspectiveCamera(55, aspect, 0.1, 400);
     this.camera.position.set(0, GameEngine.CAMERA_HEIGHT, -GameEngine.CAMERA_BASE_DISTANCE);
     this.camera.lookAt(0, GameEngine.CAMERA_LOOKAT_HEIGHT, GameEngine.CAMERA_LOOKAT_LEAD);
 
@@ -253,7 +257,7 @@ export class GameEngine {
     this.obstacles = new ObstacleManager(this.scene);
     this.boss = new BossManager(this.scene);
     this.finishLine = new FinishLineManager(this.scene);
-    this.particles = new ParticleSystem(this.scene, 300);
+    this.particles = new ParticleSystem(this.scene, 200);
 
     // 6. Setup Inputs and Resizing
     this.setupInputs();
@@ -817,6 +821,7 @@ export class GameEngine {
 
     // Пилоны — низкие столбики разметки на самом краю дорожки (x = trackHalfWidth),
     // ниже голов зрителей, вне линии трибун. В зонах трибун не ставим.
+    // Один InstancedMesh на пилоны + один на капы (вместо отдельных Mesh — минус ~130 draw calls).
     const pylonGeo = new THREE.CylinderGeometry(0.12, 0.18, 1.4, 6);
     const pylonMat = new THREE.MeshStandardMaterial({
       color: 0x94a3b8,
@@ -830,20 +835,31 @@ export class GameEngine {
 
     const half = width / 2 + 1.2;
     const step = 18;
+    const pylonCount = (Math.floor((length - 10) / step) + 1) * 2; // обе стороны
+    const pylonMesh = new THREE.InstancedMesh(pylonGeo, pylonMat, pylonCount);
+    const capMesh = new THREE.InstancedMesh(capGeo, capMat, pylonCount);
+    const decorDummy = new THREE.Object3D();
+    let pylonIdx = 0;
     for (let z = 10; z < length; z += step) {
       if (isTribuneZone(z)) continue;
       for (const side of [-1, 1]) {
-        const pylon = new THREE.Mesh(pylonGeo, pylonMat);
-        pylon.position.set(side * half, 0.7, z);
-        // Бегущая световая волна по пилонам — модуляция emissiveIntensity по Z.
-        pylon.userData.animate = 'pylonWave';
-        pylon.userData.baseZ = z;
-        group.add(pylon);
-        const cap = new THREE.Mesh(capGeo, capMat);
-        cap.position.set(side * half, 1.45, z);
-        group.add(cap);
+        decorDummy.position.set(side * half, 0.7, z);
+        decorDummy.rotation.set(0, 0, 0);
+        decorDummy.scale.setScalar(1);
+        decorDummy.updateMatrix();
+        pylonMesh.setMatrixAt(pylonIdx, decorDummy.matrix);
+
+        decorDummy.position.set(side * half, 1.45, z);
+        decorDummy.updateMatrix();
+        capMesh.setMatrixAt(pylonIdx, decorDummy.matrix);
+
+        pylonIdx++;
       }
     }
+    pylonMesh.count = pylonIdx;
+    capMesh.count = pylonIdx;
+    group.add(pylonMesh);
+    group.add(capMesh);
 
     // Floating energy orbs drifting ALONGSIDE the track (outside the lane) —
     // decorative elements must NOT sit on the playable surface. В зонах трибун не ставим.
@@ -1000,13 +1016,14 @@ export class GameEngine {
       group.add(edgeMesh);
 
       // Зрители на ступенях (кроме самого нижнего ряда — там барьер).
-      // Реже (шаг 1.4 вместо 0.9) и на 2 рядах вместо 3 — меньше зрителей в одном месте.
+      // Ещё реже (шаг 2.0 вместо 1.4) — меньше зрителей в одном месте и меньше
+      // обновлений матриц в animateSpectators.
       for (const side of [-1, 1]) {
         for (let tier = 1; tier < tiers; tier++) {
           const rowZ = z0 + 1.5;
-          const rowCount = Math.floor((zoneLen - 3) / 1.4);
+          const rowCount = Math.floor((zoneLen - 3) / 2.0);
           for (let i = 0; i < rowCount; i++) {
-            const z = rowZ + i * 1.4 + (Math.random() - 0.5) * 0.4;
+            const z = rowZ + i * 2.0 + (Math.random() - 0.5) * 0.5;
             const x = side * (tribuneX + tier * stepDepth + (Math.random() - 0.5) * 0.4);
             const y = stepHeight * tier + 0.1;
             seats.push(x, y, z);
@@ -1177,41 +1194,96 @@ export class GameEngine {
   // флаги (покачивание sin) и дроны (дрейф по X) за дальним краем.
   private buildStreetFurniture(group: THREE.Group, length: number, width: number, accent: number, biome: BiomeType): void {
     // Фонари — придорожное освещение на краю дорожки (x = trackHalfWidth),
-    // ниже голов зрителей, вне линии трибун. Готовый меш createStreetLampMesh
-    // (столб 4м + изогнутый кронштейн + светящийся плафон, без PointLight).
+    // ниже голов зрителей, вне линии трибун. Без PointLight.
+    // Все фонари сливаются в 4 общих меша (столб / кронштейн / плафон / ядро) через
+    // mergeGeometries — вместо ~182 фонарей × 8 деталей ≈ 1456 отдельных Mesh.
     const lampX = width / 2;
+    const poleGeo = new THREE.CylinderGeometry(0.12, 0.16, 4.0, 8);
+    poleGeo.translate(0, 2, 0); // локально в фонаре: столб от y=0 до y=4
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.85, roughness: 0.3 });
+    const armGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.5, 6);
+    const armMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.85, roughness: 0.3 });
+    const lampGeo = new THREE.SphereGeometry(0.28, 12, 12);
+    const lampMat = new THREE.MeshBasicMaterial({ color: 0xfff7cc });
+    const coreGeo = new THREE.SphereGeometry(0.12, 8, 8);
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0xfffde7 });
 
-    // Фонари каждые ~12м
+    const mPole: THREE.BufferGeometry[] = [];
+    const mArm: THREE.BufferGeometry[] = [];
+    const mLamp: THREE.BufferGeometry[] = [];
+    const mCore: THREE.BufferGeometry[] = [];
+    const segs = 5;
     for (let z = 6; z < length; z += 12) {
       for (const side of [-1, 1]) {
-        const lamp = createStreetLampMesh();
-        lamp.position.set(side * lampX, 0, z);
-        group.add(lamp);
+        // Столб
+        const poleM = new THREE.Matrix4().makeTranslation(side * lampX, 0, z);
+        mPole.push(poleGeo.clone().applyMatrix4(poleM));
+        // Изогнутый кронштейн (дуга к плафону, как в createStreetLampMesh)
+        for (let i = 0; i < segs; i++) {
+          const t = i / (segs - 1);
+          const armLocal = new THREE.Matrix4()
+            .makeTranslation(0, 4.0 + t * 0.6, t * 1.2)
+            .multiply(new THREE.Matrix4().makeRotationX(-0.5 * t));
+          const armM = new THREE.Matrix4().makeTranslation(side * lampX, 0, z).multiply(armLocal);
+          mArm.push(armGeo.clone().applyMatrix4(armM));
+        }
+        // Плафон + яркое ядро
+        const topM = new THREE.Matrix4().makeTranslation(side * lampX, 4.7, z + 1.25);
+        mLamp.push(lampGeo.clone().applyMatrix4(topM));
+        mCore.push(coreGeo.clone().applyMatrix4(topM));
       }
     }
+    if (mPole.length) group.add(new THREE.Mesh(mergeGeometries(mPole)!, poleMat));
+    if (mArm.length) group.add(new THREE.Mesh(mergeGeometries(mArm)!, armMat));
+    if (mLamp.length) group.add(new THREE.Mesh(mergeGeometries(mLamp)!, lampMat));
+    if (mCore.length) group.add(new THREE.Mesh(mergeGeometries(mCore)!, coreMat));
 
-    // Рекламные щиты каждые ~40м (готовый меш createBillboardMesh с CanvasTexture) — за трибунами.
+    // Рекламные щиты каждые ~40м — за трибунами. Все сливаются в 3 общих меша
+    // (рама / панель / ножки) через mergeGeometries — вместо ~30 щитов × 5 деталей
+    // ≈ 150 отдельных Mesh. Текстура панели кешируется модульно (1 на accent) —
+    // раньше каждый щит создавал свою CanvasTexture (утечка GPU-памяти при пересборке).
     const billboardX = 15.7 + 1.5;
+    const frameGeo = new THREE.BoxGeometry(3.0, 2.0, 0.15);
+    frameGeo.translate(0, 2, 0); // рама от y=0 до y=4
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8, roughness: 0.3 });
+    const panelGeo = new THREE.PlaneGeometry(2.8, 1.8);
+    panelGeo.translate(0, 2, 0.08);
+    const panelMat = new THREE.MeshBasicMaterial({ map: getBillboardTexture(accent), side: THREE.DoubleSide });
+    const legGeo = new THREE.CylinderGeometry(0.1, 0.12, 1.0, 6);
+    legGeo.translate(0, 0.5, 0);
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.85, roughness: 0.3 });
+
+    const bFrame: THREE.BufferGeometry[] = [];
+    const bPanel: THREE.BufferGeometry[] = [];
+    const bLeg: THREE.BufferGeometry[] = [];
     for (let z = 20; z < length; z += 40) {
       for (const side of [-1, 1]) {
-        const bill = createBillboardMesh('TOLPA', accent);
-        bill.position.set(side * billboardX, 0, z);
-        bill.rotation.y = side > 0 ? Math.PI : 0;
-        group.add(bill);
+        // Поворот на 180° для правой стороны (как раньше через rotation.y).
+        const rot = side > 0 ? Math.PI : 0;
+        const m = new THREE.Matrix4().makeTranslation(side * billboardX, 0, z).multiply(new THREE.Matrix4().makeRotationY(rot));
+        bFrame.push(frameGeo.clone().applyMatrix4(m));
+        bPanel.push(panelGeo.clone().applyMatrix4(m));
+        // Ножки (симметричны, без поворота — но матрица m их поставит верно относительно стороны)
+        bLeg.push(legGeo.clone().applyMatrix4(new THREE.Matrix4().makeTranslation(side * billboardX - 1.2, 0, z)));
+        bLeg.push(legGeo.clone().applyMatrix4(new THREE.Matrix4().makeTranslation(side * billboardX + 1.2, 0, z)));
       }
     }
+    if (bFrame.length) group.add(new THREE.Mesh(mergeGeometries(bFrame)!, frameMat));
+    if (bPanel.length) group.add(new THREE.Mesh(mergeGeometries(bPanel)!, panelMat));
+    if (bLeg.length) group.add(new THREE.Mesh(mergeGeometries(bLeg)!, legMat));
 
     // Флаги (покачивание sin) за дальним краем (за трибунами)
     const flagPoleGeo = new THREE.CylinderGeometry(0.04, 0.05, 2.6, 6);
+    flagPoleGeo.translate(0, 1.3, 0); // полюс от y=0 до y=2.6
     const flagPoleMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.7, roughness: 0.4 });
     const flagGeo = new THREE.PlaneGeometry(0.9, 0.55);
     const flagMat = new THREE.MeshBasicMaterial({ color: accent, side: THREE.DoubleSide });
     const flagX = 15.7 + 2.5;
+    const poleGeos: THREE.BufferGeometry[] = [];
     for (let z = 15; z < length; z += 22) {
       for (const side of [-1, 1]) {
-        const pole = new THREE.Mesh(flagPoleGeo, flagPoleMat);
-        pole.position.set(side * flagX, 1.3, z);
-        group.add(pole);
+        const poleM = new THREE.Matrix4().makeTranslation(side * flagX, 0, z);
+        poleGeos.push(flagPoleGeo.clone().applyMatrix4(poleM));
         const flag = new THREE.Mesh(flagGeo, flagMat);
         flag.position.set(side * flagX + side * 0.45, 2.3, z);
         flag.userData.phase = Math.random() * Math.PI * 2;
@@ -1220,6 +1292,7 @@ export class GameEngine {
         this.flagMeshes.push(flag);
       }
     }
+    if (poleGeos.length) group.add(new THREE.Mesh(mergeGeometries(poleGeos)!, flagPoleMat));
 
     // Дроны/транспорт (дрейф по X) за дальним краем (за трибунами)
     const droneGeo = new THREE.BoxGeometry(0.5, 0.12, 0.7);

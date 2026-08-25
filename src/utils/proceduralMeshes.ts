@@ -1353,6 +1353,42 @@ export function createStreetLampMesh(): THREE.Group {
   return group;
 }
 
+
+// Кешированная CanvasTexture панели рекламного щита — 1 на accent-цвет, чтобы при
+// пересборке уровней не плодить новые GPU-текстуры (утечка памяти). Возвращает
+// тот же экземпляр для повторных вызовов с тем же accent.
+const _billboardTextureCache = new Map<number, THREE.CanvasTexture>();
+export function getBillboardTexture(accent: number): THREE.CanvasTexture {
+  const cached = _billboardTextureCache.get(accent);
+  if (cached) return cached;
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d')!;
+  const grad = ctx.createLinearGradient(0, 0, 0, 256);
+  grad.addColorStop(0, `rgba(${(accent >> 16) & 255}, ${(accent >> 8) & 255}, ${accent & 255}, 0.9)`);
+  grad.addColorStop(1, 'rgba(226, 232, 240, 0.95)'); // slate-200 — светлый низ
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 512, 256);
+  ctx.lineWidth = 10;
+  ctx.strokeStyle = '#ffffff';
+  ctx.strokeRect(8, 8, 496, 240);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+  ctx.shadowBlur = 12;
+  ctx.font = 'bold 64px Orbitron, sans-serif';
+  ctx.lineWidth = 8;
+  ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
+  ctx.strokeText('TOLPA', 256, 128);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('TOLPA', 256, 128);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  _billboardTextureCache.set(accent, texture);
+  return texture;
+}
+
 // Procedural Billboard Mesh — рекламный щит: рама + панель с CanvasTexture
 // (текст на градиентном фоне, как в createGateTexture).
 export function createBillboardMesh(text: string, accent: number): THREE.Group {
