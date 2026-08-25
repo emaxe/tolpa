@@ -16,6 +16,10 @@ interface GateVisual {
   // Мобы, которые уже прошли через эти ворота — чтобы каждый человечек обрабатывался
   // воротами независимо (по своей реальной позиции и по попаданию в проём по X).
   processedMobs: Set<number>;
+  // One-shot эффекты (комбо, звук, партиклы, eventBus) срабатывают только при первом
+  // мобе, прошедшем ворота. Per-mob математика (multiply/divide) применяется к каждому
+  // пересекающему мобу отдельно, пока ворота не будут полностью пройдены толпой.
+  triggered: boolean;
   // Движение: текущее смещение по X и Y (для horizontal/vertical), угол поворота (rotate).
   motionPhase: number;
   baseX: number;
@@ -38,6 +42,10 @@ export class GateManager {
   }
 
   private static readonly GATE_HEIGHT = 3.8;
+  // Ворота остаются активными, пока лидер не прошёл их на эту дистанцию. Покрывает
+  // trailing-мобов формаций (oval/wide/circle держат часть толпы позади лидера на
+  // 3-6+ единиц), чтобы каждый реально прошедший через проём моб получил эффект.
+  private static readonly GATE_DEACTIVATE_MARGIN = 8;
   // Бонус за комбо-серию позитивных ворот: +8% мобов за каждый шаг серии > 1,
   // максимум +80% (фактор ≤ 1.8). Награждает удержание серии правильных крыльев.
   private static readonly COMBO_BONUS_PER_STEP = 0.08;
@@ -100,6 +108,7 @@ export class GateManager {
       mat,
       texture,
       processedMobs: new Set<number>(),
+      triggered: false,
       motionPhase: Math.random() * Math.PI * 2,
       baseX: gate.x,
       baseY: 0,
@@ -126,7 +135,9 @@ export class GateManager {
     const aliveMobs = crowd.getAliveMobs();
     this.gates.forEach((gateVisual) => {
       const gate = gateVisual.data;
-      if (gate.passed) return;
+      // Ворота деактивируются, когда лидер прошёл их на margin — к этому моменту вся
+      // толпа (включая trailing-мобов формаций) уже пересекла проём.
+      if (crowd.leaderZ - gate.z > GateManager.GATE_DEACTIVATE_MARGIN) return;
       // Пространственный отсев: ворота далеко от лидера ещё не достигнуты — не сканируем.
       if (Math.abs(gate.z - crowd.leaderZ) > 80) return;
 
@@ -153,8 +164,11 @@ export class GateManager {
       }
 
       if (any && this.throughScratch.length > 0) {
-        this.executeGateEffect(gate.op, gate.value, crowd, particles, cx, gate.z, this.throughScratch, cy);
-        gate.passed = true;
+        // One-shot эффекты (комбо, звук, eventBus) — только при первом мобе, прошедшем
+        // ворота. Per-mob математика (multiply/divide) применяется к каждому новому мобу
+        // в последующие кадры, пока ворота не деактивированы по дистанции лидера.
+        this.executeGateEffect(gate.op, gate.value, crowd, particles, cx, gate.z, this.throughScratch, cy, !gateVisual.triggered);
+        gateVisual.triggered = true;
         gateVisual.mat.opacity = 0.3;
       }
     });
@@ -187,7 +201,8 @@ export class GateManager {
     gateX: number,
     gateZ: number,
     wing: MobInstance[],
-    gateY: number
+    gateY: number,
+    isFirstTrigger: boolean
   ): void {
     let isPositive = false;
     let netChange = 0;
@@ -204,8 +219,8 @@ export class GateManager {
         const bonus = Math.floor(base * (comboFactor - 1));
         netChange = bonus > 0 ? base + crowd.addMobsNear(bonus, gateX, gateZ) : base;
       }
-      if (netChange > 0) soundEngine.playSound('gate_pass_positive');
-      particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 25 : 6, 0x10b981, netChange > 0 ? 5.0 : 2.0);
+      if (isFirstTrigger && netChange > 0) soundEngine.playSound('gate_pass_positive');
+      if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 25 : 6, 0x10b981, netChange > 0 ? 5.0 : 2.0);
       isPositive = true;
     } else if (op === 'multiply') {
       // ×N: каждый прошедший моб порождает (N-1) копий (N — целое).
@@ -214,8 +229,8 @@ export class GateManager {
         const bonus = Math.floor(base * (comboFactor - 1));
         netChange = bonus > 0 ? base + crowd.addMobsNear(bonus, gateX, gateZ) : base;
       }
-      if (netChange > 0) soundEngine.playSound('gate_pass_multiplier');
-      particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 35 : 6, 0x00f0ff, netChange > 0 ? 6.0 : 2.0);
+      if (isFirstTrigger && netChange > 0) soundEngine.playSound('gate_pass_multiplier');
+      if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 35 : 6, 0x00f0ff, netChange > 0 ? 6.0 : 2.0);
       isPositive = true;
     } else if (op === 'divide') {
       let hasMage = false;
@@ -233,30 +248,32 @@ export class GateManager {
           const bonus = Math.floor(base * (comboFactor - 1));
           netChange = bonus > 0 ? base + crowd.addMobsNear(bonus, gateX, gateZ) : base;
         }
-        if (netChange > 0) soundEngine.playSound('gate_pass_positive');
-        particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 25 : 6, 0x10b981, netChange > 0 ? 5.0 : 2.0);
+        if (isFirstTrigger && netChange > 0) soundEngine.playSound('gate_pass_positive');
+        if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 25 : 6, 0x10b981, netChange > 0 ? 5.0 : 2.0);
         isPositive = true;
       } else {
         // ÷N: пропускает каждого N-го по очереди, остальных убирает.
         netChange = -crowd.divideMobsByStep(wing, val, 'gate');
-        soundEngine.playSound('gate_pass_negative');
-        particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 20, 0xef4444, 4.0);
-        eventBus.emit('screenShake', { intensity: 0.3 });
+        if (isFirstTrigger) soundEngine.playSound('gate_pass_negative');
+        if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 20, 0xef4444, 4.0);
+        if (isFirstTrigger) eventBus.emit('screenShake', { intensity: 0.3 });
       }
     }
 
-    if (isPositive) {
-      this.comboStreak++;
-      if (this.comboStreak > 1) {
-        soundEngine.playSound('combo_ding', 1.0 + this.comboStreak * 0.1);
+    if (isFirstTrigger) {
+      if (isPositive) {
+        this.comboStreak++;
+        if (this.comboStreak > 1) {
+          soundEngine.playSound('combo_ding', 1.0 + this.comboStreak * 0.1);
+        }
+        stateManager.runRecordCombo(this.comboStreak);
+      } else {
+        this.comboStreak = 0;
       }
-      stateManager.runRecordCombo(this.comboStreak);
-    } else {
-      this.comboStreak = 0;
-    }
 
-    stateManager.runRecordGatePass();
-    eventBus.emit('gatePassed', { op, val, isPositive, netChange, comboStreak: this.comboStreak, comboFactor, x: gateX, z: gateZ });
+      stateManager.runRecordGatePass();
+      eventBus.emit('gatePassed', { op, val, isPositive, netChange, comboStreak: this.comboStreak, comboFactor, x: gateX, z: gateZ });
+    }
   }
 
   public getCombo(): number {
@@ -276,7 +293,7 @@ export class GateManager {
     this.empOriginals = [];
     for (const gv of this.gates) {
       const gate = gv.data;
-      if (gate.passed) continue;
+      if (gv.triggered) continue;
       this.empOriginals.push({ gate, op: gate.op, value: gate.value });
       gate.op = 'divide';
       gate.value = 2;
