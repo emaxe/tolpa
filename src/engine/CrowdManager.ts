@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { MobInstance, MobType, FormationType, PlayerSkin } from '../types/game';
-import { calculateFormationOffset, clamp, lerp, TRACK_RAIL_MARGIN } from '../utils/math';
+import { calculateFormationOffset, getFormationScale, FormationOffset, clamp, lerp, TRACK_RAIL_MARGIN } from '../utils/math';
 import { createHumanoidGeometry, createSkinLeaderModel } from '../utils/proceduralMeshes';
 import { stateManager, INITIAL_SKINS } from '../core/StateManager';
 import { eventBus } from '../core/EventBus';
@@ -30,6 +30,8 @@ export class CrowdManager {
   // Reusable 3D math objects to guarantee ZERO runtime GC allocations
   private dummy: THREE.Object3D = new THREE.Object3D();
   private colorDummy: THREE.Color = new THREE.Color();
+  // Переиспользуемый scratch-объект для расчёта смещения формации (0-GC)
+  private formationOffsetScratch: FormationOffset = { x: 0, z: 0 };
   private animTime: number = 0;
   /** Цвет обычных мобов из снаряжённого скина игрока (обновляется при reset). */
   private currentSkinColor: number = 0x00f0ff;
@@ -732,6 +734,9 @@ export class CrowdManager {
     const totalCount = aliveMobs.length;
     let index = 0;
 
+    // Вычисляем масштаб формации 1 раз за кадр на всю толпу (0-GC оптимизация)
+    const formationScale = getFormationScale(this.formation, totalCount, this.playableHalfWidth);
+
     for (let mob of aliveMobs) {
       // Моб уже упал с края дорожки — его позиция больше НЕ пересчитывается формацией.
       // Иначе flocking-lerp тянет его обратно к строю, и он "возвращается в толпу",
@@ -742,7 +747,14 @@ export class CrowdManager {
         mob.invulnerableTime = Math.max(0, mob.invulnerableTime - dt);
       }
 
-      const offset = calculateFormationOffset(index, totalCount, this.formation, this.playableHalfWidth);
+      const offset = calculateFormationOffset(
+        index,
+        totalCount,
+        this.formation,
+        this.playableHalfWidth,
+        this.formationOffsetScratch,
+        formationScale
+      );
       // Формация сама сжимается под ширину трассы (calculateFormationOffset). Жёсткий
       // кламп к playableHalfWidth УБРАН: бойцы могут выходить за игровую зону к самому
       // краю дорожки, и если выходят за физический край (trackHalfWidth) — падают.

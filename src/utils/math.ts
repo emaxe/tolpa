@@ -1,5 +1,10 @@
 import { FormationType } from '../types/game';
 
+export interface FormationOffset {
+  x: number;
+  z: number;
+}
+
 export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
@@ -54,6 +59,51 @@ const CIRCLE_COEF = 0.42;
 // чтобы толпа занимала больше места вдоль трассы и меньше по ширине.
 const OVAL_X_COEF = 0.5;
 const OVAL_Z_COEF = 0.9;
+// Золотой угол (~137.5°) для равномерного распределения мобов по спирали
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+
+// Предаллоцированный scratch-объект на уровне модуля (0-GC)
+const formationScratch: FormationOffset = { x: 0, z: 0 };
+
+/**
+ * Вычисляет коэффициент сжатия формации под ширину трассы.
+ * Вызывается 1 раз за кадр на всю толпу для исключения повторных вычислений (0-GC).
+ */
+export function getFormationScale(
+  formation: FormationType,
+  totalCount: number,
+  playableHalfWidth: number
+): number {
+  switch (formation) {
+    case 'wedge': {
+      const maxRow = Math.floor(Math.sqrt(Math.max(0, totalCount - 1)));
+      const naturalHalf = maxRow * WEDGE_SPREAD;
+      return naturalHalf > playableHalfWidth ? playableHalfWidth / naturalHalf : 1;
+    }
+
+    case 'wide': {
+      const cols = Math.min(18, Math.max(6, Math.ceil(Math.sqrt(totalCount) * 2.2)));
+      const naturalHalf = ((cols - 1) / 2) * WIDE_SPREAD;
+      return naturalHalf > playableHalfWidth ? playableHalfWidth / naturalHalf : 1;
+    }
+
+    case 'circle': {
+      const naturalMax = Math.sqrt(Math.max(0, totalCount - 1)) * CIRCLE_COEF;
+      return naturalMax > playableHalfWidth ? playableHalfWidth / naturalMax : 1;
+    }
+
+    case 'arrow':
+      return 1;
+
+    case 'oval': {
+      const naturalMax = Math.sqrt(Math.max(0, totalCount - 1)) * OVAL_X_COEF;
+      return naturalMax > playableHalfWidth ? playableHalfWidth / naturalMax : 1;
+    }
+
+    default:
+      return 1;
+  }
+}
 
 // Calculate mob positions based on crowd count and formation.
 // playableHalfWidth ограничивает формацию по ширине трассы: если "естественная"
@@ -61,25 +111,33 @@ const OVAL_Z_COEF = 0.9;
 // шаг между бойцами (и по X, и по Z, чтобы форма не расплющивалась) равномерно
 // сжимается — толпа физически не может вылезти за пределы дорожки, а при росте
 // отряда видно, как построение уплотняется.
+// Оптимизировано для 0-GC: результат записывается в переданный `out`-объект
+// (или в модульный `formationScratch`, если `out` не передан).
 export function calculateFormationOffset(
   index: number,
   totalCount: number,
   formation: FormationType,
-  playableHalfWidth: number
-): { x: number; z: number } {
+  playableHalfWidth: number,
+  out?: FormationOffset,
+  scale?: number
+): FormationOffset {
+  const target = out ?? formationScratch;
+
   switch (formation) {
     case 'wedge': {
       // V-shape / Wedge formation
-      if (index === 0) return { x: 0, z: 0 };
+      if (index === 0) {
+        target.x = 0;
+        target.z = 0;
+        return target;
+      }
       const row = Math.floor(Math.sqrt(index));
       const col = index - row * row;
-      const maxRow = Math.floor(Math.sqrt(Math.max(0, totalCount - 1)));
-      const naturalHalf = maxRow * WEDGE_SPREAD;
-      const scale = naturalHalf > playableHalfWidth ? playableHalfWidth / naturalHalf : 1;
-      const spread = WEDGE_SPREAD * scale;
-      const x = (col - row) * spread;
-      const z = row * WEDGE_Z_STEP * scale;
-      return { x, z };
+      const s = scale ?? getFormationScale(formation, totalCount, playableHalfWidth);
+      const spread = WEDGE_SPREAD * s;
+      target.x = (col - row) * spread;
+      target.z = row * WEDGE_Z_STEP * s;
+      return target;
     }
 
     case 'wide': {
@@ -87,60 +145,73 @@ export function calculateFormationOffset(
       const cols = Math.min(18, Math.max(6, Math.ceil(Math.sqrt(totalCount) * 2.2)));
       const row = Math.floor(index / cols);
       const col = index % cols;
-      const naturalHalf = ((cols - 1) / 2) * WIDE_SPREAD;
-      const scale = naturalHalf > playableHalfWidth ? playableHalfWidth / naturalHalf : 1;
-      const x = (col - (cols - 1) / 2) * WIDE_SPREAD * scale;
-      const z = row * WIDE_Z_STEP * scale;
-      return { x, z };
+      const s = scale ?? getFormationScale(formation, totalCount, playableHalfWidth);
+      target.x = (col - (cols - 1) / 2) * WIDE_SPREAD * s;
+      target.z = row * WIDE_Z_STEP * s;
+      return target;
     }
 
     case 'circle': {
       // Concentric circular phalanx
-      if (index === 0) return { x: 0, z: 0 };
-      const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ~137.5 degrees
-      const naturalMax = Math.sqrt(Math.max(0, totalCount - 1)) * CIRCLE_COEF;
-      const scale = naturalMax > playableHalfWidth ? playableHalfWidth / naturalMax : 1;
-      const r = Math.sqrt(index) * CIRCLE_COEF * scale;
-      const theta = index * goldenAngle;
-      const x = r * Math.cos(theta);
-      const z = r * Math.sin(theta);
-      return { x, z };
+      if (index === 0) {
+        target.x = 0;
+        target.z = 0;
+        return target;
+      }
+      const s = scale ?? getFormationScale(formation, totalCount, playableHalfWidth);
+      const r = Math.sqrt(index) * CIRCLE_COEF * s;
+      const theta = index * GOLDEN_ANGLE;
+      target.x = r * Math.cos(theta);
+      target.z = r * Math.sin(theta);
+      return target;
     }
 
     case 'arrow': {
       // Penetrating arrow: narrow column with pointed head.
       // Максимальный офсет константен (0.9) — формация и так узкая, сжимать незачем.
-      if (index === 0) return { x: 0, z: 0 };
+      if (index === 0) {
+        target.x = 0;
+        target.z = 0;
+        return target;
+      }
       if (index < 5) {
         // Arrowhead
         const side = index % 2 === 0 ? 1 : -1;
         const depth = Math.ceil(index / 2);
-        return { x: side * depth * 0.45, z: depth * 0.5 };
+        target.x = side * depth * 0.45;
+        target.z = depth * 0.5;
+        return target;
       }
       // Narrow shaft
       const shaftIdx = index - 5;
       const row = Math.floor(shaftIdx / 3);
       const col = (shaftIdx % 3) - 1;
-      return { x: col * 0.4, z: 2.5 + row * 0.45 };
+      target.x = col * 0.4;
+      target.z = 2.5 + row * 0.45;
+      return target;
     }
 
     case 'oval': {
       // Овал, вытянутый ВПЕРЁД (по Z). Золотой угол распределяет мобов по эллипсу
       // равномерно; X-коэффициент меньше Z-коэффициента, поэтому форма вытянута вдоль
       // трассы. Масштаб сжимается под ширину дорожки, чтобы овал не вылезал за края.
-      if (index === 0) return { x: 0, z: 0 };
-      const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ~137.5°
-      const naturalMax = Math.sqrt(Math.max(0, totalCount - 1)) * OVAL_X_COEF;
-      const scale = naturalMax > playableHalfWidth ? playableHalfWidth / naturalMax : 1;
-      const r = Math.sqrt(index) * scale;
-      const theta = index * goldenAngle;
-      const x = r * OVAL_X_COEF * Math.cos(theta);
-      const z = r * OVAL_Z_COEF * Math.sin(theta);
-      return { x, z };
+      if (index === 0) {
+        target.x = 0;
+        target.z = 0;
+        return target;
+      }
+      const s = scale ?? getFormationScale(formation, totalCount, playableHalfWidth);
+      const r = Math.sqrt(index) * s;
+      const theta = index * GOLDEN_ANGLE;
+      target.x = r * OVAL_X_COEF * Math.cos(theta);
+      target.z = r * OVAL_Z_COEF * Math.sin(theta);
+      return target;
     }
 
     default:
-      return { x: 0, z: 0 };
+      target.x = 0;
+      target.z = 0;
+      return target;
   }
 }
 
