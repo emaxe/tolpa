@@ -115,6 +115,9 @@ export class LevelGenerator {
     const gateCount = Math.min(40, 16 + Math.floor(levelNum / 2));
     const baseGateSpacing = (trackLength - 120) / Math.max(1, gateCount);
 
+    const laneOffset = trackWidth / 2 - 2.0;
+    let lastLane = 1; // средний лейн перед циклом
+
     let currentGateZ = 32;
     for (let g = 0; g < gateCount; g++) {
       const z = g === 0 ? 32 + rng() * 2 : currentGateZ + baseGateSpacing + (rng() * 4 - 2);
@@ -137,19 +140,23 @@ export class LevelGenerator {
         else { op = 'divide'; value = divVal; }
       }
 
-      // 1..3 ворот на ряд уступами: каждое занимает часть ширины, расставляем по X.
+      // 1..3 ворот на ряд уступами: 3-полосная сетка лейнов.
       const rowCount = 1 + Math.floor(rng() * 3); // 1..3
-      const slot = g % 3;
-      const totalWidth = trackWidth - 2.4;
       let x: number;
       let width: number;
       if (rowCount === 1) {
-        x = (rng() * 2 - 1) * (trackWidth / 2 - 3);
-        width = 3.5 + rng() * 4;
+        let lane = Math.floor(rng() * 3);
+        if (lane === lastLane) lane = (lane + 1) % 3;
+        lastLane = lane;
+        x = (lane - 1) * laneOffset;
+        width = 4.2;
       } else {
-        const segW = totalWidth / rowCount;
-        x = -totalWidth / 2 + segW * (slot + 0.5);
-        width = Math.min(segW - 0.6, 4.2);
+        const baseLane = lastLane;
+        const slot = g % rowCount;
+        const lane = (baseLane + slot) % 3;
+        lastLane = lane;
+        x = (lane - 1) * laneOffset;
+        width = rowCount === 2 ? trackWidth / 2 - 0.6 : laneOffset - 0.6;
       }
       // Не даём воротам выйти за трассу.
       x = Math.max(-(trackWidth / 2 - width / 2 - 0.4), Math.min(trackWidth / 2 - width / 2 - 0.4, x));
@@ -181,7 +188,8 @@ export class LevelGenerator {
       if (Math.abs(wallZ - currentGateZ) < 8) continue;
       if (wallZ > trackLength - 60) continue;
       const wallWidth = Math.min(trackWidth - 2.4, 3.5 + rng() * 3.5);
-      const wallX = (rng() * 2 - 1) * (trackWidth / 2 - wallWidth / 2 - 0.4);
+      let wallX = (Math.floor(rng() * 3) - 1) * laneOffset;
+      wallX = Math.max(-(trackWidth / 2 - wallWidth / 2 - 0.4), Math.min(trackWidth / 2 - wallWidth / 2 - 0.4, wallX));
       rawWalls.push({
         id: `wall_${levelNum}_${w}`,
         z: wallZ,
@@ -495,11 +503,18 @@ export class LevelGenerator {
       range = 2.0;
       baseDmg = 15;
       speed = 2.5;
-    } else if (type === 'saw_blade' || type === 'spike_trap') {
-      const maxHalfX = (trackWidth / 2 - 0.6) - 1.0;
+    } else if (type === 'saw_blade') {
+      const bladeHalf = 0.85; // половина диска
       obsWidth = 2.0;
-      x = (rng() * 2 - 1) * maxHalfX;
-      range = Math.min(3.5, maxHalfX);
+      // Полный свип: пила ездит от левого до правого борта.
+      x = 0;
+      range = Math.max(0, trackWidth / 2 - obsWidth / 2 - 0.6); // ~6.8 при trackWidth 16
+      baseDmg = 6;
+    } else if (type === 'spike_trap') {
+      obsWidth = 2.0;
+      // Шипы статичны: размещаем по лейну, квантовано.
+      x = (Math.floor(rng() * 3) - 1) * (trackWidth / 2 - 2.0);
+      range = 0;
       baseDmg = 6;
     } else {
       const maxHalfX = (trackWidth / 2 - 0.6) - 1.0;

@@ -19,7 +19,8 @@ import { ParticleSystem } from './ParticleSystem';
 import { soundEngine } from '../audio/SoundEngine';
 import { eventBus } from '../core/EventBus';
 import { stateManager } from '../core/StateManager';
-import { checkCircleRectCollision, circleRectGap, getNearMissMultiplier } from '../utils/math';
+import { clamp, checkCircleRectCollision, circleRectGap, getNearMissMultiplier } from '../utils/math';
+import { DEFAULT_TRACK_WIDTH } from './LevelGenerator';
 
 interface ObstacleVisual {
   data: ObstacleData;
@@ -425,7 +426,14 @@ export class ObstacleManager {
           // убивает только сам диск, а не всё габаритное место. hazard-бокс
           // центрирован по фактической X пилы.
           obsVis.mesh.children[0].rotation.y += dt * 6;
-          obsVis.mesh.position.x = Math.sin(t) * obs.range;
+          // Полный свип от борта до борта: база x + размах range, не выходим за трассу.
+          const baseSawX = obsVis.subX ?? 0;
+          const trackHalfWidth = DEFAULT_TRACK_WIDTH / 2;
+          obsVis.mesh.position.x = clamp(
+            baseSawX + Math.sin(t) * obs.range,
+            -(trackHalfWidth - 1.0),
+            +(trackHalfWidth - 1.0)
+          );
           obs.x = obsVis.mesh.position.x;
           this.setHazard(obsVis, obs.x, obs.z, 1.7, 1.2);
           break;
