@@ -603,6 +603,16 @@ export class CrowdManager {
     return this.formation === 'circle' ? 1.35 : 1.0;
   }
 
+  /** Тактический бонус Стрелы (arrow): ускоренный набор заряда Гипер-режима (+50%). */
+  public getAdrenalineMultiplier(): number {
+    return this.formation === 'arrow' ? 1.5 : 1.0;
+  }
+
+  /** Урон моба по кинетической стене: танки наносят 3 урона, формации Стрела и Фаланга — по 2, остальные — 1. */
+  public getMobWallDamage(mob: MobInstance): number {
+    return mob.type === 'tank' ? 3 : (this.formation === 'arrow' || this.formation === 'circle' ? 2 : 1);
+  }
+
   /** Фаланга (circle) с достаточной толпой может таранить разрушаемые препятствия. */
   public canRamObstacles(): boolean {
     return this.formation === 'circle' && this.aliveCount >= 15;

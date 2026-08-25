@@ -273,7 +273,7 @@ export class GameEngine {
     // Адреналин заряжается за успешные положительные ворота
     this.unsubGateCharge = eventBus.on('gatePassed', (data: { isPositive?: boolean }) => {
       if (data?.isPositive) {
-        this.adrenalineCharge = Math.min(100, this.adrenalineCharge + 15);
+        this.adrenalineCharge = Math.min(100, this.adrenalineCharge + Math.round(15 * this.crowd.getAdrenalineMultiplier()));
       }
     });
 
@@ -298,7 +298,7 @@ export class GameEngine {
     // более яркий визуальный фидбек.
     this.unsubNearMiss = eventBus.on('nearMiss', (data: { x?: number; z?: number; multiplier?: number }) => {
       const mult = data?.multiplier ?? 1;
-      const adrenalineBonus = mult >= 10 ? 30 : mult >= 5 ? 22 : mult >= 2 ? 16 : 12;
+      const adrenalineBonus = (mult >= 10 ? 30 : mult >= 5 ? 22 : mult >= 2 ? 16 : 12) * this.crowd.getAdrenalineMultiplier();
       this.adrenalineCharge = Math.min(100, this.adrenalineCharge + adrenalineBonus);
       const count = mult >= 10 ? 36 : mult >= 5 ? 26 : mult >= 2 ? 18 : 12;
       const color = mult >= 10 ? 0xfacc15 : mult >= 5 ? 0xa855f7 : mult >= 2 ? 0x00f0ff : 0x38bdf8;
@@ -2033,7 +2033,7 @@ export class GameEngine {
     this.dirLight.target.updateMatrixWorld();
 
     // Адреналин заряжается сам собой (плюс бонусы за ворота из подписки в конструкторе)
-    this.adrenalineCharge = Math.min(100, this.adrenalineCharge + 8 * dt);
+    this.adrenalineCharge = Math.min(100, this.adrenalineCharge + 8 * this.crowd.getAdrenalineMultiplier() * dt);
   }
 
   // Анимация зрителей: прыжки (sin по Y), качание (rotation.z), махание руками

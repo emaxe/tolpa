@@ -136,15 +136,14 @@ export class WallManager {
 
       if (this.throughScratch.length === 0) continue;
 
-      // Стена бьёт ровно по стольким мобам, сколько осталось в счётчике.
-      // Фаланга (circle) пробивает стены вдвое быстрее: каждый проходящий боец
-      // снимает 2 единицы счётчика вместо 1.
-      const wallDamage = crowd.formation === 'circle' ? 2 : 1;
-      const toConsume = Math.min(this.throughScratch.length, Math.ceil(wall.killsRemaining / wallDamage));
-      for (let i = 0; i < toConsume; i++) {
+      // Стена бьёт по проходящим мобам, пока счётчик > 0.
+      // Кинетический пробой стен: урон зависит от класса моба (танки) и формации (стрела/фаланга).
+      for (const mob of this.throughScratch) {
+        if (wall.killsRemaining <= 0) break;
         const killed = crowd.killOneFromGroup(this.throughScratch, 'wall');
         if (killed) {
-          wall.killsRemaining -= wallDamage;
+          const mobDmg = crowd.getMobWallDamage(mob);
+          wall.killsRemaining -= mobDmg;
           this.updateCounterTexture(wv);
           soundEngine.playSound('gate_pass_negative');
           particles.emitBurst(wall.x, 1.5, wall.z, 12, 0xef4444, 4.0);

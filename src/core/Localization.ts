@@ -65,7 +65,7 @@ export const translations = {
     wedgeDesc: 'Снижает урон от фронтальных ловушек на 40%',
     wideDesc: 'Максимальный охват монет и обоих ворот',
     circleDesc: 'Толкает и разрушает препятствия силой толпы',
-    arrowDesc: 'Увеличивает скорость бега и пробивает узкие щели',
+    arrowDesc: 'Увеличивает скорость бега, ускоряет заряд Гипер-режима (+50%) и пробивает стены клином',
     ovalDesc: 'Сбалансированный строй: компактный коридор и безопасный маневр',
 
     // Specialized mobs
@@ -339,7 +339,7 @@ export const translations = {
     wedgeDesc: 'Reduces frontal trap damage by 40%',
     wideDesc: 'Maximum width to collect coins & gates',
     circleDesc: 'Pushes and smashes barriers with crowd weight',
-    arrowDesc: 'Increases run speed and slips through narrow gaps',
+    arrowDesc: 'Increases run speed, boosts Hyper-mode charge (+50%) and pierces walls with a wedge',
     ovalDesc: 'Balanced formation: compact corridor and safe maneuvering',
 
     // Specialized mobs
