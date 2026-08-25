@@ -62,7 +62,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
 
           <h2
             className={`font-orbitron font-extrabold text-2xl md:text-3xl tracking-wider ${
-              isEndless ? 'text-teal-300' : isVictory ? 'text-amber-400' : 'text-red-400'
+              isEndless ? 'text-teal-700' : isVictory ? 'text-amber-500' : 'text-red-500'
             }`}
           >
             {isEndless ? i18n.t('endlessRunOver') : isVictory ? i18n.t('victory') : i18n.t('defeat')}
@@ -116,7 +116,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
               )}
               <div className="flex justify-between items-center text-slate-700">
                 <span className="font-orbitron text-xs">{i18n.t('crowd')}</span>
-                <span className="font-orbitron font-bold text-teal-300">{crowdCount}</span>
+                <span className="font-orbitron font-bold text-teal-700">{crowdCount}</span>
               </div>
             </>
           )}
@@ -125,9 +125,9 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
           {isEndless && (
             <div className="flex justify-between items-center text-slate-700">
               <span className="flex items-center gap-1.5 font-orbitron text-xs text-slate-600">
-                <Route className="w-4 h-4 text-teal-300" /> {i18n.t('endlessDistance')}
+                <Route className="w-4 h-4 text-teal-700" /> {i18n.t('endlessDistance')}
               </span>
-              <span className="font-orbitron font-bold text-teal-300">
+              <span className="font-orbitron font-bold text-teal-700">
                 {endless?.distance?.toLocaleString() ?? 0} м
               </span>
             </div>
@@ -144,9 +144,9 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
               </div>
               <div className="flex items-center justify-between text-slate-700">
                 <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-600">
-                  <Users className="w-3.5 h-3.5 text-teal-300" /> {i18n.t('runMaxCrowd')}
+                  <Users className="w-3.5 h-3.5 text-teal-700" /> {i18n.t('runMaxCrowd')}
                 </span>
-                <span className="font-orbitron font-bold text-teal-300">{runStats.maxCrowd}</span>
+                <span className="font-orbitron font-bold text-teal-700">{runStats.maxCrowd}</span>
               </div>
               <div className="flex items-center justify-between text-slate-700">
                 <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-600">

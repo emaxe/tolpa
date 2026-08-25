@@ -235,7 +235,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({ onClose }) => {
                             {i18n.t(skin.nameKey, skin.id.replace('_', ' ').toUpperCase())}
                           </h4>
                           {skin.category !== 'humanoid' && (
-                            <span className="text-[9px] font-orbitron font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                            <span className="text-[9px] font-orbitron font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-700 border border-emerald-500/40">
                               {i18n.t('uniqueModel')}
                             </span>
                           )}

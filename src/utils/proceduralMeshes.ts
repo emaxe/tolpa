@@ -593,7 +593,7 @@ export function createLaserGridMesh(width: number): THREE.Group {
 
   // Left & Right Emitter Posts
   const postGeo = new THREE.CylinderGeometry(0.2, 0.25, 2.5, 8);
-  const postMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.9, roughness: 0.2, emissive: 0x06b6d4, emissiveIntensity: 0.4 });
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.9, roughness: 0.2, emissive: 0x06b6d4, emissiveIntensity: 0.4 });
   
   const leftPost = new THREE.Mesh(postGeo, postMat);
   leftPost.position.set(-width / 2, 1.25, 0);
@@ -814,7 +814,7 @@ export function createBarrierGateMesh(): THREE.Group {
   // Индекс 3 — дочерний меш, чью Y-позицию читает isHazardActive и update().
   const gateGeo = new THREE.BoxGeometry(3.3, 0.35, 0.3);
   const gateMat = new THREE.MeshStandardMaterial({
-    color: 0x334155,
+    color: 0x64748b,
     metalness: 0.9,
     roughness: 0.15,
     emissive: 0xef4444,
@@ -932,7 +932,7 @@ export function createGuardDogMesh(): THREE.Group {
   // 2.0. Угловатый торс
   const bodyGeo = new THREE.BoxGeometry(0.55, 0.42, 0.9);
   const bodyMat = new THREE.MeshStandardMaterial({
-    color: 0x334155,
+    color: 0x64748b,
     metalness: 0.8,
     roughness: 0.3,
     emissive: 0xa855f7,
@@ -962,7 +962,7 @@ export function createGuardDogMesh(): THREE.Group {
   // 2.3. Подвижная пасть / нижняя челюсть (открывается при атаке)
   const jawGeo = new THREE.BoxGeometry(0.32, 0.1, 0.32);
   const jawMat = new THREE.MeshStandardMaterial({
-    color: 0x334155,
+    color: 0x64748b,
     metalness: 0.85,
     roughness: 0.2,
     emissive: 0xef4444,
@@ -1047,7 +1047,7 @@ export function createSwingingHammerMesh(): THREE.Group {
   // 3. Плита-наковальня на настиле
   const anvilGeo = new THREE.BoxGeometry(2.4, 0.16, 2.0);
   const anvilMat = new THREE.MeshStandardMaterial({
-    color: 0x334155,
+    color: 0x64748b,
     metalness: 0.9,
     roughness: 0.2,
     emissive: 0xf59e0b,
@@ -1280,7 +1280,7 @@ export function createBossMesh(boss: BossData): THREE.Group {
       // Apex Overlord Malakor
       const baseGeo = new THREE.CylinderGeometry(1.2, 1.8, 3.5, 12);
       const baseMat = new THREE.MeshStandardMaterial({
-        color: 0x3f3f46,
+        color: 0x64748b,
         metalness: 0.95,
         roughness: 0.1,
         emissive: 0xd946ef,
@@ -1360,7 +1360,7 @@ export function createBillboardMesh(text: string, accent: number): THREE.Group {
 
   // Рама
   const frameGeo = new THREE.BoxGeometry(3.0, 2.0, 0.15);
-  const frameMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 });
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8, roughness: 0.3 });
   const frame = new THREE.Mesh(frameGeo, frameMat);
   frame.position.y = 2.0;
   group.add(frame);
@@ -1374,7 +1374,7 @@ export function createBillboardMesh(text: string, accent: number): THREE.Group {
   // Градиентный фон
   const grad = ctx.createLinearGradient(0, 0, 0, 256);
   grad.addColorStop(0, `rgba(${(accent >> 16) & 255}, ${(accent >> 8) & 255}, ${accent & 255}, 0.9)`);
-  grad.addColorStop(1, 'rgba(10, 10, 20, 0.95)');
+  grad.addColorStop(1, 'rgba(226, 232, 240, 0.95)'); // slate-200 — светлый низ, согласован со светлой сценой
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 512, 256);
 

@@ -39,7 +39,7 @@ export class WallManager {
     this.sharedPlaneGeo = new THREE.PlaneGeometry(4, WALL_HEIGHT);
     this.sharedPillarGeo = new THREE.CylinderGeometry(0.14, 0.14, WALL_HEIGHT + 0.5, 8);
     this.sharedPillarMat = new THREE.MeshStandardMaterial({
-      color: 0x450a0a,
+      color: 0x991b1b,
       metalness: 0.8,
       roughness: 0.3,
       emissive: 0xdc2626,

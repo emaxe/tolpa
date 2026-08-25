@@ -28,7 +28,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
         <div className="p-5 overflow-y-auto space-y-6 text-sm text-slate-700 leading-relaxed">
           {/* Architecture Summary */}
           <section className="bg-slate-100/70 p-4 rounded-xl border border-teal-500/30">
-            <h3 className="font-orbitron font-bold text-teal-300 text-sm flex items-center gap-2 mb-2">
+            <h3 className="font-orbitron font-bold text-teal-700 text-sm flex items-center gap-2 mb-2">
               <Cpu className="w-4 h-4 text-teal-400" />
               <span>Архитектура & Производительность</span>
             </h3>
@@ -51,19 +51,19 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
-                <strong className="text-teal-300 font-orbitron">1. Клин (Wedge) [Клавиша 1]:</strong>
+                <strong className="text-teal-700 font-orbitron">1. Клин (Wedge) [Клавиша 1]:</strong>
                 <p className="text-slate-600 mt-1">{i18n.t('wedgeDesc')}</p>
               </div>
               <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
-                <strong className="text-teal-300 font-orbitron">2. Шеренга (Wide Line) [Клавиша 2]:</strong>
+                <strong className="text-teal-700 font-orbitron">2. Шеренга (Wide Line) [Клавиша 2]:</strong>
                 <p className="text-slate-600 mt-1">{i18n.t('wideDesc')}</p>
               </div>
               <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
-                <strong className="text-teal-300 font-orbitron">3. Фаланга (Circle) [Клавиша 3]:</strong>
+                <strong className="text-teal-700 font-orbitron">3. Фаланга (Circle) [Клавиша 3]:</strong>
                 <p className="text-slate-600 mt-1">{i18n.t('circleDesc')}</p>
               </div>
               <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
-                <strong className="text-teal-300 font-orbitron">4. Стрела (Arrow) [Клавиша 4]:</strong>
+                <strong className="text-teal-700 font-orbitron">4. Стрела (Arrow) [Клавиша 4]:</strong>
                 <p className="text-slate-600 mt-1">{i18n.t('arrowDesc')}</p>
               </div>
             </div>
@@ -79,7 +79,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
               <div className="bg-slate-100/50 p-3 rounded-xl border border-amber-500/30 flex items-start gap-3">
                 <span className="p-1.5 bg-amber-500/20 text-amber-400 rounded-lg font-orbitron font-bold">ТАНК</span>
                 <div>
-                  <h4 className="font-orbitron font-bold text-amber-300">{i18n.t('tankName')}</h4>
+                  <h4 className="font-orbitron font-bold text-amber-600">{i18n.t('tankName')}</h4>
                   <p className="text-slate-600 mt-0.5">{i18n.t('tankDesc')}</p>
                 </div>
               </div>
@@ -87,7 +87,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
               <div className="bg-slate-100/50 p-3 rounded-xl border border-rose-500/30 flex items-start gap-3">
                 <span className="p-1.5 bg-rose-500/20 text-rose-400 rounded-lg font-orbitron font-bold">НИНДЗЯ</span>
                 <div>
-                  <h4 className="font-orbitron font-bold text-rose-300">{i18n.t('ninjaName')}</h4>
+                  <h4 className="font-orbitron font-bold text-rose-600">{i18n.t('ninjaName')}</h4>
                   <p className="text-slate-600 mt-0.5">{i18n.t('ninjaDesc')}</p>
                 </div>
               </div>
@@ -95,7 +95,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
               <div className="bg-slate-100/50 p-3 rounded-xl border border-emerald-500/30 flex items-start gap-3">
                 <span className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg font-orbitron font-bold">МАГ</span>
                 <div>
-                  <h4 className="font-orbitron font-bold text-emerald-300">{i18n.t('mageName')}</h4>
+                  <h4 className="font-orbitron font-bold text-emerald-700">{i18n.t('mageName')}</h4>
                   <p className="text-slate-600 mt-0.5">{i18n.t('mageDesc')}</p>
                 </div>
               </div>

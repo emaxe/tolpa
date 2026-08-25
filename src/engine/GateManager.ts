@@ -48,7 +48,7 @@ export class GateManager {
     this.sharedPlaneGeo = new THREE.PlaneGeometry(4, h);
     this.sharedPillarGeo = new THREE.CylinderGeometry(0.12, 0.12, h + 0.4, 8);
     this.sharedPillarMat = new THREE.MeshStandardMaterial({
-      color: 0x334155,
+      color: 0x64748b,
       metalness: 0.9,
       roughness: 0.2,
       emissive: 0x0ea5e9,

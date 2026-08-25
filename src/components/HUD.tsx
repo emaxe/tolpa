@@ -79,11 +79,11 @@ export const HUD: React.FC<HUDProps> = ({
 
   // Маппинг типа события -> ключ локализации и цвет баннера
   const EVENT_ALERT_MAP: Record<string, { key: string; cls: string }> = {
-    ambush: { key: 'eventAmbush', cls: 'border-red-500 text-red-300' },
-    coin_train: { key: 'eventCoinTrain', cls: 'border-amber-500 text-amber-300' },
-    emp_storm: { key: 'eventEmpStorm', cls: 'border-rose-500 text-rose-300' },
-    meteor_rain: { key: 'eventMeteorRain', cls: 'border-orange-500 text-orange-300' },
-    speed_boost: { key: 'eventSpeedBoost', cls: 'border-teal-500 text-teal-300' },
+    ambush: { key: 'eventAmbush', cls: 'border-red-500 text-red-600' },
+    coin_train: { key: 'eventCoinTrain', cls: 'border-amber-500 text-amber-600' },
+    emp_storm: { key: 'eventEmpStorm', cls: 'border-rose-500 text-rose-600' },
+    meteor_rain: { key: 'eventMeteorRain', cls: 'border-orange-500 text-orange-600' },
+    speed_boost: { key: 'eventSpeedBoost', cls: 'border-teal-500 text-teal-700' },
   };
 
   useEffect(() => {
@@ -137,11 +137,11 @@ export const HUD: React.FC<HUDProps> = ({
         {/* Level and Crowd Badge */}
         <div className="flex items-center gap-3">
           <div className="bg-white/80 backdrop-blur-md border border-teal-500/40 rounded-xl px-4 py-2 shadow-lg shadow-slate-300/40">
-            <span className="text-xs uppercase text-teal-300 font-orbitron tracking-wider">
+            <span className="text-xs uppercase text-teal-700 font-orbitron tracking-wider">
               {isEndless ? i18n.t('endlessMode') : `${i18n.t('level')} ${levelNumber}`}
             </span>
             <div className="flex items-center gap-2 mt-0.5">
-              <Users className="w-5 h-5 text-teal-300 animate-pulse" />
+              <Users className="w-5 h-5 text-teal-700 animate-pulse" />
               <span className="text-2xl font-bold font-orbitron text-slate-900">
                 {crowdCount}
               </span>
@@ -155,7 +155,7 @@ export const HUD: React.FC<HUDProps> = ({
             </span>
             <div className="flex items-center gap-2 mt-0.5">
               <Coins className="w-5 h-5 text-amber-400" />
-              <span className="text-2xl font-bold font-orbitron text-amber-300">
+              <span className="text-2xl font-bold font-orbitron text-amber-600">
                 {coinCount.toLocaleString()}
               </span>
             </div>
@@ -196,7 +196,7 @@ export const HUD: React.FC<HUDProps> = ({
           {/* Debug performance stats */}
           <div className="bg-slate-100/70 border border-slate-300 rounded-lg px-2.5 py-1 text-[11px] text-slate-600 font-mono flex gap-2">
             <span>FPS: <strong className="text-emerald-400">{fps}</strong></span>
-            <span>DC: <strong className="text-teal-300">{drawCalls}</strong></span>
+            <span>DC: <strong className="text-teal-700">{drawCalls}</strong></span>
           </div>
 
           {/* Pause Button */}
@@ -226,7 +226,7 @@ export const HUD: React.FC<HUDProps> = ({
           <div className="bg-slate-100/90 border-2 border-amber-400/80 rounded-2xl px-5 py-2 shadow-[0_0_25px_rgba(251,191,36,0.5)] backdrop-blur-md flex items-center gap-3">
             <Trophy className="w-5 h-5 text-amber-400 fill-amber-400 animate-bounce" />
             <div className="flex flex-col items-center">
-              <span className="text-[10px] uppercase font-orbitron tracking-widest text-amber-300">
+              <span className="text-[10px] uppercase font-orbitron tracking-widest text-amber-600">
                 {i18n.t('wallMultiplier')}
               </span>
               <span className="text-2xl font-extrabold font-orbitron text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.8)]">
@@ -300,7 +300,7 @@ export const HUD: React.FC<HUDProps> = ({
           основной core-loop (дистанция) и личный рекорд как цель побить. */}
       {isEndless && (
         <div className="absolute bottom-24 left-4 max-sm:hidden pointer-events-none flex items-center gap-3">
-          <span className="text-[11px] font-orbitron text-teal-300 flex items-center gap-1">
+          <span className="text-[11px] font-orbitron text-teal-700 flex items-center gap-1">
             <Route className="w-3 h-3" />
             {distanceTraveled.toLocaleString()} м
           </span>
@@ -379,7 +379,7 @@ export const HUD: React.FC<HUDProps> = ({
         <div className="pointer-events-auto flex flex-col items-center gap-1.5">
           {/* Бейдж активного тактического бонуса формации — показывает, что даёт
               текущий строй, чтобы выбор формации читался как тактический инструмент. */}
-          <div className="bg-slate-100/80 backdrop-blur-md border border-slate-300 rounded-lg px-2.5 py-1 text-[10px] font-orbitron font-bold text-teal-300 max-sm:hidden">
+          <div className="bg-slate-100/80 backdrop-blur-md border border-slate-300 rounded-lg px-2.5 py-1 text-[10px] font-orbitron font-bold text-teal-700 max-sm:hidden">
             {currentFormation === 'wedge' && '🛡️ Урон −40%'}
             {currentFormation === 'wide' && '🧲 Охват сбора +60%'}
             {currentFormation === 'circle' && '💥 Таран боссов ×1.35 · Стен ×2'}

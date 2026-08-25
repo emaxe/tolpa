@@ -105,7 +105,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               soundEngine.playSound('button_click');
               onOpenTests();
             }}
-            className="p-2.5 bg-white/80 hover:bg-slate-200 border border-emerald-500/40 text-emerald-400 hover:text-emerald-300 rounded-xl transition-all shadow cursor-pointer"
+            className="p-2.5 bg-white/80 hover:bg-slate-200 border border-emerald-500/40 text-emerald-600 hover:text-emerald-700 rounded-xl transition-all shadow cursor-pointer"
             title={i18n.t('testSuite')}
           >
             <FileCode className="w-4 h-4" />
@@ -158,7 +158,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               }}
               className="py-3 bg-white/90 hover:bg-slate-200 border border-slate-300 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-slate-800 flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
-              <Grid className="w-4 h-4 text-teal-300" />
+              <Grid className="w-4 h-4 text-teal-700" />
               <span>{i18n.t('levelSelect')} (50)</span>
             </button>
 
@@ -167,12 +167,12 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                 soundEngine.playSound('button_click');
                 onPlayEndless();
               }}
-              className="py-3 bg-white/90 hover:bg-slate-200 border border-rose-500/40 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-rose-300 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              className="py-3 bg-white/90 hover:bg-slate-200 border border-rose-500/40 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider text-rose-600 flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <InfinityIcon className="w-4 h-4 text-rose-400" />
               <span>{i18n.t('endlessMode')}</span>
               {state.endlessHighScore > 0 && (
-                <span className="text-[9px] text-rose-400/70">
+                <span className="text-[9px] text-rose-600/80">
                   {i18n.t('endlessRecord')}: {state.endlessHighScore.toLocaleString()} м
                 </span>
               )}
@@ -216,7 +216,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               <span>{i18n.t('back')}</span>
             </button>
 
-            <h3 className="font-orbitron font-bold text-sm text-teal-300 uppercase tracking-wider">
+            <h3 className="font-orbitron font-bold text-sm text-teal-700 uppercase tracking-wider">
               {i18n.t('levelSelect')} (50 Уровней • 5 Боссов)
             </h3>
           </div>
