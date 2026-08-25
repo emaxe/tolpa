@@ -3,7 +3,7 @@ import { FormationType } from '../types/game';
 import { i18n } from '../core/Localization';
 import { stateManager } from '../core/StateManager';
 import { eventBus } from '../core/EventBus';
-import { Zap, Users, Coins, Shield, ArrowUp, MoveHorizontal, CircleDot, Pause, Skull, TriangleAlert, Route, Trophy } from 'lucide-react';
+import { Zap, Users, Coins, Shield, ArrowUp, MoveHorizontal, CircleDot, Pause, Skull, TriangleAlert, Route, Trophy, Focus } from 'lucide-react';
 
 interface HUDProps {
   crowdCount: number;
@@ -384,8 +384,9 @@ export const HUD: React.FC<HUDProps> = ({
             {currentFormation === 'wide' && '🧲 Охват сбора +60%'}
             {currentFormation === 'circle' && '💥 Таран боссов ×1.35 · Стен ×2'}
             {currentFormation === 'arrow' && '⚡ Скорость +15%'}
+            {currentFormation === 'oval' && '⚖️ Баланс · Универсальный строй'}
           </div>
-          <div className="pointer-events-auto grid grid-cols-4 gap-2 bg-zinc-950/80 backdrop-blur-md p-1.5 rounded-xl border border-zinc-800 max-sm:order-1 max-sm:grid-cols-1 max-sm:gap-1 max-sm:p-1 max-sm:rounded-2xl">
+          <div className="pointer-events-auto grid grid-cols-5 gap-2 bg-zinc-950/80 backdrop-blur-md p-1.5 rounded-xl border border-zinc-800 max-sm:order-1 max-sm:grid-cols-1 max-sm:gap-1 max-sm:p-1 max-sm:rounded-2xl">
           <button
             onClick={() => onFormationChange('wedge')}
             className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
@@ -436,6 +437,19 @@ export const HUD: React.FC<HUDProps> = ({
           >
             <ArrowUp className="w-4 h-4 mb-0.5 max-sm:mb-0 max-sm:w-5 max-sm:h-5" />
             <span className="text-[10px] uppercase max-sm:hidden">4: {i18n.t('formationArrow').split(' ')[0]}</span>
+          </button>
+
+          <button
+            onClick={() => onFormationChange('oval')}
+            className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
+              currentFormation === 'oval'
+                ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-zinc-950 font-bold shadow-md shadow-teal-500/30'
+                : 'bg-zinc-900/60 text-zinc-400 hover:text-white hover:bg-zinc-800'
+            }`}
+            title={i18n.t('ovalDesc')}
+          >
+            <Focus className="w-4 h-4 mb-0.5 max-sm:mb-0 max-sm:w-5 max-sm:h-5" />
+            <span className="text-[10px] uppercase max-sm:hidden">5: {i18n.t('formationOval').split(' ')[0]}</span>
           </button>
           </div>
         </div>

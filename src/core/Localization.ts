@@ -46,6 +46,7 @@ export const translations = {
     formationWide: 'Шеренга (Сбор)',
     formationCircle: 'Фаланга (Таран)',
     formationArrow: 'Стрела (Скорость)',
+    formationOval: 'Овал (Баланс)',
     tapToPlay: 'Зажмите и ведите пальцем или мышь / A-D для управления',
     swipeToMove: 'Свайп влево/вправо для маневрирования',
     
@@ -65,6 +66,7 @@ export const translations = {
     wideDesc: 'Максимальный охват монет и обоих ворот',
     circleDesc: 'Толкает и разрушает препятствия силой толпы',
     arrowDesc: 'Увеличивает скорость бега и пробивает узкие щели',
+    ovalDesc: 'Сбалансированный строй: компактный коридор и безопасный маневр',
 
     // Specialized mobs
     tankName: 'Джаггернаут (Танк)',
@@ -317,6 +319,7 @@ export const translations = {
     formationWide: 'Wide Line (Sweep)',
     formationCircle: 'Phalanx (Ram)',
     formationArrow: 'Arrow (Speed)',
+    formationOval: 'Oval (Balance)',
     tapToPlay: 'Hold & Drag or use A/D / Arrows to steer',
     swipeToMove: 'Swipe left/right to steer crowd',
     
@@ -336,6 +339,7 @@ export const translations = {
     wideDesc: 'Maximum width to collect coins & gates',
     circleDesc: 'Pushes and smashes barriers with crowd weight',
     arrowDesc: 'Increases run speed and slips through narrow gaps',
+    ovalDesc: 'Balanced formation: compact corridor and safe maneuvering',
 
     // Specialized mobs
     tankName: 'Juggernaut (Tank)',

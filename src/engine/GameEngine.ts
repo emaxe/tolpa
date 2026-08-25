@@ -476,6 +476,8 @@ export class GameEngine {
         this.crowd.setFormation('circle');
       } else if (code === 'Digit4' || key === '4') {
         this.crowd.setFormation('arrow');
+      } else if (code === 'Digit5' || key === '5') {
+        this.crowd.setFormation('oval');
       }
     };
 
