@@ -230,7 +230,14 @@ export class GateManager {
       isPositive = true;
     } else if (op === 'multiply') {
       // ×N: каждый прошедший моб порождает (N-1) копий (N — целое).
-      const base = crowd.multiplyGroup(wing, val, gateX, gateZ);
+      // Срабатывает ТОЛЬКО один раз за ворота (при первом прошедшем мобе). Раньше
+      // multiplyGroup вызывался каждый кадр, пока толпа тянулась через проём, а копии
+      // спавнились на Z ворот и не помечались обработанными → на следующий кадр они
+      // снова попадали в throughScratch и снова умножались → лавина «кучи лишних мобов».
+      let base = 0;
+      if (isFirstTrigger) {
+        base = crowd.multiplyGroup(wing, val, gateX, gateZ);
+      }
       if (base > 0) {
         const bonus = Math.floor(base * (comboFactor - 1));
         netChange = bonus > 0 ? base + crowd.addMobsNear(bonus, gateX, gateZ) : base;
