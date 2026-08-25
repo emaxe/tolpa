@@ -55,6 +55,11 @@ interface ObstacleVisual {
   // ловушке без касания + последняя Z-позиция лидера для детекта пересечения плоскости.
   nearMissAwarded?: boolean;
   lastLeaderZ?: number;
+  // Rate-limit эмита screenShake/звука при непрерывном контакте мобов с активной
+  // ловушкой: без него непрерывные ловушки (laser_grid/lava_pit/saw/axe) спамили
+  // события каждый кадр и держали тряску камеры на максимуме. Обратный отсчёт в
+  // горячем цикле update(), гейт в checkObstacleCollision().
+  feedbackCooldown?: number;
 }
 
 interface CoinVisual {
@@ -487,6 +492,11 @@ export class ObstacleManager {
       const obs = obsVis.data;
       if (obs.isDead) return;
 
+      // Обратный отсчёт rate-limit эмита feedback (screenShake/звук) при контакте.
+      if (obsVis.feedbackCooldown && obsVis.feedbackCooldown > 0) {
+        obsVis.feedbackCooldown -= dt;
+      }
+
       obsVis.animTime += dt * obs.speed;
       const t = obsVis.animTime;
 
@@ -864,12 +874,18 @@ export class ObstacleManager {
     }
 
     if (anyHit) {
-      // Металлический лязг удара об ловушку (отличается от гейт-урона mob_death)
-      // и лёгкая тряска камеры. Никакого hitCooldown — каждый коснувшийся гибнет.
-      if (vol > 0) soundEngine.playSound('obstacle_hit', 1, vol);
-      if (vol > 0) soundEngine.playSound('mob_death', 1, vol);
-      eventBus.emit('screenShake', { intensity: 0.3 });
-      // Толпа понесла урон от ловушки — серия уворотов сбрасывается.
+      // Rate-limit эмита screenShake/звука: без него непрерывные ловушки (laser_grid,
+      // lava_pit, saw, axe) спамили события каждый кадр всё время контакта и держали
+      // тряску камеры на максимуме. Сам вычет любого коснувшегося моба происходит
+      // без гейта — страдает только частота обратной связи (звук/тряска), HUD не трогаем.
+      if (!obsVis.feedbackCooldown || obsVis.feedbackCooldown <= 0) {
+        obsVis.feedbackCooldown = 0.25;
+        if (vol > 0) soundEngine.playSound('obstacle_hit', 1, vol);
+        if (vol > 0) soundEngine.playSound('mob_death', 1, vol);
+        eventBus.emit('screenShake', { intensity: 0.3 });
+      }
+      // Толпа понесла урон от ловушки — серия уворотов сбрасывается (без rate-limit,
+      // чтобы стрик сбрасывался корректно в момент удара).
       stateManager.runResetNearMissStreak();
     }
   }

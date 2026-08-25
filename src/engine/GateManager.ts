@@ -265,8 +265,10 @@ export class GateManager {
         if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 25 : 6, 0x10b981, netChange > 0 ? 5.0 : 2.0);
         isPositive = true;
       } else {
-        // ÷N: пропускает каждого N-го по очереди, остальных убирает.
-        netChange = -crowd.divideMobsByStep(wing, val, 'gate');
+        // ÷N: пропускает каждого N-го по очереди, остальных убирает (один раз при первом срабатывании)
+        if (isFirstTrigger) {
+          netChange = -crowd.divideMobsByStep(wing, val, 'gate');
+        }
         if (isFirstTrigger) soundEngine.playSound('gate_pass_negative');
         if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 20, 0xef4444, 4.0);
         if (isFirstTrigger) eventBus.emit('screenShake', { intensity: 0.3 });

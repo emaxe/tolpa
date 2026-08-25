@@ -617,7 +617,7 @@ export class CrowdManager {
 
   /** Фаланга (circle) с достаточной толпой может таранить разрушаемые препятствия. */
   public canRamObstacles(): boolean {
-    return this.formation === 'circle' && this.aliveCount >= 15;
+    return this.formation === 'circle' && this.aliveCount >= 8;
   }
 
   public update(dt: number, speed: number, steerInput: number, trackWidth: number): void {
