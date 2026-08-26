@@ -19,9 +19,12 @@ export class CrowdManager {
   // Живой счётчик толпы — getAliveCount() раньше сканировал все 200 слотов на каждый
   // вызов (а вызывался по многу раз за кадр из FinishLine/GameEngine/Gate/Boss).
   private aliveCount: number = 0;
-  // Переиспользуемый буфер для killMobs/consumeMobs — раньше каждый вызов делал
-  // .filter().sort() (две аллокации на каждое убийство).
-  private aliveScratch: MobInstance[] = [];
+  // Frame-cached snapshot живых мобов: getAliveMobs() вызывается до ~6 раз/кадр из
+  // разных менеджеров (Obstacle/Wall/Boss/Gate). Раньше каждый вызов заново сканировал
+  // все до 200 слотов (длина=0 + до 200 push) — ~1k лишних push/кадр чистой избыточности.
+  // Снапшот валиден, пока membership не изменился; инвалидируется в каждой точке мутации.
+  private aliveSnapshot: MobInstance[] = [];
+  private aliveSnapshotValid = false;
   // Переиспользуемый буфер для групповых операций killMobsFromGroup/divideMobsByStep (0-GC).
   private groupScratch: MobInstance[] = [];
   // Таймер шагов толпы — ритмичный топот при беге (dead sound 'footstep').
@@ -181,6 +184,7 @@ export class CrowdManager {
 
     // Reset all mobs
     this.aliveCount = 0;
+    this.aliveSnapshotValid = false;
     for (let i = 0; i < this.maxCapacity; i++) {
       this.mobs[i].alive = false;
       // Сбрасываем и падение/смерть: иначе слот, застигнутый в полёте/смерти при рестарте,
@@ -206,15 +210,23 @@ export class CrowdManager {
     return this.aliveCount;
   }
 
+  /** Инвалидирует frame-cached snapshot живых мобов. Вызывается в каждой точке
+   *  мутации membership (спавн/смерть/падение/рестарт). Дешёвый — просто флаг. */
+  private invalidateAliveSnapshot(): void {
+    this.aliveSnapshotValid = false;
+  }
+
   /** Возвращает живых мобов. ВАЖНО: возвращает переиспользуемый внутренний буфер —
    *  содержимое валидно только до следующего вызова getAliveMobs()/killMobs()/consumeMobs().
    *  Не храни ссылку на результат между кадрами. */
   public getAliveMobs(): MobInstance[] {
-    this.aliveScratch.length = 0;
+    if (this.aliveSnapshotValid) return this.aliveSnapshot;
+    this.aliveSnapshot.length = 0;
     for (let i = 0; i < this.mobs.length; i++) {
-      if (this.mobs[i].alive) this.aliveScratch.push(this.mobs[i]);
+      if (this.mobs[i].alive) this.aliveSnapshot.push(this.mobs[i]);
     }
-    return this.aliveScratch;
+    this.aliveSnapshotValid = true;
+    return this.aliveSnapshot;
   }
 
   public setFormation(f: FormationType): void {
@@ -275,6 +287,7 @@ export class CrowdManager {
       if (!mob.alive && !mob.dying && !mob.falling) {
         mob.alive = true;
         this.aliveCount++;
+        this.invalidateAliveSnapshot();
         mob.type = mobType;
         mob.x =
           spawnX !== undefined
@@ -388,6 +401,7 @@ export class CrowdManager {
       // Kill mob
       mob.alive = false;
       this.aliveCount--;
+      this.invalidateAliveSnapshot();
       mob.y = -100;
       this.dummy.position.set(0, -100, 0);
       this.dummy.updateMatrix();
@@ -413,6 +427,7 @@ export class CrowdManager {
       if (killed >= count) break;
       mob.alive = false;
       this.aliveCount--;
+      this.invalidateAliveSnapshot();
       mob.y = -100;
       this.dummy.position.set(0, -100, 0);
       this.dummy.updateMatrix();
@@ -431,6 +446,7 @@ export class CrowdManager {
     // затем слот окончательно освобождается.
     mob.alive = false;
     this.aliveCount--;
+    this.invalidateAliveSnapshot();
     mob.dying = true;
     mob.deathT = 0;
     mob.deathRotX = (Math.random() - 0.5) * 2.2;
@@ -538,6 +554,7 @@ export class CrowdManager {
       if (mob.hp > 1) { mob.hp--; budget--; continue; }
       mob.alive = false;
       this.aliveCount--;
+      this.invalidateAliveSnapshot();
       mob.y = -100;
       this.dummy.position.set(0, -100, 0);
       this.dummy.updateMatrix();
@@ -799,6 +816,7 @@ export class CrowdManager {
         // списание aliveCount в updateFallingMobs → рассинхронизация → ложное поражение.
         mob.alive = false;
         this.aliveCount--;
+        this.invalidateAliveSnapshot();
         mob.fallVy = 0;
         mob.fallRotX = (Math.random() - 0.5) * 0.6;
         mob.fallRotZ = (Math.random() - 0.5) * 0.6;
