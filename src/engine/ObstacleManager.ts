@@ -34,6 +34,10 @@ interface ObstacleVisual {
   hazardZ: number;
   hazardW: number;
   hazardD: number;
+  // time-invariant hazard-бокс: для типов, чей убивающий хитбокс никогда не
+  // меняется (laser_grid, bomb, spike_trap, barrier_gate), он задаётся один раз
+  // в buildObstacleVisual() и НЕ перезаписывается в update() каждый кадр.
+  staticHazard: boolean;
   // Runtime-состояния для новых типов препятствий
   exploded?: boolean;
   attackCooldown?: number;
@@ -192,16 +196,17 @@ export class ObstacleManager {
     mesh.position.set(obs.x, obs.y || 0.5, obs.z);
     this.scene.add(mesh);
 
-    return {
+    const vis: ObstacleVisual = {
       data: obs,
       mesh,
       animTime: obs.initialOffset || 0,
       // Начальное значение hazard-бокса — по базовым габаритам; каждый кадр update()
-      // пересчитывает его под фактическую убивающую часть.
+      // пересчитывает его под фактическую убивающую часть для анимируемых препятствий.
       hazardX: obs.x,
       hazardZ: obs.z,
       hazardW: obs.width,
       hazardD: obs.depth,
+      staticHazard: false,
       exploded: false,
       attackCooldown: 0,
       subX: obs.x,
@@ -215,6 +220,20 @@ export class ObstacleManager {
       dogFacing: Math.random() * Math.PI * 2,
       dogLungeT: -1,
     };
+
+    // Для time-invariant препятствий hazard-бокс константен — задаём его один раз
+    // здесь и пропускаем per-frame setHazard() в update(). Коллизии не меняются:
+    // статичные типы получают тот же хитбокс, что раньше задавался каждый кадр.
+    if (obs.type === 'laser_grid' || obs.type === 'bomb' || obs.type === 'spike_trap' || obs.type === 'barrier_gate') {
+      vis.staticHazard = true;
+      if (obs.type === 'barrier_gate') {
+        this.setHazard(vis, obs.x, obs.z, 3.4, 0.45);
+      } else {
+        this.setHazard(vis, obs.x, obs.z, obs.width, obs.depth);
+      }
+    }
+
+    return vis;
   }
 
   /** Центрирует "убивающий" хитбокс по (x,z) с размером (w,d). Вызывается из update() каждый кадр. */
@@ -541,7 +560,7 @@ export class ObstacleManager {
 
         case 'laser_grid':
           // Лазерная решётка статична, убивает всей своей площадью.
-          this.setHazard(obsVis, obs.x, obs.z, obs.width, obs.depth);
+          if (!obsVis.staticHazard) this.setHazard(obsVis, obs.x, obs.z, obs.width, obs.depth);
           break;
 
         case 'wrecking_ball':
@@ -578,7 +597,7 @@ export class ObstacleManager {
             const intensity = 0.3 + Math.max(0, 1 - gateY / 2.6) * 0.6;
             (barrierGate.material as THREE.MeshStandardMaterial).emissiveIntensity = intensity;
           }
-          this.setHazard(obsVis, obs.x, obs.z, 3.4, 0.45);
+          if (!obsVis.staticHazard) this.setHazard(obsVis, obs.x, obs.z, 3.4, 0.45);
           break;
 
         case 'bomb':
@@ -587,7 +606,7 @@ export class ObstacleManager {
           if (beacon && beacon.material instanceof THREE.MeshStandardMaterial) {
             beacon.material.emissiveIntensity = 0.5 + Math.sin(t * 8) * 0.5;
           }
-          this.setHazard(obsVis, obs.x, obs.z, obs.width, obs.depth);
+          if (!obsVis.staticHazard) this.setHazard(obsVis, obs.x, obs.z, obs.width, obs.depth);
           break;
 
         case 'guard_dog':

@@ -294,31 +294,23 @@ export class GateManager {
       isPositive = true;
     } else if (op === 'divide') {
       // Хроно-Маг: если Маг прошёл ворота (в любом ряду), трансмутируем ÷N в прибавку.
-      // Флаг запоминается при первом проходе Мага, чтобы хвостовые бойцы на следующих
-      // кадрах (wing без Мага) не переключали ворота обратно в divide и не убивали хвост.
-      let hasMage = gateVisual.transmutedByMage;
-      if (!hasMage) {
-        for (let i = 0; i < wing.length; i++) {
-          if (wing[i].type === 'mage') {
-            hasMage = true;
-            break;
-          }
-        }
-      }
-      if (hasMage) {
+      // One-shot guard: трансмутация срабатывает ровно один раз за проход ворот.
+      // Запоминается в transmutedByMage, чтобы хвостовые бойцы не делились и не задваивали спавн.
+      const isNewTransmute = !gateVisual.transmutedByMage && wing.some((m) => m.type === 'mage');
+      if (gateVisual.transmutedByMage || isNewTransmute) {
+        const shouldSpawn = isNewTransmute || (!gateVisual.transmutedByMage && isFirstTrigger);
         gateVisual.transmutedByMage = true;
-        // Хроно-Маг: трансмутирует отрицательные ворота в прибавку мобов (только при первом триггере)
         const transmuteVal = Math.max(1, Math.round(val * 0.6));
         let base = 0;
-        if (isFirstTrigger) {
+        if (shouldSpawn) {
           base = crowd.addMobsNear(transmuteVal, gateX, gateZ);
         }
         if (base > 0) {
           const bonus = Math.floor(base * (comboFactor - 1));
           netChange = bonus > 0 ? base + crowd.addMobsNear(bonus, gateX, gateZ) : base;
+          soundEngine.playSound('gate_pass_positive');
+          particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 25, 0x10b981, 5.0);
         }
-        if (isFirstTrigger && netChange > 0) soundEngine.playSound('gate_pass_positive');
-        if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 25 : 6, 0x10b981, netChange > 0 ? 5.0 : 2.0);
         isPositive = true;
       } else {
         // ÷N: пропускает каждого N-го по очереди, остальных убирает для каждого нового моба/группы

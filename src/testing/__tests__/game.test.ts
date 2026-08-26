@@ -49,6 +49,128 @@ describe('Gate & Math Operations', () => {
     expect(handled.has('adrenaline')).toBe(true);
     expect(handled.has('coins')).toBe(true);
   });
+
+  it('трансмутация ворот ÷N Хроно-Магом: one-shot guard предотвращает задвоение спавна при проходе несколькими пачками', () => {
+    // Симуляция логики прохода ворот ÷N:
+    // 1-я пачка: мобы без Мага -> деление толпы
+    // 2-я пачка: появляется Маг -> ворота трансмутируются в +N (Math.max(1, Math.round(val * 0.6)))
+    // 3-я пачка: хвостовые бойцы (или еще один Маг) -> трансмутация УЖЕ активна, спавн НЕ повторяется
+    const gateVal = 10;
+    const gateVisual = {
+      transmutedByMage: false,
+      triggered: false,
+    };
+
+    let spawnedMobsTotal = 0;
+    let dividedMobsCount = 0;
+
+    const simulateGatePass = (wing: { id: number; type: string }[]) => {
+      const isFirstTrigger = !gateVisual.triggered;
+      const isNewTransmute = !gateVisual.transmutedByMage && wing.some((m) => m.type === 'mage');
+      let isPositive = false;
+      let netChange = 0;
+
+      if (gateVisual.transmutedByMage || isNewTransmute) {
+        const shouldSpawn = isNewTransmute || (!gateVisual.transmutedByMage && isFirstTrigger);
+        gateVisual.transmutedByMage = true;
+        const transmuteVal = Math.max(1, Math.round(gateVal * 0.6));
+        let base = 0;
+        if (shouldSpawn) {
+          base = transmuteVal;
+          spawnedMobsTotal += base;
+        }
+        if (base > 0) {
+          netChange = base;
+        }
+        isPositive = true;
+      } else {
+        const killed = Math.floor(wing.length / 2);
+        dividedMobsCount += killed;
+        netChange = -killed;
+      }
+
+      gateVisual.triggered = true;
+      return { isPositive, netChange };
+    };
+
+    // Пачка 1: 4 обычных моба (без Мага)
+    const batch1 = [
+      { id: 1, type: 'regular' },
+      { id: 2, type: 'regular' },
+      { id: 3, type: 'regular' },
+      { id: 4, type: 'regular' },
+    ];
+    const res1 = simulateGatePass(batch1);
+    expect(res1.isPositive).toBe(false);
+    expect(gateVisual.transmutedByMage).toBe(false);
+    expect(gateVisual.triggered).toBe(true);
+    expect(spawnedMobsTotal).toBe(0);
+    expect(dividedMobsCount).toBe(2);
+
+    // Пачка 2: 2 моба, включая Мага (первое срабатывание трансмутации)
+    const batch2 = [
+      { id: 5, type: 'regular' },
+      { id: 6, type: 'mage' },
+    ];
+    const res2 = simulateGatePass(batch2);
+    expect(res2.isPositive).toBe(true);
+    expect(gateVisual.transmutedByMage).toBe(true);
+    expect(spawnedMobsTotal).toBe(6); // Math.round(10 * 0.6) = 6
+    expect(res2.netChange).toBe(6);
+
+    // Пачка 3: 3 моба (включая еще одного Мага) — повторный проход не должен спавнить мобов
+    const batch3 = [
+      { id: 7, type: 'mage' },
+      { id: 8, type: 'regular' },
+      { id: 9, type: 'regular' },
+    ];
+    const res3 = simulateGatePass(batch3);
+    expect(res3.isPositive).toBe(true);
+    expect(gateVisual.transmutedByMage).toBe(true);
+    expect(spawnedMobsTotal).toBe(6); // НЕ увеличилось до 12
+    expect(res3.netChange).toBe(0); // нет повторного начисления
+  });
+
+  it('трансмутация ворот ÷N: если Маг в 1-й пачке, трансмутация срабатывает сразу и спавнит мобов один раз', () => {
+    const gateVal = 5;
+    const gateVisual = {
+      transmutedByMage: false,
+      triggered: false,
+    };
+    let spawnedMobsTotal = 0;
+
+    const simulateGatePass = (wing: { id: number; type: string }[]) => {
+      const isFirstTrigger = !gateVisual.triggered;
+      const isNewTransmute = !gateVisual.transmutedByMage && wing.some((m) => m.type === 'mage');
+      let isPositive = false;
+
+      if (gateVisual.transmutedByMage || isNewTransmute) {
+        const shouldSpawn = isNewTransmute || (!gateVisual.transmutedByMage && isFirstTrigger);
+        gateVisual.transmutedByMage = true;
+        const transmuteVal = Math.max(1, Math.round(gateVal * 0.6));
+        let base = 0;
+        if (shouldSpawn) {
+          base = transmuteVal;
+          spawnedMobsTotal += base;
+        }
+        isPositive = true;
+      }
+
+      gateVisual.triggered = true;
+      return { isPositive };
+    };
+
+    // 1-я пачка с Магом
+    const res1 = simulateGatePass([{ id: 1, type: 'mage' }]);
+    expect(res1.isPositive).toBe(true);
+    expect(gateVisual.transmutedByMage).toBe(true);
+    expect(spawnedMobsTotal).toBe(3); // Math.round(5 * 0.6) = 3
+
+    // 2-я пачка без Мага
+    const res2 = simulateGatePass([{ id: 2, type: 'regular' }]);
+    expect(res2.isPositive).toBe(true);
+    expect(spawnedMobsTotal).toBe(3); // спавн не повторился
+  });
 });
 
 describe('Economy & Upgrades', () => {
