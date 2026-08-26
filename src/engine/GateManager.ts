@@ -20,6 +20,9 @@ interface GateVisual {
   // мобе, прошедшем ворота. Per-mob математика (multiply/divide) применяется к каждому
   // пересекающему мобу отдельно, пока ворота не будут полностью пройдены толпой.
   triggered: boolean;
+  // Хроно-Маг трансмутировал эти ворота (÷N → +N). Запоминается при первом проходе Мага,
+  // чтобы хвостовые бойцы на следующих кадрах не переключали ворота обратно в divide.
+  transmutedByMage: boolean;
   // Движение: текущее смещение по X и Y (для horizontal/vertical), угол поворота (rotate).
   motionPhase: number;
   baseX: number;
@@ -111,6 +114,7 @@ export class GateManager {
       texture,
       processedMobs: new Set<number>(),
       triggered: false,
+      transmutedByMage: false,
       motionPhase: Math.random() * Math.PI * 2,
       baseX: gate.x,
       baseY: 0,
@@ -169,7 +173,7 @@ export class GateManager {
         // One-shot эффекты (комбо, звук, eventBus) — только при первом мобе, прошедшем
         // ворота. Per-mob математика (multiply/divide) применяется к каждому новому мобу
         // в последующие кадры, пока ворота не деактивированы по дистанции лидера.
-        this.executeGateEffect(gate.op, gate.value, crowd, particles, cx, gate.z, this.throughScratch, cy, !gateVisual.triggered);
+        this.executeGateEffect(gateVisual, gate.op, gate.value, crowd, particles, cx, gate.z, this.throughScratch, cy, !gateVisual.triggered);
         gateVisual.triggered = true;
         gateVisual.mat.opacity = 0.3;
       }
@@ -220,6 +224,7 @@ export class GateManager {
   }
 
   private executeGateEffect(
+    gateVisual: GateVisual,
     op: GateOp,
     val: number,
     crowd: CrowdManager,
@@ -267,14 +272,20 @@ export class GateManager {
       if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 35 : 6, 0x00f0ff, netChange > 0 ? 6.0 : 2.0);
       isPositive = true;
     } else if (op === 'divide') {
-      let hasMage = false;
-      for (let i = 0; i < wing.length; i++) {
-        if (wing[i].type === 'mage') {
-          hasMage = true;
-          break;
+      // Хроно-Маг: если Маг прошёл ворота (в любом ряду), трансмутируем ÷N в прибавку.
+      // Флаг запоминается при первом проходе Мага, чтобы хвостовые бойцы на следующих
+      // кадрах (wing без Мага) не переключали ворота обратно в divide и не убивали хвост.
+      let hasMage = gateVisual.transmutedByMage;
+      if (!hasMage) {
+        for (let i = 0; i < wing.length; i++) {
+          if (wing[i].type === 'mage') {
+            hasMage = true;
+            break;
+          }
         }
       }
       if (hasMage) {
+        gateVisual.transmutedByMage = true;
         // Хроно-Маг: трансмутирует отрицательные ворота в прибавку мобов
         const transmuteVal = Math.max(1, Math.round(val * 0.6));
         const base = crowd.addMobsNear(transmuteVal, gateX, gateZ);
