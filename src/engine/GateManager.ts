@@ -372,7 +372,12 @@ export class GateManager {
       this.empOriginals.push({ gate, op: gate.op, value: gate.value });
       gate.op = 'divide';
       gate.value = 2;
-      // Тонировка в фиолетовый — визуальный сигнал искажения.
+      // Перегенерируем текстуру, чтобы текст операции («+10» → «÷2») совпадал с логикой.
+      const newTex = createGateTexture(gate);
+      gv.texture.dispose();
+      gv.texture = newTex;
+      gv.mat.map = newTex;
+      // Лёгкий фиолетовый оттенок — визуальный сигнал искажения.
       gv.mat.color.setHex(0xa855f7);
       gv.mat.needsUpdate = true;
     }
@@ -387,6 +392,11 @@ export class GateManager {
     }
     this.empOriginals = [];
     for (const gv of this.gates) {
+      // Восстанавливаем текстуру с оригинальной операцией.
+      const origTex = createGateTexture(gv.data);
+      gv.texture.dispose();
+      gv.texture = origTex;
+      gv.mat.map = origTex;
       gv.mat.color.setHex(0xffffff);
       gv.mat.needsUpdate = true;
     }

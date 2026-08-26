@@ -137,6 +137,20 @@ export class WallManager {
 
       if (this.throughScratch.length === 0) continue;
 
+      // Гипер-режим: толпа неуязвима (killOneFromGroup возвращает null), поэтому
+      // кинетические стены мгновенно сокрушаются при контакте с толпой.
+      if (crowd.isHyperMode) {
+        wall.killsRemaining = 0;
+        wv.falling = true;
+        wv.fallT = 0;
+        soundEngine.playSound('obstacle_smash');
+        particles.emitBurst(wall.x, 1.5, wall.z, 30, 0xfacc15, 6.0);
+        stateManager.runRecordObstacleSmash();
+        eventBus.emit('obstacleSmashed', { type: 'wall', x: wall.x, z: wall.z });
+        eventBus.emit('screenShake', { intensity: 0.35 });
+        continue;
+      }
+
       // Стена бьёт по проходящим мобам, пока счётчик > 0.
       // Кинетический пробой стен: урон зависит от класса моба (танки) и формации (стрела/фаланга).
       for (const _mob of this.throughScratch) {
