@@ -5,6 +5,9 @@ export class SoundEngine {
   private static instance: SoundEngine;
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
+  // Узел приглушения при потере фокуса окна/вкладки. Включён между masterGain и destination,
+  // чтобы глушить ВСЁ (SFX + BGM) одним поворотом, не трогая пользовательские уровни громкости.
+  private focusGain: GainNode | null = null;
   private sfxGain: GainNode | null = null;
   private bgmGain: GainNode | null = null;
   private isBgmPlaying: boolean = false;
@@ -12,6 +15,8 @@ export class SoundEngine {
   private currentTheme: MusicTheme = 'cyber';
   private stepBeat: number = 0;
   private isMuted: boolean = false;
+  // Флаг приглушения по потере фокуса (вкладка скрыта / окно неактивно).
+  private isFocusMuted: boolean = false;
 
   // Поля для непрерывного процедурного звука криков толпы (crowd cheer).
   // Создаются лениво в playCrowdCheer() и освобождаются в stopCrowdCheer().
@@ -51,6 +56,7 @@ export class SoundEngine {
       this.ctx = new AudioContextClass();
 
       this.masterGain = this.ctx.createGain();
+      this.focusGain = this.ctx.createGain();
       this.sfxGain = this.ctx.createGain();
       this.bgmGain = this.ctx.createGain();
 
@@ -60,7 +66,11 @@ export class SoundEngine {
 
       this.sfxGain.connect(this.masterGain);
       this.bgmGain.connect(this.masterGain);
-      this.masterGain.connect(this.ctx.destination);
+      this.masterGain.connect(this.focusGain);
+      this.focusGain.connect(this.ctx.destination);
+
+      // Приглушение всего звука при потере фокуса вкладки/окна.
+      this.attachFocusListeners();
     } catch (e) {
       console.warn('Web Audio API not supported or blocked:', e);
     }
@@ -71,6 +81,32 @@ export class SoundEngine {
     if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
+  }
+
+  /**
+   * Приглушает/восстанавливает весь звук (SFX + BGM) при потере/возврате фокуса вкладки или окна.
+   * Использует отдельный узел focusGain между masterGain и destination, поэтому не трогает
+   * пользовательские уровни громкости soundVolume/musicVolume и не сбрасывает их.
+   */
+  private attachFocusListeners(): void {
+    const apply = (focused: boolean): void => {
+      this.isFocusMuted = !focused;
+      if (this.focusGain && this.ctx) {
+        const t = this.ctx.currentTime;
+        this.focusGain.gain.cancelScheduledValues(t);
+        // Плавное затухание за 120мс, чтобы не было щелчка при переключении.
+        this.focusGain.gain.setValueAtTime(this.focusGain.gain.value, t);
+        this.focusGain.gain.linearRampToValueAtTime(focused ? 1.0 : 0.0, t + 0.12);
+      }
+    };
+
+    // Вкладка скрыта/показана (visibilitychange надёжнее blur для вкладок и мобильных).
+    document.addEventListener('visibilitychange', () => {
+      apply(document.visibilityState === 'visible');
+    });
+    // Окно потеряло/вернуло фокус (переключение на другое приложение / вкладку).
+    window.addEventListener('blur', () => apply(false));
+    window.addEventListener('focus', () => apply(true));
   }
 
   public setSfxVolume(vol: number): void {
