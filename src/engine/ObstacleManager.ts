@@ -859,10 +859,10 @@ export class ObstacleManager {
       );
 
       if (hit) {
-        if (isHyper || (obs.destructible && hasTanks) || crowd.canRamObstacles()) {
-          // Сломать препятствие! Фаланга (circle) с достаточной толпой таранит ловушку
+        if (isHyper || (obs.destructible && (hasTanks || crowd.canRamObstacles()))) {
+          // Сломать препятствие! Фаланга (circle) с достаточной толпой таранит РАЗРУШАЕМЫЕ ловушки
           // силой массы — теряет лишь 1 бойца вместо уничтожения всех коснувшихся.
-          if (crowd.canRamObstacles() && !isHyper && !(obs.destructible && hasTanks)) {
+          if (obs.destructible && crowd.canRamObstacles() && !isHyper && !hasTanks) {
             crowd.killMobs(1, 'obstacle');
           }
           obs.isDead = true;
