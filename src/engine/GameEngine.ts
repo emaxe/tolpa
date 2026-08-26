@@ -2351,6 +2351,8 @@ export class GameEngine {
     this.boss.clear();
     this.finishLine.clear();
     this.particles.dispose();
+    this.walls.clear();
+    this.bonus.dispose();
     this.disposeTrackMeshes();
 
     if (this.renderer.domElement.parentElement) {
