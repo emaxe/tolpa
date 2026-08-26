@@ -19,7 +19,7 @@ import { ParticleSystem } from './ParticleSystem';
 import { soundEngine } from '../audio/SoundEngine';
 import { eventBus } from '../core/EventBus';
 import { stateManager } from '../core/StateManager';
-import { clamp, checkCircleRectCollision, circleRectGap, getNearMissMultiplier } from '../utils/math';
+import { clamp, checkCircleRectCollision, circleRectGap, getNearMissMultiplier, lerp } from '../utils/math';
 import { DEFAULT_TRACK_WIDTH } from './LevelGenerator';
 
 interface ObstacleVisual {
@@ -652,6 +652,7 @@ export class ObstacleManager {
     // 2. Update and check coins
     const crowdLeaderX = crowd.leaderX;
     const crowdLeaderZ = crowd.leaderZ;
+    const isHyper = crowd.isHyperMode;
 
     // Вычисляем наличие ниндзя один раз перед циклом монет (0-GC) без повторного вызова getAliveMobs()
     let hasNinjas = false;
@@ -671,6 +672,18 @@ export class ObstacleManager {
         if (coin.collected) continue;
 
         spinArr[i] += dt * 4;
+
+        // Магнитное притяжение монет к центру толпы при гипер-режиме или наличии ниндзя
+        if (isHyper || hasNinjas) {
+          const cdx = coin.x - crowdLeaderX;
+          const cdz = coin.z - crowdLeaderZ;
+          if (Math.abs(cdz) < 14 && Math.abs(cdx) < 8) {
+            const pullSpeed = isHyper ? 14.0 : 10.0;
+            const t = Math.min(1.0, pullSpeed * dt);
+            coin.x = lerp(coin.x, crowdLeaderX, t);
+            coin.z = lerp(coin.z, crowdLeaderZ, t);
+          }
+        }
 
         // Distance check to crowd. Шеренга (wide) расширяет окно сбора монет по X.
         const dx = coin.x - crowdLeaderX;

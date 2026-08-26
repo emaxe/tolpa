@@ -1,6 +1,6 @@
 export type MobType = 'regular' | 'tank' | 'ninja' | 'mage';
 
-export type FormationType = 'wedge' | 'wide' | 'circle' | 'arrow' | 'oval';
+export type FormationType = 'wedge' | 'wide' | 'circle' | 'arrow' | 'oval' | 'diamond';
 
 // Ворота применяют только позитивные операции к толпе (целые числа).
 // subtract (−N) вынесен в отдельные СТЕНЫ (см. WallData) со счётчиком.

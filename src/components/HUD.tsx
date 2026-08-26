@@ -3,7 +3,7 @@ import { FormationType } from '../types/game';
 import { i18n } from '../core/Localization';
 import { stateManager } from '../core/StateManager';
 import { eventBus } from '../core/EventBus';
-import { Zap, Users, Coins, Shield, ArrowUp, MoveHorizontal, CircleDot, Pause, Skull, TriangleAlert, Route, Trophy, Focus } from 'lucide-react';
+import { Zap, Users, Coins, Shield, ArrowUp, MoveHorizontal, CircleDot, Pause, Skull, TriangleAlert, Route, Trophy, Focus, Diamond } from 'lucide-react';
 
 interface HUDProps {
   crowdCount: number;
@@ -402,8 +402,9 @@ export const HUD: React.FC<HUDProps> = ({
             {currentFormation === 'circle' && '💥 Таран боссов ×1.35 · Стен ×2'}
             {currentFormation === 'arrow' && '⚡ Скорость +15%'}
             {currentFormation === 'oval' && '⚖️ Баланс · Универсальный строй'}
+            {currentFormation === 'diamond' && '💎 Броня фронта +25%'}
           </div>
-          <div className="pointer-events-auto grid grid-cols-5 gap-2 bg-slate-100/80 backdrop-blur-md p-1.5 rounded-xl border border-slate-300 max-sm:order-1 max-sm:grid-cols-1 max-sm:gap-1 max-sm:p-1 max-sm:rounded-2xl">
+          <div className="pointer-events-auto grid grid-cols-6 gap-2 bg-slate-100/80 backdrop-blur-md p-1.5 rounded-xl border border-slate-300 max-sm:order-1 max-sm:grid-cols-1 max-sm:gap-1 max-sm:p-1 max-sm:rounded-2xl">
           <button
             onClick={() => onFormationChange('wedge')}
             className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
@@ -467,6 +468,19 @@ export const HUD: React.FC<HUDProps> = ({
           >
             <Focus className="w-4 h-4 mb-0.5 max-sm:mb-0 max-sm:w-5 max-sm:h-5" />
             <span className="text-[10px] uppercase max-sm:hidden">5: {i18n.t('formationOval').split(' ')[0]}</span>
+          </button>
+
+          <button
+            onClick={() => onFormationChange('diamond')}
+            className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
+              currentFormation === 'diamond'
+                ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-zinc-950 font-bold shadow-md shadow-teal-500/30'
+                : 'bg-white/60 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+            }`}
+            title={i18n.t('diamondDesc', 'Ромб: броня фронта +25% против ловушек')}
+          >
+            <Diamond className="w-4 h-4 mb-0.5 max-sm:mb-0 max-sm:w-5 max-sm:h-5" />
+            <span className="text-[10px] uppercase max-sm:hidden">6: {i18n.t('formationDiamond', 'Ромб').split(' ')[0]}</span>
           </button>
           </div>
         </div>

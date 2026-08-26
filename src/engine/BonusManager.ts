@@ -5,6 +5,7 @@ import { ParticleSystem } from './ParticleSystem';
 import { soundEngine } from '../audio/SoundEngine';
 import { eventBus } from '../core/EventBus';
 import { stateManager } from '../core/StateManager';
+import { lerp } from '../utils/math';
 
 interface BonusVisual {
   data: BonusData;
@@ -153,6 +154,19 @@ export class BonusManager {
     for (const bv of this.bonuses) {
       const b = bv.data;
       if (b.collected) continue;
+
+      // Магнитное притяжение бонусов к центру толпы при активном гипер-режиме
+      if (crowd.isHyperMode) {
+        const bdx = b.x - leaderX;
+        const bdz = b.z - leaderZ;
+        if (Math.abs(bdz) < 16 && Math.abs(bdx) < 9) {
+          const t = Math.min(1.0, 10.0 * dt);
+          b.x = lerp(b.x, leaderX, t);
+          b.z = lerp(b.z, leaderZ, t);
+          bv.group.position.x = b.x;
+          bv.group.position.z = b.z;
+        }
+      }
 
       // Плавное вращение и покачивание
       bv.spinTimer += dt * 2.5;

@@ -55,6 +55,12 @@ const WEDGE_Z_STEP = 0.65;
 const WIDE_SPREAD = 0.55;
 const WIDE_Z_STEP = 0.5;
 const CIRCLE_COEF = 0.42;
+// Ромбовидная формация: плотный ромб за лидером. Как и овал, по X компактнее,
+// по Z длиннее (X-коэф меньше Z), но сжимается сильнее (coef ~0.5 как у circle),
+// чтобы держать узкий плотный строй с бронёй фронта.
+const DIAMOND_COEF = 0.5;
+const DIAMOND_X_COEF = 0.5;
+const DIAMOND_Z_COEF = 0.9;
 // Овальная формация: эллипс, вытянутый ВПЕРЁД (по Z). По X — компактнее, по Z — длиннее,
 // чтобы толпа занимала больше места вдоль трассы и меньше по ширине.
 const OVAL_X_COEF = 0.5;
@@ -89,6 +95,11 @@ export function getFormationScale(
 
     case 'circle': {
       const naturalMax = Math.sqrt(Math.max(0, totalCount - 1)) * CIRCLE_COEF;
+      return naturalMax > playableHalfWidth ? playableHalfWidth / naturalMax : 1;
+    }
+
+    case 'diamond': {
+      const naturalMax = Math.sqrt(Math.max(0, totalCount - 1)) * DIAMOND_COEF;
       return naturalMax > playableHalfWidth ? playableHalfWidth / naturalMax : 1;
     }
 
@@ -205,6 +216,24 @@ export function calculateFormationOffset(
       const theta = index * GOLDEN_ANGLE;
       target.x = r * OVAL_X_COEF * Math.cos(theta);
       target.z = r * OVAL_Z_COEF * Math.sin(theta);
+      return target;
+    }
+
+    case 'diamond': {
+      // Плотный ромб за лидером. Золотой угол распределяет мобов равномерно по
+      // ромбу (r*cos/sin), X-коэффициент меньше Z-коэффициента — форма вытянута
+      // вдоль трассы как у овала, но у́же и плотнее (за счёт сильного сжатия
+      // DIAMOND_COEF в getFormationScale). Масштаб сжимается под ширину дорожки.
+      if (index === 0) {
+        target.x = 0;
+        target.z = 0;
+        return target;
+      }
+      const s = scale ?? getFormationScale(formation, totalCount, playableHalfWidth);
+      const r = Math.sqrt(index) * s;
+      const theta = index * GOLDEN_ANGLE;
+      target.x = r * DIAMOND_X_COEF * Math.cos(theta);
+      target.z = r * DIAMOND_Z_COEF * Math.sin(theta);
       return target;
     }
 
