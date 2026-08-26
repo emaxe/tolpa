@@ -33,6 +33,7 @@ export class GateManager {
   private scene: THREE.Scene;
   private gates: GateVisual[] = [];
   private comboStreak: number = 0;
+  private lastComboTier: number = 0;
   private throughScratch: MobInstance[] = [];
   private preEffectIds: Set<number> = new Set();
 
@@ -125,6 +126,7 @@ export class GateManager {
   public initGates(gatesData: GateData[]): void {
     this.clear();
     this.comboStreak = 0;
+    this.lastComboTier = 0;
     this.ensureSharedGeometry();
     gatesData.forEach((gate) => this.gates.push(this.buildGateVisual(gate)));
   }
@@ -327,9 +329,15 @@ export class GateManager {
         if (this.comboStreak > 1) {
           soundEngine.playSound('combo_ding', 1.0 + this.comboStreak * 0.1);
         }
+        const tier = Math.floor(this.comboStreak / 5);
+        if (tier > 0 && tier > this.lastComboTier) {
+          this.lastComboTier = tier;
+          eventBus.emit('comboMilestone', { streak: this.comboStreak, x: gateX, z: gateZ, tier });
+        }
         stateManager.runRecordCombo(this.comboStreak);
       } else {
         this.comboStreak = 0;
+        this.lastComboTier = 0;
       }
 
       stateManager.runRecordGatePass();

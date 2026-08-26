@@ -183,6 +183,7 @@ export class GameEngine {
   private unsubCombo: (() => void) | null = null;
   private unsubNearMiss: (() => void) | null = null;
   private unsubNearMissMilestone: (() => void) | null = null;
+  private unsubComboMilestone: (() => void) | null = null;
   private unsubSettings: (() => void) | null = null;
 
   // ==== Адаптивное разрешение (watchdog) ====
@@ -327,6 +328,17 @@ export class GameEngine {
       this.particles.emitBurst(data.x ?? this.crowd.leaderX, 1.6, data.z ?? this.crowd.leaderZ, count, color, 5.0);
       soundEngine.playCrowdCheer(mult >= 10 ? 1.0 : mult >= 5 ? 0.7 : 0.5);
       if (mult >= 5) eventBus.emit('screenShake', { intensity: mult >= 10 ? 0.25 : 0.15 });
+    });
+
+    // Порог серии ворот (5/10/15...) — эскалирующий фидбек: крик толпы, золотистый
+    // бурст частиц, тряска экрана при высоких сериях.
+    this.unsubComboMilestone = eventBus.on('comboMilestone', (data: { x?: number; z?: number; streak?: number; tier?: number }) => {
+      const tier = data?.tier ?? 1;
+      const count = tier >= 3 ? 45 : tier >= 2 ? 30 : 18;
+      const color = tier >= 3 ? 0xf59e0b : tier >= 2 ? 0xfbbf24 : 0xfcd34d;
+      this.particles.emitBurst(data.x ?? this.crowd.leaderX, 1.6, data.z ?? this.crowd.leaderZ, count, color, 5.0);
+      soundEngine.playCrowdCheer(tier >= 3 ? 1.0 : tier >= 2 ? 0.7 : 0.5);
+      if (tier >= 2) eventBus.emit('screenShake', { intensity: tier >= 3 ? 0.25 : 0.15 });
     });
 
     // Живое применение настроек графики: смена качества/теней в настройках сразу
@@ -2344,6 +2356,7 @@ export class GameEngine {
     this.unsubCombo?.();
     this.unsubNearMiss?.();
     this.unsubNearMissMilestone?.();
+    this.unsubComboMilestone?.();
     this.unsubSettings?.();
 
     this.crowd.dispose();

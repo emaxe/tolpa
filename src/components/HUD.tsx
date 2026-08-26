@@ -85,6 +85,7 @@ export const HUD: React.FC<HUDProps> = ({
     meteor_rain: { key: 'eventMeteorRain', cls: 'border-orange-500 text-orange-600' },
     speed_boost: { key: 'eventSpeedBoost', cls: 'border-teal-500 text-teal-700' },
     nearMissMilestone: { key: 'nearMissMilestone', cls: 'border-fuchsia-500 text-fuchsia-600' },
+    comboMilestone: { key: 'comboMilestone', cls: 'border-amber-500 text-amber-600' },
   };
 
   useEffect(() => {
@@ -115,12 +116,19 @@ export const HUD: React.FC<HUDProps> = ({
       window.setTimeout(() => setEventAlert(null), 3200);
     });
 
+    // Порог серии ворот (5/10/15...) — центральный баннер-тост.
+    const unsubComboMilestone = eventBus.on('comboMilestone', () => {
+      setEventAlert({ type: 'comboMilestone', key: Date.now() });
+      window.setTimeout(() => setEventAlert(null), 3200);
+    });
+
     return () => {
       unsubBoss();
       unsubBossDefeat();
       unsubMobsKilled();
       unsubEvent();
       unsubNearMissMilestone();
+      unsubComboMilestone();
     };
   }, []);
 
