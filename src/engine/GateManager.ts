@@ -23,6 +23,8 @@ interface GateVisual {
   // Хроно-Маг трансмутировал эти ворота (÷N → +N). Запоминается при первом проходе Мага,
   // чтобы хвостовые бойцы на следующих кадрах не переключали ворота обратно в divide.
   transmutedByMage: boolean;
+  // Счётчик шагов для операции divide (÷N) — персистентный между кадрами для растянутых формаций.
+  divideStep: { step: number };
   // Движение: текущее смещение по X и Y (для horizontal/vertical), угол поворота (rotate).
   motionPhase: number;
   baseX: number;
@@ -120,6 +122,7 @@ export class GateManager {
       motionPhase: Math.random() * Math.PI * 2,
       baseX: gate.x,
       baseY: 0,
+      divideStep: { step: 0 },
     };
   }
 
@@ -304,9 +307,12 @@ export class GateManager {
       }
       if (hasMage) {
         gateVisual.transmutedByMage = true;
-        // Хроно-Маг: трансмутирует отрицательные ворота в прибавку мобов
+        // Хроно-Маг: трансмутирует отрицательные ворота в прибавку мобов (только при первом триггере)
         const transmuteVal = Math.max(1, Math.round(val * 0.6));
-        const base = crowd.addMobsNear(transmuteVal, gateX, gateZ);
+        let base = 0;
+        if (isFirstTrigger) {
+          base = crowd.addMobsNear(transmuteVal, gateX, gateZ);
+        }
         if (base > 0) {
           const bonus = Math.floor(base * (comboFactor - 1));
           netChange = bonus > 0 ? base + crowd.addMobsNear(bonus, gateX, gateZ) : base;
@@ -316,7 +322,7 @@ export class GateManager {
         isPositive = true;
       } else {
         // ÷N: пропускает каждого N-го по очереди, остальных убирает для каждого нового моба/группы
-        netChange = -crowd.divideMobsByStep(wing, val, 'gate');
+        netChange = -crowd.divideMobsByStep(wing, val, 'gate', gateVisual.divideStep);
         if (isFirstTrigger) soundEngine.playSound('gate_pass_negative');
         if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 20, 0xef4444, 4.0);
         if (isFirstTrigger) eventBus.emit('screenShake', { intensity: 0.3 });

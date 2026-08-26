@@ -574,24 +574,33 @@ export class CrowdManager {
   /** «Разделить ÷N»: из мобов, прошедших ворота, ОСТАВЛЯЕМ каждого N-го (по очереди),
    *  остальные умирают. Например ÷2 → каждый второй выживает, ÷3 → каждый третий.
    *  Возвращает число убранных. divisor — целое >= 2. */
-  public divideMobsByStep(group: MobInstance[], divisor: number, reason: string = 'gate'): number {
+  public divideMobsByStep(
+    group: MobInstance[],
+    divisor: number,
+    reason: string = 'gate',
+    stepState: { step: number } = { step: 0 }
+  ): number {
     if (divisor < 2) return 0;
-    let aliveCount = 0;
+    if (this.aliveCount <= 1) return 0;
+
+    let hasAlive = false;
     for (let i = 0; i < group.length; i++) {
-      if (group[i].alive) aliveCount++;
+      if (group[i].alive) {
+        hasAlive = true;
+        break;
+      }
     }
-    if (aliveCount <= 1) return 0;
+    if (!hasAlive) return 0;
 
     this.groupScratch.length = 0;
     // Счётчик: 1,2,...,N — когда счётчик достигает N, этот моб ВЫЖИВАЕТ (каждый N-й),
-    // все остальные мобы убираются.
-    let step = 0;
+    // все остальные мобы убираются. Счётчик персистентен между кадрами (stepState).
     for (let i = 0; i < group.length; i++) {
       const mob = group[i];
       if (!mob.alive) continue;
-      step++;
-      if (step === divisor) {
-        step = 0; // этот моб выживает — сбрасываем отсчёт
+      stepState.step++;
+      if (stepState.step >= divisor) {
+        stepState.step = 0; // этот моб выживает — сбрасываем отсчёт
       } else {
         this.groupScratch.push(mob); // не N-й — умирает
       }
