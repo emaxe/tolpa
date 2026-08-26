@@ -685,12 +685,17 @@ export function createWreckingBallMesh(): THREE.Group {
   postR.position.set(2.0, 1.8, 0);
   group.add(postR);
 
+  // Маятник: цепь + шар + шипы в одной подгруппе (children[3]).
+  // ObstacleManager двигает children[3] по X — вся группа качается синхронно,
+  // хитбокс следует за шаром, а не за цепью.
+  const pendulum = new THREE.Group();
+
   // Цепь от балки к шару
   const chainGeo = new THREE.CylinderGeometry(0.05, 0.05, 2.6, 6);
   const chainMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.2 });
   const chain = new THREE.Mesh(chainGeo, chainMat);
   chain.position.y = 2.3;
-  group.add(chain);
+  pendulum.add(chain);
 
   // Тяжёлый шипастый шар
   const ballGeo = new THREE.SphereGeometry(1.0, 20, 20);
@@ -703,7 +708,7 @@ export function createWreckingBallMesh(): THREE.Group {
   });
   const ball = new THREE.Mesh(ballGeo, ballMat);
   ball.position.y = 1.0;
-  group.add(ball);
+  pendulum.add(ball);
 
   // Шипы на шаре
   const spikeMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.1 });
@@ -725,8 +730,10 @@ export function createWreckingBallMesh(): THREE.Group {
         Math.sin(theta) * Math.sin(phi)
       )
     );
-    group.add(spike);
+    pendulum.add(spike);
   }
+
+  group.add(pendulum);
 
   return group;
 }
