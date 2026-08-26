@@ -347,6 +347,40 @@ describe('Level Generator Enhanced Tests', () => {
       }
     }
   });
+
+  it('паттерн central_bastion_split заблокирован на уровнях < 4 и доступен для выбора на уровнях >= 4', () => {
+    // На уровнях < 4 фильтр selectPattern исключает central_bastion_split
+    for (const phase of ['peak', 'corridor', 'climax'] as const) {
+      for (let i = 0; i < 20; i++) {
+        const pat = (LevelGenerator as any).selectPattern(phase, 3, null, () => i / 20);
+        expect(pat).not.toBe('central_bastion_split');
+      }
+    }
+
+    // На уровнях >= 4 central_bastion_split присутствует в пуле фаз peak, corridor, climax
+    for (const phase of ['peak', 'corridor', 'climax'] as const) {
+      const candidates: string[] = [];
+      for (let i = 0; i <= 100; i++) {
+        const pat = (LevelGenerator as any).selectPattern(phase, 4, null, () => i / 100);
+        candidates.push(pat);
+      }
+      expect(candidates).toContain('central_bastion_split');
+    }
+
+    // В кампании уровней 4..50 паттерн генерируется (содержит стены бастиона или монеты)
+    let bastionFoundInCampaign = false;
+    for (let lvl = 4; lvl <= 50; lvl++) {
+      const config = LevelGenerator.generateLevel(lvl);
+      if (
+        config.walls.some((w) => w.id.includes('bastion')) ||
+        config.coins.some((c) => c.id.includes('bastion'))
+      ) {
+        bastionFoundInCampaign = true;
+        break;
+      }
+    }
+    expect(bastionFoundInCampaign).toBe(true);
+  });
 });
 
 describe('Object Pool & Memory', () => {

@@ -940,6 +940,7 @@ export class LevelGenerator {
           ['tank_breach_cluster', 0.3],
           ['gate_trap_dilemma', 0.2],
           ['cyborg_hound_pack', 0.2],
+          ['central_bastion_split', 0.2],
         ];
         break;
       case 'corridor':
@@ -948,6 +949,7 @@ export class LevelGenerator {
           ['checkerboard_hazard', 0.25],
           ['pendulum_sweep_wave', 0.2],
           ['slalom_cascade', 0.2],
+          ['central_bastion_split', 0.2],
         ];
         break;
       case 'climax':
@@ -957,6 +959,7 @@ export class LevelGenerator {
           ['tank_breach_cluster', 0.25],
           ['choke_point_funnel', 0.25],
           ['cyborg_hound_pack', 0.2],
+          ['central_bastion_split', 0.2],
         ];
         break;
     }

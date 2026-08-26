@@ -1783,6 +1783,7 @@ export class GameEngine {
 
   /** Запускает событие: применяет стартовые эффекты, эмитит алерт в HUD, звук. */
   private triggerEvent(evt: LevelDynamicEvent, trackWidth: number): void {
+    if (this.activeEvent) this.cleanupEvent(this.activeEvent.event);
     this.activeEvent = { event: evt, timer: evt.duration };
 
     switch (evt.type) {
