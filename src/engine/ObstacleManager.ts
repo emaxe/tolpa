@@ -825,11 +825,18 @@ export class ObstacleManager {
 
     // Если Hyper Mode активен или есть танки — препятствие можно сломать.
     const isHyper = crowd.isHyperMode;
+    // Перебор живых мобов в поисках танка выполняем ТОЛЬКО когда это может
+    // повлиять на результат (destructible-ловушка вне Hyper/тарана). Для всех
+    // прочих типов (laser_grid, lava_pit, saw_blade и т.д.) ветка с hasTanks
+    // мертва, поэтому лишний O(N) перебор по 200 мобам на каждое препятствие
+    // в кадре убираем.
     let hasTanks = false;
-    for (let i = 0; i < aliveMobs.length; i++) {
-      if (aliveMobs[i].type === 'tank') {
-        hasTanks = true;
-        break;
+    if (obs.destructible && !isHyper && !crowd.canRamObstacles()) {
+      for (let i = 0; i < aliveMobs.length; i++) {
+        if (aliveMobs[i].type === 'tank') {
+          hasTanks = true;
+          break;
+        }
       }
     }
 
