@@ -96,6 +96,7 @@ export class CrowdManager {
         x: 0,
         y: -100,
         z: 0,
+        prevZ: 0,
         targetX: 0,
         targetZ: 0,
         vx: 0,
@@ -295,6 +296,7 @@ export class CrowdManager {
             : clamp(this.leaderX + (Math.random() - 0.5) * 2, -this.playableHalfWidth, this.playableHalfWidth);
         mob.y = 0;
         mob.z = spawnZ !== undefined ? spawnZ : this.leaderZ - (Math.random() * 2);
+        mob.prevZ = mob.z;
         mob.targetX = mob.x;
         mob.targetZ = mob.z;
         mob.vx = 0;
@@ -802,6 +804,10 @@ export class CrowdManager {
       // Иначе flocking-lerp тянет его обратно к строю, и он "возвращается в толпу",
       // частично видимый из-под поля. Падение обрабатывается только в updateFallingMobs().
       if (mob.falling) continue;
+
+      // Сохраняем Z предыдущего кадра ДО изменения позиции — GateManager использует
+      // mob.prevZ → mob.z для точного детекта пересечения плоскости ворот.
+      mob.prevZ = mob.z;
 
       if (mob.invulnerableTime > 0) {
         mob.invulnerableTime = Math.max(0, mob.invulnerableTime - dt);

@@ -124,19 +124,16 @@ export class LevelGenerator {
       currentGateZ = z;
 
       const addVal = Math.max(3, Math.round(6 + Math.floor(rng() * 8) + Math.floor(levelNum * 0.12)));
-      const multVal = Math.max(2, Math.round(2.2 - levelNum * 0.015)); // целое, >=2
       const divVal = 2 + Math.floor(rng() * 2); // 2 или 3
 
-      // Выбор операции: на старте безопасные add/multiply, дальше может быть divide.
+      // Выбор операции: на старте безопасный add, дальше add или divide. multiply убран.
       let op: GateOp;
       let value: number;
       if (g < 2) {
         op = 'add';
         value = addVal;
       } else {
-        const r = rng();
-        if (r < 0.45) { op = 'add'; value = addVal; }
-        else if (r < 0.75) { op = 'multiply'; value = multVal; }
+        if (rng() < 0.45) { op = 'add'; value = addVal; }
         else { op = 'divide'; value = divVal; }
       }
 
@@ -1328,17 +1325,15 @@ export class LevelGenerator {
     // Детерминированный PRNG для бесконечного режима
     const rng = createRng(segmentIndex * 7919 + 9973);
 
-    // 2-3 независимых ворот в сегменте (add/multiply/divide)
+    // 2-3 независимых ворот в сегменте (add/divide; multiply убран)
     const motionTypes: GateMotion[] = ['none', 'none', 'none', 'horizontal', 'vertical', 'rotate'];
     const gateCount = 2 + (rng() < 0.5 ? 1 : 0);
     const gateSpacing = (length - 40) / Math.max(1, gateCount);
     for (let i = 0; i < gateCount; i++) {
       const z = currentZ + 20 + i * gateSpacing + (rng() * 4 - 2);
-      const r = rng();
       let op: GateOp;
       let value: number;
-      if (r < 0.45) { op = 'add'; value = 10 + Math.floor(rng() * 8); }
-      else if (r < 0.75) { op = 'multiply'; value = 2 + Math.floor(rng() * 2); }
+      if (rng() < 0.45) { op = 'add'; value = 10 + Math.floor(rng() * 8); }
       else { op = 'divide'; value = 2 + Math.floor(rng() * 2); }
 
       // Ширина и позиция ворот.

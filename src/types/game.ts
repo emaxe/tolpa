@@ -151,6 +151,10 @@ export interface MobInstance {
   x: number;
   y: number;
   z: number;
+  // Z на предыдущем кадре — для точного детекта пересечения плоскости ворот
+  // (ворота должны срабатывать только в момент реального прохода через линию,
+  // а не когда моб уже за ней и сместился вбок). Обновляется в updateMobPositions.
+  prevZ: number;
   targetX: number;
   targetZ: number;
   vx: number;

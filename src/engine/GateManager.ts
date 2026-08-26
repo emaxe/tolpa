@@ -155,13 +155,18 @@ export class GateManager {
       const cy = gateVisual.group.position.y;
       const halfW = gate.width / 2;
 
-      // Per-mob обработка: каждый моб, прошедший через проём этих ворот, обрабатывается
-      // независимо. Мобы, чей X не попадает в проём, этими воротами не затрагиваются.
+      // Per-mob обработка: ворота срабатывают ТОЛЬКО в момент реального пересечения
+      // плоскости проёма (prevZ < gate.z <= z), а не когда моб уже за линией и потом
+      // сместился вбок. Это фикс: раньше условие `mob.z < gate.z` срабатывало для любого
+      // моба, оказавшегося за линией ворот, даже если он прошёл мимо и сместился на их
+      // линию позже — ворота срабатывали ложно.
       this.throughScratch.length = 0;
       let any = false;
       for (const mob of aliveMobs) {
         if (gateVisual.processedMobs.has(mob.id)) continue;
-        if (mob.z < gate.z - 0.5) continue;
+        // Пересечение плоскости по Z в текущем кадре (направление движения — +Z).
+        const crossed = mob.prevZ < gate.z && mob.z >= gate.z;
+        if (!crossed) continue;
         // Проверяем попадание в проём по X (вращение ворот учитываем упрощённо — по центру).
         if (Math.abs(mob.x - cx) > halfW + 0.4) continue;
         gateVisual.processedMobs.add(mob.id);
