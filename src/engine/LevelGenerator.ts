@@ -126,15 +126,28 @@ export class LevelGenerator {
       const addVal = Math.max(3, Math.round(6 + Math.floor(rng() * 8) + Math.floor(levelNum * 0.12)));
       const divVal = 2 + Math.floor(rng() * 2); // 2 или 3
 
-      // Выбор операции: на старте безопасный add, дальше add или divide. multiply убран.
+      // Выбор операции: на старте безопасный add, дальше add, multiply или divide.
+      // Доля multiply: на ранних фазах 10-15%, на поздних 25-28% (кап value ≤ 2).
       let op: GateOp;
       let value: number;
       if (g < 2) {
         op = 'add';
         value = addVal;
       } else {
-        if (rng() < 0.45) { op = 'add'; value = addVal; }
-        else { op = 'divide'; value = divVal; }
+        const multChance = levelNum < 5
+          ? 0.10
+          : 0.12 + Math.min(0.16, (z / trackLength) * 0.12 + (levelNum / 50) * 0.04);
+        const roll = rng();
+        if (roll < multChance) {
+          op = 'multiply';
+          value = 2; // Кап value ≤ 2 для multiply (×2 максимум)
+        } else if (roll < multChance + 0.45) {
+          op = 'add';
+          value = addVal;
+        } else {
+          op = 'divide';
+          value = divVal;
+        }
       }
 
       // 1..3 ворот на ряд уступами: 3-полосная сетка лейнов.
@@ -1325,7 +1338,7 @@ export class LevelGenerator {
     // Детерминированный PRNG для бесконечного режима
     const rng = createRng(segmentIndex * 7919 + 9973);
 
-    // 2-3 независимых ворот в сегменте (add/divide; multiply убран)
+    // 2-3 независимых ворот в сегменте (add/multiply/divide)
     const motionTypes: GateMotion[] = ['none', 'none', 'none', 'horizontal', 'vertical', 'rotate'];
     const gateCount = 2 + (rng() < 0.5 ? 1 : 0);
     const gateSpacing = (length - 40) / Math.max(1, gateCount);
@@ -1333,8 +1346,20 @@ export class LevelGenerator {
       const z = currentZ + 20 + i * gateSpacing + (rng() * 4 - 2);
       let op: GateOp;
       let value: number;
-      if (rng() < 0.45) { op = 'add'; value = 10 + Math.floor(rng() * 8); }
-      else { op = 'divide'; value = 2 + Math.floor(rng() * 2); }
+
+      // Доля multiply по фазам бесконечного режима: ранние сегменты 12%, поздние до 28% (кап value ≤ 2)
+      const multChance = Math.min(0.28, 0.12 + segmentIndex * 0.01);
+      const roll = rng();
+      if (roll < multChance) {
+        op = 'multiply';
+        value = 2; // Кап value ≤ 2 для multiply (×2 максимум)
+      } else if (roll < multChance + 0.45) {
+        op = 'add';
+        value = 10 + Math.floor(rng() * 8);
+      } else {
+        op = 'divide';
+        value = 2 + Math.floor(rng() * 2);
+      }
 
       // Ширина и позиция ворот.
       const width = Math.min(4.5, 2.5 + rng() * 2.5);
