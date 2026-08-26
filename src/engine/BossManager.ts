@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BossData } from '../types/game';
+import { BossAttack, BossData } from '../types/game';
 import { createBossMesh } from '../utils/proceduralMeshes';
 import { CrowdManager } from './CrowdManager';
 import { ParticleSystem } from './ParticleSystem';
@@ -20,6 +20,7 @@ export class BossManager {
   private telegraphMesh: THREE.Mesh | null = null;
   private attackTimer: number = 0;
   private currentAttackIndex: number = 0;
+  private lastAttackIndex: number = -1;
   private isAttacking: boolean = false;
   public isDefeated: boolean = false;
   private bossArenaZ: number = 0;
@@ -56,7 +57,8 @@ export class BossManager {
     this.bossArenaZ = arenaZ;
     this.isDefeated = false;
     this.attackTimer = 0;
-    this.currentAttackIndex = 0;
+    this.currentAttackIndex = this.selectNextAttackIndex();
+    this.lastAttackIndex = -1;
     this.retaliationTimer = 1.0;
     this.bossLevel = level;
     this.attackInterval = this.computeAttackInterval(level);
@@ -126,7 +128,7 @@ export class BossManager {
     } else {
       this.attackTimer += dt;
       const attacks = this.bossData.attacks;
-      const currentAttack = attacks[this.currentAttackIndex % attacks.length];
+      const currentAttack = attacks[this.currentAttackIndex];
 
       if (!this.isAttacking) {
         // Telegraph phase
@@ -148,7 +150,8 @@ export class BossManager {
         if (this.attackTimer >= currentAttack.duration) {
           this.isAttacking = false;
           this.attackTimer = 0;
-          this.currentAttackIndex++;
+          this.lastAttackIndex = this.currentAttackIndex;
+          this.currentAttackIndex = this.selectNextAttackIndex();
           // Атака "shield": по завершении купол спадает, босс снова уязвим.
           if (this.isShielded) {
             this.setShielded(false);
@@ -288,7 +291,7 @@ export class BossManager {
   /** Тикает урон роя мелких тварей во время активной атаки "minions". */
   private tickMinionDamage(dt: number, crowd: CrowdManager, particles: ParticleSystem): void {
     if (!this.bossData || this.isDefeated) return;
-    const currentAttack = this.bossData.attacks[this.currentAttackIndex % this.bossData.attacks.length];
+    const currentAttack = this.bossData.attacks[this.currentAttackIndex];
     if (currentAttack.type !== 'minions') return;
 
     this.minionTickAccum += dt;
@@ -402,5 +405,47 @@ export class BossManager {
     this.isDefeated = false;
     this.isCoolingDown = false;
     this.attackCooldown = 0;
+    this.currentAttackIndex = 0;
+    this.lastAttackIndex = -1;
+  }
+
+  /** Дефолтные веса атак по типу (если не заданы явно в LevelGenerator). */
+  private static readonly DEFAULT_ATTACK_WEIGHTS: Record<BossAttack['type'], number> = {
+    slam: 30,
+    laser: 25,
+    minions: 25,
+    meteors: 20,
+    shield: 15,
+  };
+
+  /** Взвешенный случайный выбор следующей атаки без немедленного повтора.
+   *  Исключает прошлую атаку (lastAttackIndex) из пула кандидатов, чтобы одна и
+   *  та же атака не шла дважды подряд. При n==2 остаётся ровно 1 кандидат —
+   *  строгое чередование; при n>=3 — чистый взвешенный выбор по остальным. */
+  private selectNextAttackIndex(): number {
+    const attacks = this.bossData?.attacks;
+    if (!attacks || attacks.length === 0) return 0;
+    if (attacks.length === 1) return 0;
+
+    let totalWeight = 0;
+    for (let i = 0; i < attacks.length; i++) {
+      if (i === this.lastAttackIndex) continue;
+      const w = attacks[i].weight ?? BossManager.DEFAULT_ATTACK_WEIGHTS[attacks[i].type] ?? 10;
+      totalWeight += Math.max(1, w);
+    }
+
+    let rnd = Math.random() * totalWeight;
+    for (let i = 0; i < attacks.length; i++) {
+      if (i === this.lastAttackIndex) continue;
+      const w = Math.max(1, attacks[i].weight ?? BossManager.DEFAULT_ATTACK_WEIGHTS[attacks[i].type] ?? 10);
+      rnd -= w;
+      if (rnd < 0) return i;
+    }
+    // Страховка: если rnd не упал ниже нуля (крайний случай), вернуть последний
+    // не-исключённый индекс.
+    for (let i = 0; i < attacks.length; i++) {
+      if (i !== this.lastAttackIndex) return i;
+    }
+    return 0;
   }
 }

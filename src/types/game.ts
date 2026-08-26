@@ -103,6 +103,8 @@ export interface BossAttack {
   damage: number;
   areaRadius?: number;
   direction?: number;
+  /** Относительный вес при случайном выборе атаки (по умолчанию — по типу). */
+  weight?: number;
 }
 
 export interface BossData {
