@@ -43,9 +43,9 @@ export class GateManager {
 
   private static readonly GATE_HEIGHT = 3.8;
   // Ворота остаются активными, пока лидер не прошёл их на эту дистанцию. Покрывает
-  // trailing-мобов формаций (oval/wide/circle держат часть толпы позади лидера на
-  // 3-6+ единиц), чтобы каждый реально прошедший через проём моб получил эффект.
-  private static readonly GATE_DEACTIVATE_MARGIN = 8;
+  // trailing-мобов вытянутых формаций (arrow до ~32м при 200 юнитах, oval до ~13м),
+  // чтобы каждый реально прошедший через проём моб гарантированно получил эффект.
+  private static readonly GATE_DEACTIVATE_MARGIN = 36;
   // Дистанция позади лидера, за пределами которой пройденные ворота удаляются (endless-режим).
   private static readonly PRUNE_MARGIN = 40;
   // Бонус за комбо-серию позитивных ворот: +8% мобов за каждый шаг серии > 1,

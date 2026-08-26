@@ -598,10 +598,14 @@ export class CrowdManager {
     return this.killMobsFromGroup(this.groupScratch, this.groupScratch.length, reason);
   }
 
-  /** Убивает ровно одного моба из группы (для стены со счётчиком −N). Возвращает true,
-   *  если кого-то убрали. Стена вызывает это по мере прохода каждого моба. */
-  public killOneFromGroup(group: MobInstance[], reason: string = 'wall'): boolean {
-    if (this.isHyperMode) return false;
+  /** Убивает ровно одного моба из группы (для стены со счётчиком −N).
+   *  Возвращает убитый инстанс или null, если некого убивать.
+   *  Стена списывает урон ИМЕННО этого моба, устраняя десинхрон:
+   *  раньше killMobsFromGroup убивал фронтлайн-моба (сорт по z), а урон
+   *  списывался с внешнего моба из цикла — из-за чего танковая толпа
+   *  обрушивала счётчик сильнее, чем гибло мобов. */
+  public killOneFromGroup(group: MobInstance[], reason: string = 'wall'): MobInstance | null {
+    if (this.isHyperMode) return null;
     let hasAlive = false;
     for (let i = 0; i < group.length; i++) {
       if (group[i].alive) {
@@ -609,12 +613,39 @@ export class CrowdManager {
         break;
       }
     }
-    if (!hasAlive) return false;
+    if (!hasAlive) return null;
+
+    // Копируем логику killMobsFromGroup для ОДНОГО моба, но возвращаем сам инстанс.
     const defenseAuraLvl = stateManager.getState().upgrades.defenseAura;
     const damageReduction = defenseAuraLvl * 0.1;
-    const finalCount = Math.max(1, Math.round(1 * (1 - damageReduction)));
-    const killed = this.killMobsFromGroup(group, finalCount, reason);
-    return killed > 0;
+    let budget = Math.max(1, Math.round(1 * (1 - damageReduction)));
+
+    // Фронтлайн — моб с максимальным z (killMobsFromGroup сортирует b.z - a.z).
+    let target: MobInstance | null = null;
+    for (let i = 0; i < group.length; i++) {
+      const mob = group[i];
+      if (!mob.alive) continue;
+      if (target === null || mob.z > target.z) target = mob;
+    }
+    if (target === null) return null;
+
+    while (budget > 0) {
+      if (target.invulnerableTime > 0) break;
+      if (target.type === 'ninja' && Math.random() < 0.5) { budget--; break; }
+      if (target.shieldHp > 0) { target.shieldHp--; budget--; continue; }
+      if (target.hp > 1) { target.hp--; budget--; continue; }
+      target.alive = false;
+      this.aliveCount--;
+      this.invalidateAliveSnapshot();
+      target.y = -100;
+      this.dummy.position.set(0, -100, 0);
+      this.dummy.updateMatrix();
+      this.instancedMesh.setMatrixAt(target.id, this.dummy.matrix);
+      soundEngine.playSound('mob_death');
+      eventBus.emit('mobsKilled', { count: 1, reason, x: target.x, z: target.z });
+      return target;
+    }
+    return null;
   }
 
   /** Тактический бонус Фаланги (circle): множитель урона толпы по боссу. */

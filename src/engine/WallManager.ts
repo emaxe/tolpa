@@ -139,11 +139,13 @@ export class WallManager {
 
       // Стена бьёт по проходящим мобам, пока счётчик > 0.
       // Кинетический пробой стен: урон зависит от класса моба (танки) и формации (стрела/фаланга).
-      for (const mob of this.throughScratch) {
+      for (const _mob of this.throughScratch) {
         if (wall.killsRemaining <= 0) break;
+        // Убиваем ровно одного моба и списываем урон ЭТОГО ЖЕ моба,
+        // чтобы счётчик стены соответствовал реально погибшим мобам.
         const killed = crowd.killOneFromGroup(this.throughScratch, 'wall');
         if (killed) {
-          const mobDmg = crowd.getMobWallDamage(mob);
+          const mobDmg = crowd.getMobWallDamage(killed);
           wall.killsRemaining -= mobDmg;
           this.updateCounterTexture(wv);
           soundEngine.playSound('gate_pass_negative');
