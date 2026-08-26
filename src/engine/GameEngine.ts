@@ -125,6 +125,10 @@ export class GameEngine {
   public isEndless: boolean = false;
   public endlessSegmentIndex: number = 0;
   public currentEndlessZ: number = 0;
+  // Динамический биом/трасса бесконечного режима (переключается на границе сегментов)
+  private endlessBiome: BiomeType = 'cyber_city';
+  private endlessTrackLength: number = 500;
+  private endlessTrackWidth: number = DEFAULT_TRACK_WIDTH;
 
   // Controls
   private inputEnabled: boolean = true;
@@ -649,9 +653,12 @@ export class GameEngine {
     this.adrenalineCharge = 0;
     stateManager.beginRun();
 
-    const biome: BiomeType = 'cyber_city';
-    this.setupBiomeEnvironment(biome);
-    this.buildTrack(500, DEFAULT_TRACK_WIDTH, biome);
+    // Стартуем с биома, соответствующего первому сегменту (getBiomeForLevel(0) = cyber_city)
+    this.endlessBiome = LevelGenerator.getBiomeForLevel(0);
+    this.endlessTrackLength = 500;
+    this.endlessTrackWidth = DEFAULT_TRACK_WIDTH;
+    this.setupBiomeEnvironment(this.endlessBiome);
+    this.buildTrack(this.endlessTrackLength, this.endlessTrackWidth, this.endlessBiome);
 
     this.crowd.reset(8, 0, DEFAULT_TRACK_WIDTH);
     this.particles.clear();
@@ -2231,6 +2238,15 @@ export class GameEngine {
     // по мере приближения игрока к концу текущего.
     if (this.crowd.leaderZ > this.currentEndlessZ - 150) {
       this.endlessSegmentIndex++;
+      // На границе биома (каждые ~10 сегментов) перестраиваем окружение и трассу
+      // без затрагивания геймплейных менеджеров (gates/obstacles/crowd).
+      const segBiome = LevelGenerator.getBiomeForLevel(this.endlessSegmentIndex);
+      if (segBiome !== this.endlessBiome) {
+        this.endlessBiome = segBiome;
+        this.setupBiomeEnvironment(segBiome);
+        this.buildTrack(this.endlessTrackLength, this.endlessTrackWidth, segBiome);
+        soundEngine.playMusic(this.getMusicThemeForLevel(this.endlessSegmentIndex, segBiome));
+      }
       const seg = LevelGenerator.generateEndlessSegment(this.endlessSegmentIndex, this.currentEndlessZ);
       this.gates.appendGates(seg.gates);
       this.walls.appendWalls(seg.walls);
