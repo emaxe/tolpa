@@ -34,6 +34,7 @@ export class GateManager {
   private gates: GateVisual[] = [];
   private comboStreak: number = 0;
   private throughScratch: MobInstance[] = [];
+  private preEffectIds: Set<number> = new Set();
 
   // Все ворота уровня используют одну ширину/высоту рамок — общая геометрия.
   private sharedPlaneGeo: THREE.PlaneGeometry | null = null;
@@ -175,12 +176,22 @@ export class GateManager {
       }
 
       if (any && this.throughScratch.length > 0) {
-        // One-shot эффекты (комбо, звук, eventBus) — только при первом мобе, прошедшем
-        // ворота. Per-mob математика (multiply/divide) применяется к каждому новому мобу
-        // в последующие кадры, пока ворота не деактивированы по дистанции лидера.
+        // Фиксируем живых ДО эффекта, чтобы свежеспавненные клоны (новые id)
+        // не пересекли плоскость позади ворот и не сработали повторно (лавина ×N).
+        this.preEffectIds.clear();
+        const aliveBefore = crowd.getAliveMobs();
+        for (let i = 0; i < aliveBefore.length; i++) this.preEffectIds.add(aliveBefore[i].id);
+
         this.executeGateEffect(gateVisual, gate.op, gate.value, crowd, particles, cx, gate.z, this.throughScratch, cy, !gateVisual.triggered);
         gateVisual.triggered = true;
         gateVisual.mat.opacity = 0.3;
+
+        // Новые мобы (id не было до эффекта) = клоны этого ворота. Помечаем пройденными.
+        const aliveAfter = crowd.getAliveMobs();
+        for (let i = 0; i < aliveAfter.length; i++) {
+          const id = aliveAfter[i].id;
+          if (!this.preEffectIds.has(id)) gateVisual.processedMobs.add(id);
+        }
       }
     });
 

@@ -409,7 +409,6 @@ export class SoundEngine {
 
       case 'boss_defeat': {
         // Triumphant descending fanfare — two-tone victory chime
-        const sfx = this.sfxGain;
         const ctx = this.ctx;
         const notes = [520, 660, 880];
         notes.forEach((freq, i) => {
@@ -424,7 +423,7 @@ export class SoundEngine {
           gain.gain.exponentialRampToValueAtTime(0.001, start + 0.45);
 
           osc.connect(gain);
-          if (sfx) gain.connect(outGain);
+          gain.connect(outGain);
           osc.start(start);
           osc.stop(start + 0.45);
         });
@@ -749,7 +748,7 @@ export class SoundEngine {
         noiseGain.gain.exponentialRampToValueAtTime(0.001, t + noiseDur);
         noiseSrc.connect(noiseFilter);
         noiseFilter.connect(noiseGain);
-        noiseGain.connect(this.sfxGain!);
+        noiseGain.connect(outGain);
         noiseSrc.start(t);
         noiseSrc.stop(t + noiseDur);
         break;
@@ -794,7 +793,7 @@ export class SoundEngine {
         pingGain.gain.setValueAtTime(0.15, t);
         pingGain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
         pingOsc.connect(pingGain);
-        pingGain.connect(this.sfxGain!);
+        pingGain.connect(outGain);
         pingOsc.start(t);
         pingOsc.stop(t + 0.15);
         break;
@@ -829,7 +828,7 @@ export class SoundEngine {
         noiseGain.gain.exponentialRampToValueAtTime(0.001, t + dur);
         noiseSrc.connect(noiseFilter);
         noiseFilter.connect(noiseGain);
-        noiseGain.connect(this.sfxGain!);
+        noiseGain.connect(outGain);
         noiseSrc.start(t);
         noiseSrc.stop(t + dur);
 
@@ -854,7 +853,7 @@ export class SoundEngine {
           vGain.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.9);
           osc.connect(vFilter);
           vFilter.connect(vGain);
-          vGain.connect(this.sfxGain!);
+          vGain.connect(outGain);
           osc.start(t);
           osc.stop(t + dur);
         });
