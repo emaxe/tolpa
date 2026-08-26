@@ -367,6 +367,7 @@ export class CrowdManager {
     // Урон 0 после брони должен оставаться 0, а не превращаться в гарантированную смерть.
     let finalCount = Math.max(0, Math.round(count * (1 - damageReduction)));
     if (this.formation === 'wedge' && finalCount > 0) finalCount = Math.max(1, Math.round(finalCount * 0.6));
+    else if (this.formation === 'diamond' && finalCount > 0) finalCount = Math.max(1, Math.round(finalCount * 0.75));
     if (finalCount <= 0) return 0;
 
     let killed = 0;
@@ -536,6 +537,7 @@ export class CrowdManager {
     const damageReduction = defenseAuraLvl * 0.1;
     let finalCount = Math.max(0, Math.round(count * (1 - damageReduction)));
     if (this.formation === 'wedge' && finalCount > 0) finalCount = Math.max(1, Math.round(finalCount * 0.6));
+    else if (this.formation === 'diamond' && finalCount > 0) finalCount = Math.max(1, Math.round(finalCount * 0.75));
     if (finalCount <= 0) return 0;
 
     if (group !== this.groupScratch) {
