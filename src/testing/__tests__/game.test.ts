@@ -287,16 +287,18 @@ describe('Level Generator Enhanced Tests', () => {
     }
   });
 
-  it('ворота используют только позитивные операции (+×÷), все значения целые и >= 2 для ×/÷', () => {
-    const allowed = ['add', 'multiply', 'divide'];
+  it('ворота используют только + и ÷ (add/divide), все значения целые и >= 2 для ÷', () => {
+    // ВНИМАНИЕ: multiply (×N) сознательно удалён из игры. Этот тест защищает от его возврата.
+    const allowed = ['add', 'divide'];
     for (let lvl = 1; lvl <= 50; lvl++) {
       const config = LevelGenerator.generateLevel(lvl);
       for (const g of config.gates) {
         expect(allowed).toContain(g.op);
+        expect(g.op).not.toBe('multiply');
         // Значения всегда целые.
         expect(Number.isInteger(g.value)).toBe(true);
-        // Множитель и делитель >= 2 (иначе нет смысла).
-        if (g.op === 'multiply' || g.op === 'divide') expect(g.value).toBeGreaterThanOrEqual(2);
+        // Делитель >= 2 (иначе нет смысла).
+        if (g.op === 'divide') expect(g.value).toBeGreaterThanOrEqual(2);
         if (g.op === 'add') expect(g.value).toBeGreaterThanOrEqual(1);
       }
     }

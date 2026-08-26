@@ -106,10 +106,11 @@ export class LevelGenerator {
     const targetMobsToWin = Math.min(100, 8 + Math.floor(levelNum * 1.8));
 
     // -------------------------------------------------------------
-    // ЭТАП 3: НЕЗАВИСИМЫЕ ВОРОТА (add/multiply/divide) и СТЕНЫ (−N со счётчиком)
+    // ЭТАП 3: НЕЗАВИСИМЫЕ ВОРОТА (add/divide) и СТЕНЫ (−N со счётчиком)
     // -------------------------------------------------------------
     // Ворота теперь независимые: 1..3 на ряд, могут быть уступами, занимать часть ширины
-    // или всю, и могут двигаться/вращаться. Операции только позитивные (add/multiply/divide).
+    // или всю, и могут двигаться/вращаться. Операции только позитивные (add/divide).
+    // ВНИМАНИЕ: multiply (×N) сознательно УДАЛЁН — ворота только + и ÷. НЕ возвращать.
     // subtract (−N) вынесен в отдельные стены со счётчиком.
     const motionTypes: GateMotion[] = ['none', 'none', 'none', 'horizontal', 'vertical', 'rotate'];
     const gateCount = Math.min(40, 16 + Math.floor(levelNum / 2));
@@ -126,22 +127,18 @@ export class LevelGenerator {
       const addVal = Math.max(3, Math.round(6 + Math.floor(rng() * 8) + Math.floor(levelNum * 0.12)));
       const divVal = 2 + Math.floor(rng() * 2); // 2 или 3
 
-      // Выбор операции: на старте безопасный add, дальше add, multiply или divide.
-      // Доля multiply: на ранних фазах 10-15%, на поздних 25-28% (кап value ≤ 2).
+      // Выбор операции: на старте безопасный add, дальше add или divide.
+      // ВНИМАНИЕ: multiply (×N) сознательно УДАЛЁН из игры по требованию дизайна —
+      // ворота бывают только + (прибавь) и ÷ (отними). НЕ возвращать ×-ворота.
       let op: GateOp;
       let value: number;
       if (g < 2) {
         op = 'add';
         value = addVal;
       } else {
-        const multChance = levelNum < 5
-          ? 0.10
-          : 0.12 + Math.min(0.16, (z / trackLength) * 0.12 + (levelNum / 50) * 0.04);
-        const roll = rng();
-        if (roll < multChance) {
-          op = 'multiply';
-          value = 2; // Кап value ≤ 2 для multiply (×2 максимум)
-        } else if (roll < multChance + 0.45) {
+        // add/divide поровну, с лёгким перекосом в add на ранних уровнях.
+        const addChance = levelNum < 5 ? 0.65 : 0.5;
+        if (rng() < addChance) {
           op = 'add';
           value = addVal;
         } else {
@@ -1338,7 +1335,9 @@ export class LevelGenerator {
     // Детерминированный PRNG для бесконечного режима
     const rng = createRng(segmentIndex * 7919 + 9973);
 
-    // 2-3 независимых ворот в сегменте (add/multiply/divide)
+    // 2-3 независимых ворот в сегменте (только add/divide)
+    // ВНИМАНИЕ: multiply (×N) сознательно УДАЛЁН из игры по требованию дизайна —
+    // ворота бывают только + (прибавь) и ÷ (отними). НЕ возвращать ×-ворота.
     const motionTypes: GateMotion[] = ['none', 'none', 'none', 'horizontal', 'vertical', 'rotate'];
     const gateCount = 2 + (rng() < 0.5 ? 1 : 0);
     const gateSpacing = (length - 40) / Math.max(1, gateCount);
@@ -1347,13 +1346,8 @@ export class LevelGenerator {
       let op: GateOp;
       let value: number;
 
-      // Доля multiply по фазам бесконечного режима: ранние сегменты 12%, поздние до 28% (кап value ≤ 2)
-      const multChance = Math.min(0.28, 0.12 + segmentIndex * 0.01);
-      const roll = rng();
-      if (roll < multChance) {
-        op = 'multiply';
-        value = 2; // Кап value ≤ 2 для multiply (×2 максимум)
-      } else if (roll < multChance + 0.45) {
+      // add/divide поровну — ворота только + и ÷ (multiply сознательно убран).
+      if (rng() < 0.5) {
         op = 'add';
         value = 10 + Math.floor(rng() * 8);
       } else {
