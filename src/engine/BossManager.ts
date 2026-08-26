@@ -43,9 +43,11 @@ export class BossManager {
   // Атака "shield" (энергетический купол): пока активен, босс блокирует урон толпы.
   private isShielded: boolean = false;
   private shieldMesh: THREE.Mesh | null = null;
+  private particles: ParticleSystem;
 
-  constructor(scene: THREE.Scene) {
+  constructor(scene: THREE.Scene, particles: ParticleSystem) {
     this.scene = scene;
+    this.particles = particles;
   }
 
   public initBoss(bossData: BossData, arenaZ: number, level: number = 10): void {
@@ -202,6 +204,7 @@ export class BossManager {
     if (attack.type === 'slam') {
       soundEngine.playSound('boss_slam');
       eventBus.emit('screenShake', { intensity: 0.6 });
+      this.particles.emitShockwave(0, this.bossArenaZ - 4, 0xef4444);
       particles.emitBurst(0, 0.5, this.bossArenaZ - 4, 40, 0xef4444, 8.0);
 
       // Kill mobs in slam radius unless in Phalanx/Circle formation or Hyper mode.

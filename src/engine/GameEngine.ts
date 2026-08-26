@@ -175,6 +175,7 @@ export class GameEngine {
   private unsubShake: (() => void) | null = null;
   private unsubGateCharge: (() => void) | null = null;
   private unsubMobFell: (() => void) | null = null;
+  private unsubMobsKilled: (() => void) | null = null;
   private unsubCombo: (() => void) | null = null;
   private unsubNearMiss: (() => void) | null = null;
   private unsubNearMissMilestone: (() => void) | null = null;
@@ -250,14 +251,14 @@ export class GameEngine {
     // 5. Instantiate sub-systems
     // Потолок толпы снижен с 400 до 200: меньше бойцов = меньше объектов на сцене,
     // меньше нагрузка на CPU/GPU и проще балансировать бонусы/препятствия.
+    this.particles = new ParticleSystem(this.scene, 200);
     this.crowd = new CrowdManager(this.scene, 200);
     this.gates = new GateManager(this.scene);
     this.walls = new WallManager(this.scene);
     this.bonus = new BonusManager(this.scene);
     this.obstacles = new ObstacleManager(this.scene);
-    this.boss = new BossManager(this.scene);
+    this.boss = new BossManager(this.scene, this.particles);
     this.finishLine = new FinishLineManager(this.scene);
-    this.particles = new ParticleSystem(this.scene, 200);
 
     // 6. Setup Inputs and Resizing
     this.setupInputs();
@@ -281,6 +282,13 @@ export class GameEngine {
     this.unsubMobFell = eventBus.on('mobFell', (data: { x: number; z: number }) => {
       this.particles.emitBurst(data.x, 0.6, data.z, 10, 0x94a3b8, 3.0);
       soundEngine.playSound('mob_fall');
+    });
+
+    // Ударная волна при пробитии финишной стены
+    this.unsubMobsKilled = eventBus.on('mobsKilled', (data: { reason?: string; x?: number; z?: number }) => {
+      if (data?.reason === 'finish_wall') {
+        this.particles.emitShockwave(data.x ?? 0, data.z ?? this.crowd.leaderZ, 0xffd700);
+      }
     });
 
     // Конфетти при комбо (серия успешных ворот) — праздничный спецэффект.
@@ -1890,7 +1898,8 @@ export class GameEngine {
 
     if (!this.isEndless) {
       this.finishLine.update(dt, this.crowd, this.particles, (finalScore, finalMult, remainingMobs) => {
-        // Праздничное конфетти над финишной чертой при победе.
+        // Ударная волна и праздничное конфетти над финишной чертой при победе.
+        this.particles.emitShockwave(this.crowd.leaderX, this.crowd.leaderZ, 0xffd700);
         this.particles.emitConfetti(this.crowd.leaderX, 2.0, this.crowd.leaderZ, 60);
         this.particles.emitLightPillar(this.crowd.leaderX, this.crowd.leaderZ, 40, 0xfacc15);
         // Трибуны ликуют на финише.
@@ -2314,6 +2323,7 @@ export class GameEngine {
     this.unsubShake?.();
     this.unsubGateCharge?.();
     this.unsubMobFell?.();
+    this.unsubMobsKilled?.();
     this.unsubCombo?.();
     this.unsubNearMiss?.();
     this.unsubNearMissMilestone?.();

@@ -14,13 +14,27 @@ interface Particle {
   active: boolean;
 }
 
+interface Shockwave {
+  mesh: THREE.Mesh;
+  mat: THREE.MeshBasicMaterial;
+  scale: number;
+  opacity: number;
+  active: boolean;
+}
+
 export class ParticleSystem {
+  private scene: THREE.Scene;
   private particles: Particle[] = [];
   private instancedMesh: THREE.InstancedMesh;
   private dummy: THREE.Object3D = new THREE.Object3D();
   private colorDummy: THREE.Color = new THREE.Color();
+  // Пул колец ударных волн (shockwave ring VFX) — 0-GC переиспользование
+  private shockwaves: Shockwave[] = [];
+  private ringGeometry: THREE.RingGeometry;
+  private shockwaveIndex: number = 0;
 
   constructor(scene: THREE.Scene, maxParticles: number = 300) {
+    this.scene = scene;
     const geo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
     const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
     this.instancedMesh = new THREE.InstancedMesh(geo, mat, maxParticles);
@@ -49,6 +63,32 @@ export class ParticleSystem {
       this.instancedMesh.setMatrixAt(i, this.dummy.matrix);
     }
     this.instancedMesh.instanceMatrix.needsUpdate = true;
+
+    // Пул ударных волн (~6 колец на земле)
+    this.ringGeometry = new THREE.RingGeometry(0.5, 1.2, 32);
+    for (let i = 0; i < 6; i++) {
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.9,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      });
+      const ringMesh = new THREE.Mesh(this.ringGeometry, ringMat);
+      ringMesh.rotation.x = -Math.PI / 2;
+      ringMesh.position.set(0, -100, 0);
+      ringMesh.scale.set(0.2, 0.2, 0.2);
+      ringMesh.frustumCulled = false;
+      this.scene.add(ringMesh);
+
+      this.shockwaves.push({
+        mesh: ringMesh,
+        mat: ringMat,
+        scale: 0.2,
+        opacity: 0.9,
+        active: false,
+      });
+    }
   }
 
   public emitBurst(
@@ -154,6 +194,31 @@ export class ParticleSystem {
     }
   }
 
+  // Ударная волна: расширяющееся кольцо на земле при мощных ударах (босс slam, пробитие финиша).
+  // Zero-GC: использует фиксированный пул мешей и обновляет параметры без аллокаций.
+  public emitShockwave(x: number, z: number, colorHex: number = 0xffffff): void {
+    let target: Shockwave | null = null;
+    for (let i = 0; i < this.shockwaves.length; i++) {
+      const sw = this.shockwaves[i];
+      if (!sw.active) {
+        target = sw;
+        break;
+      }
+    }
+    if (!target) {
+      target = this.shockwaves[this.shockwaveIndex % this.shockwaves.length];
+      this.shockwaveIndex++;
+    }
+
+    target.active = true;
+    target.scale = 0.2;
+    target.opacity = 0.9;
+    target.mat.color.setHex(colorHex);
+    target.mat.opacity = 0.9;
+    target.mesh.position.set(x, 0.05, z);
+    target.mesh.scale.set(0.2, 0.2, 0.2);
+  }
+
   public update(dt: number): void {
     let changed = false;
 
@@ -191,6 +256,23 @@ export class ParticleSystem {
     if (changed) {
       this.instancedMesh.instanceMatrix.needsUpdate = true;
     }
+
+    // Анимация колец ударных волн
+    for (let i = 0; i < this.shockwaves.length; i++) {
+      const sw = this.shockwaves[i];
+      if (sw.active) {
+        sw.scale += dt * 8;
+        sw.opacity -= dt * 1.8;
+        if (sw.opacity <= 0) {
+          sw.active = false;
+          sw.opacity = 0;
+          sw.mesh.position.set(0, -100, 0);
+        } else {
+          sw.mesh.scale.set(sw.scale, sw.scale, sw.scale);
+          sw.mat.opacity = sw.opacity;
+        }
+      }
+    }
   }
 
   public clear(): void {
@@ -202,6 +284,12 @@ export class ParticleSystem {
       this.instancedMesh.setMatrixAt(i, this.dummy.matrix);
     }
     this.instancedMesh.instanceMatrix.needsUpdate = true;
+
+    for (let i = 0; i < this.shockwaves.length; i++) {
+      const sw = this.shockwaves[i];
+      sw.active = false;
+      sw.mesh.position.set(0, -100, 0);
+    }
   }
 
   public dispose(): void {
@@ -210,6 +298,11 @@ export class ParticleSystem {
       this.instancedMesh.material.forEach((m) => m.dispose());
     } else {
       this.instancedMesh.material.dispose();
+    }
+    this.ringGeometry.dispose();
+    for (const sw of this.shockwaves) {
+      this.scene.remove(sw.mesh);
+      sw.mat.dispose();
     }
   }
 }
