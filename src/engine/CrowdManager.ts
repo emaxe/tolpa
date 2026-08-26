@@ -503,7 +503,7 @@ export class CrowdManager {
       // Дробная часть: с шансом fracChance добавляем ещё одного (например ×1.5 → 50% шанс +1).
       if (Math.random() < fracChance) extra += 1;
       if (extra <= 0) continue;
-      const n = this.addMobsNear(extra, m.x, z);
+      const n = this.addMobsNear(extra, m.x, z - 1.0);
       added += n;
       if (this.getAliveCount() >= this.maxCapacity) break;
     }
