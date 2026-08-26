@@ -74,6 +74,7 @@ export class GameEngine {
   private leftBorder: THREE.Mesh | null = null;
   private rightBorder: THREE.Mesh | null = null;
   private decorGroup: THREE.Group | null = null;
+  private trackOffsetZ: number = 0;
 
   // ==== Трибуны и зрители ====
   // Зрители — InstancedMesh (тела + 2 машущие руки + головы + лайтстики), 1 draw call каждый.
@@ -598,6 +599,7 @@ export class GameEngine {
     this.runEnded = false;
     this.deathGrace = 0;
     this.adrenalineCharge = 0;
+    this.trackOffsetZ = 0;
     stateManager.beginRun();
 
     const levelConfig = LevelGenerator.generateLevel(levelNum);
@@ -665,6 +667,7 @@ export class GameEngine {
     this.runEnded = false;
     this.deathGrace = 0;
     this.adrenalineCharge = 0;
+    this.trackOffsetZ = 0;
     stateManager.beginRun();
 
     // Стартуем с биома, соответствующего первому сегменту (getBiomeForLevel(0) = cyber_city)
@@ -767,7 +770,7 @@ export class GameEngine {
     });
     this.trackMesh = new THREE.Mesh(trackGeo, trackMat);
     this.trackMesh.rotation.x = -Math.PI / 2;
-    this.trackMesh.position.set(0, 0, (length + 80) / 2 - 20);
+    this.trackMesh.position.set(0, 0, (length + 80) / 2 - 20 + this.trackOffsetZ);
     this.trackMesh.receiveShadow = true;
     this.scene.add(this.trackMesh);
 
@@ -778,14 +781,14 @@ export class GameEngine {
     });
 
     this.leftBorder = new THREE.Mesh(railGeo, railMat);
-    this.leftBorder.position.set(-width / 2, 0.4, (length + 80) / 2 - 20);
+    this.leftBorder.position.set(-width / 2, 0.4, (length + 80) / 2 - 20 + this.trackOffsetZ);
     this.scene.add(this.leftBorder);
 
     this.rightBorder = new THREE.Mesh(railGeo, railMat.clone());
-    this.rightBorder.position.set(width / 2, 0.4, (length + 80) / 2 - 20);
+    this.rightBorder.position.set(width / 2, 0.4, (length + 80) / 2 - 20 + this.trackOffsetZ);
     this.scene.add(this.rightBorder);
 
-    this.buildTrackDecor(length, width, biome);
+    this.buildTrackDecor(length, width, biome, this.trackOffsetZ);
   }
 
   // Neon pylons + floating energy orbs + biome scenery along the track edges —
@@ -832,7 +835,7 @@ export class GameEngine {
     return Math.max(2.0, topY * (obj.scale.y as number));
   }
 
-  private buildTrackDecor(length: number, width: number, biome: BiomeType): void {
+  private buildTrackDecor(length: number, width: number, biome: BiomeType, offsetZ: number = 0): void {
     const group = new THREE.Group();
     const accent = biome === 'magma_citadel' ? 0xf97316 : biome === 'crystal_cavern' ? 0x10b981 : biome === 'quantum_void' ? 0xa855f7 : biome === 'celestial_core' ? 0xfacc15 : 0x00f0ff;
 
@@ -840,10 +843,10 @@ export class GameEngine {
     // зрителей. Совпадает с зонами в buildTribunesAndSpectators.
     const isTribuneZone = (z: number): boolean => {
       const zones: Array<[number, number]> = [
-        [0, 48],
-        [Math.floor(length * 0.4) - 4, Math.floor(length * 0.4) + 34],
-        [Math.floor(length * 0.7) - 4, Math.floor(length * 0.7) + 34],
-        [Math.max(0, length - 65), length + 10],
+        [offsetZ + 0, offsetZ + 48],
+        [offsetZ + Math.floor(length * 0.4) - 4, offsetZ + Math.floor(length * 0.4) + 34],
+        [offsetZ + Math.floor(length * 0.7) - 4, offsetZ + Math.floor(length * 0.7) + 34],
+        [offsetZ + Math.max(0, length - 65), offsetZ + length + 10],
       ];
       return zones.some(([z0, z1]) => z >= z0 && z <= z1);
     };
@@ -869,7 +872,7 @@ export class GameEngine {
     const capMesh = new THREE.InstancedMesh(capGeo, capMat, pylonCount);
     const decorDummy = new THREE.Object3D();
     let pylonIdx = 0;
-    for (let z = 10; z < length; z += step) {
+    for (let z = offsetZ + 10; z < offsetZ + length; z += step) {
       if (isTribuneZone(z)) continue;
       for (const side of [-1, 1]) {
         decorDummy.position.set(side * half, 0.7, z);
@@ -895,7 +898,7 @@ export class GameEngine {
     const orbGeo = new THREE.SphereGeometry(0.18, 8, 8);
     const orbMat = new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.85 });
     const orbSide = width / 2 + 1.6;
-    for (let z = 20; z < length; z += 26) {
+    for (let z = offsetZ + 20; z < offsetZ + length; z += 26) {
       if (isTribuneZone(z)) continue;
       const orb = new THREE.Mesh(orbGeo, orbMat);
       const baseY = 2.6 + Math.random() * 1.2;
@@ -923,7 +926,7 @@ export class GameEngine {
       };
     };
     let seed = biome.charCodeAt(0) * 131 + biome.length;
-    for (let z = 8; z < length; z += sceneryStep) {
+    for (let z = offsetZ + 8; z < offsetZ + length; z += sceneryStep) {
       seed = (seed * 1103515245 + 12345) | 0;
       const rnd = prng(seed);
       const side = rnd() < 0.5 ? -1 : 1;
@@ -949,7 +952,7 @@ export class GameEngine {
     const ringGeo = new THREE.TorusGeometry(1.6, 0.08, 6, 20);
     const ringMat = new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.6 });
     const ringSide = width / 2 + 2.2;
-    for (let z = 30; z < length; z += 44) {
+    for (let z = offsetZ + 30; z < offsetZ + length; z += 44) {
       if (isTribuneZone(z)) continue;
       const ring = new THREE.Mesh(ringGeo, ringMat);
       const side = Math.random() < 0.5 ? -1 : 1;
@@ -965,9 +968,9 @@ export class GameEngine {
     // пилоны, орбы, биомное окружение и прожекторные кольца.
 
     // Трибуны со зрителями, световые лучи, фонари, рекламные щиты, флаги и дроны.
-    this.buildTribunesAndSpectators(group, length, width, accent);
-    this.buildLightBeams(group, length, width, accent);
-    this.buildStreetFurniture(group, length, width, accent, biome);
+    this.buildTribunesAndSpectators(group, length, width, accent, offsetZ);
+    this.buildLightBeams(group, length, width, accent, offsetZ);
+    this.buildStreetFurniture(group, length, width, accent, biome, offsetZ);
 
     this.scene.add(group);
     this.decorGroup = group;
@@ -979,16 +982,16 @@ export class GameEngine {
   // Ступенчатые трибуны со зрителями по бокам дорожки (|x| >= 9.5) на ключевых
   // зонах: старт (z 0-40), крупные ворота, предфиниш. Зрители — 2 InstancedMesh
   // (тела + машущие руки), позиции на ступенях через seeded PRNG (детерминизм).
-  private buildTribunesAndSpectators(group: THREE.Group, length: number, width: number, accent: number): void {
+  private buildTribunesAndSpectators(group: THREE.Group, length: number, width: number, accent: number, offsetZ: number = 0): void {
     const half = width / 2 + 1.2; // 9.2 — край пилонов; трибуны ставим ещё дальше
     const tribuneX = half + 0.6; // ~9.8, строго вне игровой полосы (|x| >= 9.5)
 
     // Зоны трибун: [startZ, endZ] — старт, предфиниш, плюс пара секций по пути.
     const zones: Array<[number, number]> = [
-      [0, 40],
-      [Math.floor(length * 0.4), Math.floor(length * 0.4) + 30],
-      [Math.floor(length * 0.7), Math.floor(length * 0.7) + 30],
-      [Math.max(0, length - 60), length],
+      [offsetZ + 0, offsetZ + 40],
+      [offsetZ + Math.floor(length * 0.4), offsetZ + Math.floor(length * 0.4) + 30],
+      [offsetZ + Math.floor(length * 0.7), offsetZ + Math.floor(length * 0.7) + 30],
+      [offsetZ + Math.max(0, length - 60), offsetZ + length],
     ];
 
     // Материал ступеней — тёмный, с лёгким акцентным кантом.
@@ -1195,7 +1198,7 @@ export class GameEngine {
   }
 
   // Объёмные световые лучи (additive конусы) по бокам — покачиваются в update.
-  private buildLightBeams(group: THREE.Group, length: number, width: number, accent: number): void {
+  private buildLightBeams(group: THREE.Group, length: number, width: number, accent: number, offsetZ: number = 0): void {
     const beamGeo = new THREE.CylinderGeometry(0.15, 1.4, 9, 8, 1, true);
     const beamMat = new THREE.MeshBasicMaterial({
       color: accent,
@@ -1206,7 +1209,7 @@ export class GameEngine {
       side: THREE.DoubleSide,
     });
     const beamX = 15.7 + 1.0; // за внешним краем трибун (~14.2) — зенитные прожекторы
-    for (let z = 25; z < length; z += 40) {
+    for (let z = offsetZ + 25; z < offsetZ + length; z += 40) {
       for (const side of [-1, 1]) {
         const beam = new THREE.Mesh(beamGeo, beamMat);
         beam.position.set(side * beamX, 4.5, z);
@@ -1221,7 +1224,7 @@ export class GameEngine {
 
   // Фонари (Г-образные, emissive-плафон), рекламные щиты (CanvasTexture),
   // флаги (покачивание sin) и дроны (дрейф по X) за дальним краем.
-  private buildStreetFurniture(group: THREE.Group, length: number, width: number, accent: number, biome: BiomeType): void {
+  private buildStreetFurniture(group: THREE.Group, length: number, width: number, accent: number, biome: BiomeType, offsetZ: number = 0): void {
     // Фонари — придорожное освещение на краю дорожки (x = trackHalfWidth),
     // ниже голов зрителей, вне линии трибун. Без PointLight.
     // Все фонари сливаются в 4 общих меша (столб / кронштейн / плафон / ядро) через
@@ -1242,7 +1245,7 @@ export class GameEngine {
     const mLamp: THREE.BufferGeometry[] = [];
     const mCore: THREE.BufferGeometry[] = [];
     const segs = 5;
-    for (let z = 6; z < length; z += 12) {
+    for (let z = offsetZ + 6; z < offsetZ + length; z += 12) {
       for (const side of [-1, 1]) {
         // Столб
         const poleM = new THREE.Matrix4().makeTranslation(side * lampX, 0, z);
@@ -1285,7 +1288,7 @@ export class GameEngine {
     const bFrame: THREE.BufferGeometry[] = [];
     const bPanel: THREE.BufferGeometry[] = [];
     const bLeg: THREE.BufferGeometry[] = [];
-    for (let z = 20; z < length; z += 40) {
+    for (let z = offsetZ + 20; z < offsetZ + length; z += 40) {
       for (const side of [-1, 1]) {
         // Поворот на 180° для правой стороны (как раньше через rotation.y).
         const rot = side > 0 ? Math.PI : 0;
@@ -1309,7 +1312,7 @@ export class GameEngine {
     const flagMat = new THREE.MeshBasicMaterial({ color: accent, side: THREE.DoubleSide });
     const flagX = 15.7 + 2.5;
     const poleGeos: THREE.BufferGeometry[] = [];
-    for (let z = 15; z < length; z += 22) {
+    for (let z = offsetZ + 15; z < offsetZ + length; z += 22) {
       for (const side of [-1, 1]) {
         const poleM = new THREE.Matrix4().makeTranslation(side * flagX, 0, z);
         poleGeos.push(flagPoleGeo.clone().applyMatrix4(poleM));
@@ -1327,7 +1330,7 @@ export class GameEngine {
     const droneGeo = new THREE.BoxGeometry(0.5, 0.12, 0.7);
     const droneMat = new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.7 });
     const droneX = 15.7 + 3.5;
-    for (let z = 30; z < length; z += 50) {
+    for (let z = offsetZ + 30; z < offsetZ + length; z += 50) {
       const drone = new THREE.Mesh(droneGeo, droneMat);
       drone.position.set(droneX, 4.0 + Math.random() * 2.0, z);
       drone.userData.phase = Math.random() * Math.PI * 2;
@@ -1849,6 +1852,8 @@ export class GameEngine {
 
   /** Откатывает эффекты события по его окончании. */
   private cleanupEvent(evt: LevelDynamicEvent): void {
+    this.meteorAccum = 0;
+    this.eventFxAccum = 0;
     switch (evt.type) {
       case 'speed_boost':
       case 'ambush':
@@ -2256,10 +2261,10 @@ export class GameEngine {
       // На границе биома (каждые ~10 сегментов) перестраиваем окружение и трассу
       // без затрагивания геймплейных менеджеров (gates/obstacles/crowd).
       const segBiome = LevelGenerator.getBiomeForLevel(this.endlessSegmentIndex);
-      if (segBiome !== this.endlessBiome) {
+      const biomeChanged = segBiome !== this.endlessBiome;
+      if (biomeChanged) {
         this.endlessBiome = segBiome;
         this.setupBiomeEnvironment(segBiome);
-        this.buildTrack(this.endlessTrackLength, this.endlessTrackWidth, segBiome);
         soundEngine.playMusic(this.getMusicThemeForLevel(this.endlessSegmentIndex, segBiome));
       }
       const seg = LevelGenerator.generateEndlessSegment(this.endlessSegmentIndex, this.currentEndlessZ);
@@ -2272,6 +2277,14 @@ export class GameEngine {
       this.bonus.prune(this.crowd.leaderZ);
       this.obstacles.prune(this.crowd.leaderZ);
       this.currentEndlessZ += seg.length;
+
+      // Циклический сдвиг полотна трассы вперёд, чтобы толпа не бежала по пустоте
+      if (this.crowd.leaderZ > this.trackOffsetZ + this.endlessTrackLength - 150) {
+        this.trackOffsetZ += seg.length;
+        this.buildTrack(this.endlessTrackLength, this.endlessTrackWidth, this.endlessBiome);
+      } else if (biomeChanged) {
+        this.buildTrack(this.endlessTrackLength, this.endlessTrackWidth, this.endlessBiome);
+      }
     }
   }
 
