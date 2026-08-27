@@ -1017,10 +1017,14 @@ export class ObstacleManager {
     // Hyper / Танки обезвреживают мину без потерь
     const isHyper = crowd.isHyperMode;
     let hasTanks = false;
-    for (let i = 0; i < aliveMobs.length; i++) {
-      if (aliveMobs[i].type === 'tank') {
-        hasTanks = true;
-        break;
+    // Скан на танки нужен только для разрушаемых мин (иначе obs.destructible=false
+    // и hasTanks не влияет на результат) — пропускаем O(N)-проход для недеструктивных.
+    if (obs.destructible) {
+      for (let i = 0; i < aliveMobs.length; i++) {
+        if (aliveMobs[i].type === 'tank') {
+          hasTanks = true;
+          break;
+        }
       }
     }
     if (isHyper || (obs.destructible && hasTanks)) {
@@ -1098,10 +1102,14 @@ export class ObstacleManager {
     // Танки / гипер уничтожают кибер-собаку
     const isHyper = crowd.isHyperMode;
     let hasTanks = false;
-    for (let i = 0; i < aliveMobs.length; i++) {
-      if (aliveMobs[i].type === 'tank') {
-        hasTanks = true;
-        break;
+    // Скан на танки нужен только для разрушаемых собак (иначе obs.destructible=false
+    // и hasTanks не влияет на результат) — пропускаем O(N)-проход для недеструктивных.
+    if (obs.destructible) {
+      for (let i = 0; i < aliveMobs.length; i++) {
+        if (aliveMobs[i].type === 'tank') {
+          hasTanks = true;
+          break;
+        }
       }
     }
     if (isHyper || (obs.destructible && hasTanks)) {

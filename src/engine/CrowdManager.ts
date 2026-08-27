@@ -374,10 +374,15 @@ export class CrowdManager {
     let budget = finalCount; // сколько "ударов" осталось потратить в этом вызове
     const alive = this.getAliveMobs();
 
-    // Frontline mobs take damage first
-    alive.sort((a, b) => b.z - a.z);
+    // Frontline mobs take damage first.
+    // НЕ сортируем разделяемый кэш-буфер aliveSnapshot напрямую (мутация ломает
+    // порядок слотов формации/лидера). Копируем ссылки в предаллоцированный
+    // groupScratch (0-GC) и сортируем его.
+    this.groupScratch.length = 0;
+    for (let i = 0; i < alive.length; i++) this.groupScratch.push(alive[i]);
+    this.groupScratch.sort((a, b) => b.z - a.z);
 
-    for (let mob of alive) {
+    for (let mob of this.groupScratch) {
       if (budget <= 0) break;
 
       // Свежеспавненный моб неуязвим короткое время (защита от смерти в кадре спавна)
@@ -425,8 +430,13 @@ export class CrowdManager {
   public consumeMobs(count: number): number {
     if (count <= 0) return 0;
     let killed = 0;
-    const alive = this.getAliveMobs().sort((a, b) => b.z - a.z);
-    for (const mob of alive) {
+    const alive = this.getAliveMobs();
+    // НЕ мутируем разделяемый кэш-буфер aliveSnapshot сортировкой — копируем
+    // ссылки в предаллоцированный groupScratch (0-GC) и сортируем его.
+    this.groupScratch.length = 0;
+    for (let i = 0; i < alive.length; i++) this.groupScratch.push(alive[i]);
+    this.groupScratch.sort((a, b) => b.z - a.z);
+    for (const mob of this.groupScratch) {
       if (killed >= count) break;
       mob.alive = false;
       this.aliveCount--;
