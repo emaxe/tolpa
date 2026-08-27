@@ -192,6 +192,19 @@ export class GameEngine {
   private unsubFinishLine: (() => void) | null = null;
   private unsubBossDefeated: (() => void) | null = null;
   private unsubSettings: (() => void) | null = null;
+  // Haptic: троттлинг частых событий (coinCollected, bossDamaged) — не чаще 40мс.
+  private lastHapticMs: number = 0;
+
+  // Тактильный отклик (navigator.vibrate) — безопасный вызов с feature detection
+  // и троттлингом 40мс для частых событий (монеты, урон боссу).
+  private triggerHaptic(pattern: number | number[]): void {
+    if (!stateManager.getState().settings.enableHaptics) return;
+    if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
+    const now = performance.now();
+    if (now - this.lastHapticMs < 40) return;
+    this.lastHapticMs = now;
+    try { navigator.vibrate(pattern); } catch { /* no-op */ }
+  }
 
   // ==== Адаптивное разрешение (watchdog) ====
   // Следит за средним временем кадра и при просадке FPS плавно снижает pixelRatio,
@@ -281,12 +294,17 @@ export class GameEngine {
       if (stateManager.getState().settings.enableScreenShake) {
         this.screenShakeIntensity = Math.min(1.0, this.screenShakeIntensity + (data.intensity || 0.4));
       }
+      // Тактильный отклик: лёгкая вибрация пропорционально intensity тряске
+      this.triggerHaptic(Math.round(Math.min(0.3, (data.intensity || 0.4)) * 60));
     });
 
     // Адреналин заряжается за успешные положительные ворота
     this.unsubGateCharge = eventBus.on('gatePassed', (data: { isPositive?: boolean }) => {
       if (data?.isPositive) {
         this.adrenalineCharge = Math.min(100, this.adrenalineCharge + Math.round(15 * this.crowd.getAdrenalineMultiplier()));
+        this.triggerHaptic(15);
+      } else {
+        this.triggerHaptic([30, 20]);
       }
     });
 
@@ -323,6 +341,7 @@ export class GameEngine {
       const count = mult >= 10 ? 36 : mult >= 5 ? 26 : mult >= 2 ? 18 : 12;
       const color = mult >= 10 ? 0xfacc15 : mult >= 5 ? 0xa855f7 : mult >= 2 ? 0x00f0ff : 0x38bdf8;
       this.particles.emitBurst(data.x ?? this.crowd.leaderX, 1.2, data.z ?? this.crowd.leaderZ, count, color, 4.0);
+      this.triggerHaptic(10);
       if (mult >= 10) eventBus.emit('screenShake', { intensity: 0.15 });
     });
 
@@ -373,6 +392,7 @@ export class GameEngine {
       const colors: Record<string, number> = { coins: 0xfbbf24, heal: 0x22c55e, score: 0x00f0ff, adrenaline: 0xfacc15 };
       const color = colors[data?.type ?? ''] ?? 0xfde047;
       this.particles.emitBurst(data.x ?? this.crowd.leaderX, 1.0, data.z ?? this.crowd.leaderZ, 14, color, 3.0);
+      this.triggerHaptic(20);
     });
 
     // VFX при разрушении препятствия: burst искр + лёгкая тряска.
@@ -392,6 +412,7 @@ export class GameEngine {
       this.particles.emitConfetti(x, 2.0, z, 30);
       soundEngine.playCrowdCheer(0.9);
       eventBus.emit('screenShake', { intensity: 0.25 });
+      this.triggerHaptic([30, 40, 30, 40, 80]);
     });
 
     // Финишная прямая: VFX-салют при пересечении линии толпой.
@@ -405,6 +426,7 @@ export class GameEngine {
       this.particles.emitConfetti(x, 2.5, z, 25);
       soundEngine.playCrowdCheer(1.0);
       eventBus.emit('screenShake', { intensity: 0.15 });
+      this.triggerHaptic([20, 30, 20]);
     });
 
     // Победа над боссом: праздничный VFX-салют. Событие bossDefeated эмитится
@@ -418,6 +440,7 @@ export class GameEngine {
       soundEngine.playSound('boss_defeat');
       soundEngine.playCrowdCheer(1.2);
       eventBus.emit('screenShake', { intensity: 0.5 });
+      this.triggerHaptic([50, 30, 50]);
       // Возврат фоновой музыки биома после босс-трек
       const lvl = this.currentLevel;
       if (lvl) soundEngine.playMusic(this.getMusicThemeForLevel(lvl.levelNumber, lvl.biome));

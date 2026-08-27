@@ -192,6 +192,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
                 />
                 <span>{i18n.t('screenShake')}</span>
               </label>
+
+              <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.enableHaptics}
+                  onChange={(e) => updateSetting('enableHaptics', e.target.checked)}
+                  className="accent-amber-400 rounded"
+                />
+                <span>{i18n.t('haptics')}</span>
+              </label>
             </div>
           </div>
 
