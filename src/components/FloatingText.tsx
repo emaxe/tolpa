@@ -159,6 +159,23 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       spawn(0, 0, i18n.t('skinUnlocked', 'НОВЫЙ СКИН!'), 'text-fuchsia-300 font-extrabold text-xl drop-shadow-[0_0_10px_rgba(232,121,249,0.9)]');
     });
 
+    // Урон по боссу: всплывающие числа урона над боссом.
+    // Событие bossDamaged эмитится BossManager ~6 Гц, но потреблялось только HUD (полоса HP) —
+    // игрок не видел чисел урона, только полоску. Добавляем floating damage numbers.
+    const unsubBossDamaged = eventBus.on('bossDamaged', (data: { damage?: number; x?: number; z?: number }) => {
+      if (!data || !data.damage) return;
+      const dmg = Math.round(data.damage);
+      // Проекция с y=4.5 — над головой босса (~5м высотой), чтобы текст не перекрывался телом.
+      const eng = engine.current;
+      if (!eng) return;
+      const pos = eng.projectToScreen(data.x ?? 0, 4.5, data.z ?? 0);
+      const id = idRef.current++;
+      setItems((prev) => [...prev.slice(-24), { id, text: `-${dmg}`, colorClass: 'text-red-400 font-extrabold text-xl drop-shadow-[0_0_8px_rgba(239,68,68,0.9)]', x: pos.x, y: pos.y }]);
+      window.setTimeout(() => {
+        setItems((prev) => prev.filter((it) => it.id !== id));
+      }, 850);
+    });
+
     return () => {
       unsubGate();
       unsubMobsKilled();
@@ -170,6 +187,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubFinishLine();
       unsubUpgrade();
       unsubSkin();
+      unsubBossDamaged();
     };
   }, [engine]);
 

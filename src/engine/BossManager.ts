@@ -38,6 +38,10 @@ export class BossManager {
   // без этого накопителя soundEngine boss_hit + частицы + eventBus.emit('bossDamaged')
   // спамятся 60 раз/сек, форсируя тяжёлый ре-рендер HUD на 60 Гц. Гейтим фидбек ~6 Гц.
   private hitFxAccum: number = 0;
+  // Накопитель урона между фидбек-тиками (~6 Гц). damage из takeDamage приходит
+  // каждый кадр (amount*dt); без накопителя floating number показывал бы урон
+  // за один кадр, а не за период. Суммируем и сбрасываем при каждом эмите.
+  private hitDamageAccum: number = 0;
   // Пауза между атаками (attack cooldown), масштабируемая по уровню босса.
   // Раньше босс бил непрерывно (telegraph → attack → сразу следующий telegraph)
   // на всех уровнях — не было окна передышки для перестроения толпы. Теперь
@@ -338,6 +342,7 @@ export class BossManager {
     }
 
     this.bossData.hp = Math.max(0, this.bossData.hp - amount);
+    this.hitDamageAccum += amount;
 
     // Фидбек-фикции гейтим ~6 Гц: меле-урон толпы приходит каждый кадр (60 Гц),
     // спам звука/частиц/событий форсировал бы тяжёлый ре-рендер HUD на 60 Гц.
@@ -368,7 +373,11 @@ export class BossManager {
       hp: this.bossData.hp,
       maxHp: this.bossData.maxHp,
       nameKey: this.bossData.nameKey,
+      x: 0,
+      z: this.bossArenaZ,
+      damage: this.hitDamageAccum,
     });
+    this.hitDamageAccum = 0;
 
     if (this.bossData.hp <= 0) {
       this.defeatBoss(particles);
@@ -423,6 +432,8 @@ export class BossManager {
     this.attackCooldown = 0;
     this.currentAttackIndex = 0;
     this.lastAttackIndex = -1;
+    this.hitFxAccum = 0;
+    this.hitDamageAccum = 0;
   }
 
   /** Дефолтные веса атак по типу (если не заданы явно в LevelGenerator). */
