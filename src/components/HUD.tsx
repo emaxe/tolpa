@@ -3,6 +3,7 @@ import { FormationType } from '../types/game';
 import { i18n } from '../core/Localization';
 import { stateManager } from '../core/StateManager';
 import { eventBus } from '../core/EventBus';
+import { soundEngine } from '../audio/SoundEngine';
 import { Zap, Users, Coins, Shield, ArrowUp, MoveHorizontal, CircleDot, Pause, Skull, TriangleAlert, Route, Trophy, Focus, Diamond } from 'lucide-react';
 
 interface HUDProps {
@@ -128,6 +129,7 @@ export const HUD: React.FC<HUDProps> = ({
 
     // Достижение готово к получению — центральный баннер-тост.
     const unsubAchReady = eventBus.on('achievementReady', () => {
+      soundEngine.playSound('level_win');
       setEventAlert({ type: 'achievementReady', key: Date.now() });
       window.setTimeout(() => setEventAlert(null), 3200);
     });

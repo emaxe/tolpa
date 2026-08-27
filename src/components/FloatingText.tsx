@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { GameEngine } from '../engine/GameEngine';
 import { eventBus } from '../core/EventBus';
 import { i18n } from '../core/Localization';
+import { soundEngine } from '../audio/SoundEngine';
 
 interface FloatingItem {
   id: number;
@@ -154,6 +155,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
     // Разблокировка скина: всплывающая плашка.
     // Событие skinUnlocked эмитится StateManager, но раньше никем не потреблялось.
     const unsubSkin = eventBus.on('skinUnlocked', () => {
+      soundEngine.playSound('upgrade_buy');
       spawn(0, 0, i18n.t('skinUnlocked', 'НОВЫЙ СКИН!'), 'text-fuchsia-300 font-extrabold text-xl drop-shadow-[0_0_10px_rgba(232,121,249,0.9)]');
     });
 
