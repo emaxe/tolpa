@@ -25,6 +25,11 @@ interface GateVisual {
   transmutedByMage: boolean;
   // Счётчик шагов для операции divide (÷N) — персистентный между кадрами для растянутых формаций.
   divideStep: { step: number };
+  // Зафиксированный исход mystery-ворот (true = бонус +N, false = штраф ÷N). Кэшируется при
+  // первом срабатывании, чтобы растянутая формация (овал/стрела), переходящая ворота несколько
+  // кадров, получала ОДИН согласованный исход, а не перебрасывала Math.random() каждый кадр
+  // (голова — бонус, хвост — штраф на том же объекте).
+  mysteryResult?: boolean;
   // Движение: текущее смещение по X и Y (для horizontal/vertical), угол поворота (rotate).
   motionPhase: number;
   baseX: number;
@@ -295,7 +300,11 @@ export class GateManager {
     } else if (op === 'mystery') {
       // Мистика: 60% — бонус (+N мобов), 40% — штраф (÷N по шагу). Риск/награда.
       // One-shot guard: эффект применяется один раз за ворота (isFirstTrigger).
-      const isLucky = Math.random() < 0.6;
+      // Исход кэшируется в gateVisual.mysteryResult при первом кадре срабатывания, чтобы
+      // растянутая формация, переходящая ворота несколько кадров, получала ОДИН согласованный
+      // результат — иначе Math.random() перебрасывался бы каждый кадр (голова — бонус, хвост —
+      // штраф на том же объекте).
+      const isLucky = gateVisual.mysteryResult ?? (gateVisual.mysteryResult = Math.random() < 0.6);
       if (isLucky) {
         let base = 0;
         if (isFirstTrigger) {
