@@ -783,12 +783,18 @@ export class GameEngine {
     this.particles.clear();
     this.boss.clear();
     this.finishLine.clear();
+    this.resetEventState();
 
     const seg = LevelGenerator.generateEndlessSegment(0, 0);
     this.gates.initGates(seg.gates);
     this.walls.initWalls(seg.walls);
     this.bonus.initBonuses(seg.bonuses);
     this.obstacles.initObstacles(seg.obstacles, seg.coins);
+    if (seg.events && seg.events.length > 0) {
+      for (const evt of seg.events) {
+        this.pendingEvents.push(evt);
+      }
+    }
     this.currentEndlessZ += seg.length;
 
     soundEngine.playMusic('cyber');
@@ -1845,8 +1851,8 @@ export class GameEngine {
   private updateDynamicEvents(dt: number): void {
     const trackWidth = this.currentLevel?.trackWidth || DEFAULT_TRACK_WIDTH;
 
-    // Триггер нового события, когда толпа достигла triggerZ. В endless-режиме события пропускаются.
-    if (!this.isEndless && this.pendingEvents.length > 0) {
+    // Триггер нового события, когда толпа достигла triggerZ.
+    if (this.pendingEvents.length > 0) {
       while (this.nextEventIndex < this.pendingEvents.length) {
         const evt = this.pendingEvents[this.nextEventIndex];
         if (this.crowd.leaderZ < evt.triggerZ) break;
@@ -2375,6 +2381,12 @@ export class GameEngine {
       this.walls.appendWalls(seg.walls);
       this.bonus.appendBonuses(seg.bonuses);
       this.obstacles.appendObstacles(seg.obstacles, seg.coins);
+      // Аппендим динамические события сегмента в очередь
+      if (seg.events && seg.events.length > 0) {
+        for (const evt of seg.events) {
+          this.pendingEvents.push(evt);
+        }
+      }
       this.gates.prune(this.crowd.leaderZ);
       this.walls.prune(this.crowd.leaderZ);
       this.bonus.prune(this.crowd.leaderZ);

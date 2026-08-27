@@ -1348,6 +1348,7 @@ export class LevelGenerator {
     bonuses: BonusData[];
     obstacles: ObstacleData[];
     coins: CoinData[];
+    events: LevelDynamicEvent[];
     length: number;
   } {
     const length = 120;
@@ -1541,11 +1542,36 @@ export class LevelGenerator {
       });
     }
 
+    // Динамические события (метеоритный дождь, засада, ЭМИ-шторм, поезд монет, ускорение)
+    const events: LevelDynamicEvent[] = [];
+    // ~55% шанс события на сегмент, не на первых 3 сегментах (разогрев)
+    if (segmentIndex >= 3 && rng() < 0.55) {
+      const biome = LevelGenerator.getEndlessBiome(segmentIndex);
+      const triggerZ = currentZ + 30 + rng() * (length - 60); // в середине сегмента
+      // Тип события по биому
+      let type: LevelDynamicEvent['type'];
+      const roll = rng();
+      if (biome === 'magma_citadel') {
+        type = roll < 0.6 ? 'meteor_rain' : roll < 0.8 ? 'ambush' : 'coin_train';
+      } else if (biome === 'cyber_city' || biome === 'quantum_void') {
+        type = roll < 0.5 ? 'emp_storm' : roll < 0.75 ? 'speed_boost' : 'coin_train';
+      } else if (biome === 'crystal_cavern') {
+        type = roll < 0.5 ? 'ambush' : roll < 0.8 ? 'meteor_rain' : 'speed_boost';
+      } else {
+        // celestial_core
+        type = roll < 0.4 ? 'speed_boost' : roll < 0.7 ? 'coin_train' : 'meteor_rain';
+      }
+      // Интенсивность растёт с сегментом (кап 3.0)
+      const intensity = Math.min(3.0, 1.0 + segmentIndex * 0.03);
+      const duration = type === 'coin_train' ? 1.0 : 6.0 + rng() * 4.0;
+      events.push({ triggerZ, type, duration, intensity });
+    }
+
     rawWalls.sort((a, b) => a.z - b.z);
     bonuses.sort((a, b) => a.z - b.z);
     coins.sort((a, b) => a.z - b.z);
 
-    return { gates, walls: rawWalls, bonuses, obstacles, coins, length };
+    return { gates, walls: rawWalls, bonuses, obstacles, coins, events, length };
   }
 
   /** Базовая скорость для уровня кампании (рост 18 -> 27 к L50, кап 30). */
