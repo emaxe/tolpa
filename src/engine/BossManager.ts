@@ -55,6 +55,11 @@ export class BossManager {
   private isShielded: boolean = false;
   private shieldMesh: THREE.Mesh | null = null;
   private particles: ParticleSystem;
+  // Драматичное появление босса при первом входе толпы в арену (distanceToArena <= 35).
+  // Раньше босс молча активировал боевой цикл — звук boss_roar играл на старте уровня
+  // за полминуты до контакта, а в момент сближения не было никакого визуального события.
+  // Теперь: ударная волна + световой столб + тряска + рев — однократный "boss appear" VFX.
+  private arenaEntered: boolean = false;
 
   constructor(scene: THREE.Scene, particles: ParticleSystem) {
     this.scene = scene;
@@ -125,6 +130,17 @@ export class BossManager {
 
     // Only engage battle when crowd is within 35 units of boss arena
     if (distanceToArena > 35) return;
+
+    // Драматичное появление босса: ОДИН раз при первом входе толпы в зону арены.
+    // Ударная волна + световой столб + тряска экрана + рев — игрок видит "босс проснулся".
+    if (!this.arenaEntered) {
+      this.arenaEntered = true;
+      this.particles.emitShockwave(0, this.bossArenaZ, 0xef4444);
+      this.particles.emitLightPillar(0, this.bossArenaZ, 40, 0xff4444);
+      this.particles.emitBurst(0, 2.0, this.bossArenaZ, 30, 0xef4444, 7.0);
+      soundEngine.playSound('boss_roar');
+      eventBus.emit('screenShake', { intensity: 0.5 });
+    }
 
     // 1. Attack cycle (с паузой между атаками, масштабируемой по уровню босса).
     //    Во время паузы (isCoolingDown) attackTimer НЕ инкрементируется — иначе
@@ -434,6 +450,7 @@ export class BossManager {
     this.lastAttackIndex = -1;
     this.hitFxAccum = 0;
     this.hitDamageAccum = 0;
+    this.arenaEntered = false;
   }
 
   /** Дефолтные веса атак по типу (если не заданы явно в LevelGenerator). */
