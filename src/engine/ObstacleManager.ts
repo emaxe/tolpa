@@ -279,6 +279,9 @@ export class ObstacleManager {
   ): void {
     const obs = vis.data;
 
+    // Пропускаем анимацию и поиск цели для далёких собак — вне зоны видимости
+    if (Math.abs(obs.z - crowd.leaderZ) > 35) return;
+
     // Кулдаун между укусами
     if (vis.attackCooldown && vis.attackCooldown > 0) {
       vis.attackCooldown -= dt;
@@ -402,13 +405,12 @@ export class ObstacleManager {
     const body = dogGroup.children[0] as THREE.Mesh;
     const headPivot = dogGroup.children[1] as THREE.Group;
     const tailPivot = dogGroup.children[6] as THREE.Group;
-    const legPivots = [
-      dogGroup.children[2] as THREE.Group,
-      dogGroup.children[3] as THREE.Group,
-      dogGroup.children[4] as THREE.Group,
-      dogGroup.children[5] as THREE.Group,
-    ];
     const phase = vis.dogAnimPhase || 0;
+    // Прямой доступ к children по индексу — без аллокации массива каждый кадр
+    const lp0 = dogGroup.children[2] as THREE.Group;
+    const lp1 = dogGroup.children[3] as THREE.Group;
+    const lp2 = dogGroup.children[4] as THREE.Group;
+    const lp3 = dogGroup.children[5] as THREE.Group;
 
     // Пасть: открывается в атаке (нужно разжать нижнюю челюсть)
     const jaw = headPivot ? headPivot.children[2] as THREE.Mesh : null;
@@ -420,7 +422,10 @@ export class ObstacleManager {
       if (jaw) jaw.rotation.x = 0.7; // раскрытая пасть
       if (tailPivot) tailPivot.rotation.y = 0.6; // прижатый хвост
       // Ноги в прыжке согнуты
-      legPivots.forEach((lp) => { if (lp) lp.rotation.x = 0.4 * Math.sin(phase); });
+      if (lp0) lp0.rotation.x = 0.4 * Math.sin(phase);
+      if (lp1) lp1.rotation.x = 0.4 * Math.sin(phase);
+      if (lp2) lp2.rotation.x = 0.4 * Math.sin(phase);
+      if (lp3) lp3.rotation.x = 0.4 * Math.sin(phase);
     } else if (vis.dogState === 'wander') {
       // Гуляние: перебор лап (противофаза перед/зад), хвост виляет, голова чуть покачивается
       if (body) body.rotation.x = 0.05 * Math.sin(phase * 0.5);
@@ -429,12 +434,12 @@ export class ObstacleManager {
       if (tailPivot) tailPivot.rotation.y = Math.sin(phase * 0.8) * 0.6;
       // шаг: передние и задние противофазно
       const stepAmp = 0.5;
-      legPivots.forEach((L, i) => {
-        if (!L) return;
-        const side = i % 2 === 0 ? 1 : -1;
-        const front = i < 2 ? 1 : -1;
-        L.rotation.x = Math.sin(phase + front * Math.PI / 2) * stepAmp * side;
-      });
+      const frontRot = Math.sin(phase + Math.PI / 2) * stepAmp;
+      const backRot = Math.sin(phase - Math.PI / 2) * stepAmp;
+      if (lp0) lp0.rotation.x = frontRot;
+      if (lp1) lp1.rotation.x = -frontRot;
+      if (lp2) lp2.rotation.x = backRot;
+      if (lp3) lp3.rotation.x = -backRot;
     } else {
       // Idle/отдых: собака сидит — зад опущен, корпус наклонён, передние лапы
       // прямые, задние подогнуты, голова приподнята, хвост лениво виляет.
@@ -443,10 +448,10 @@ export class ObstacleManager {
       if (jaw) jaw.rotation.x = 0.05;
       if (tailPivot) tailPivot.rotation.y = Math.sin(performance.now() * 0.001 * 2.5) * 0.3;
       // Передние лапы (i<2) прямые вниз, задние (i>=2) подогнуты под корпус.
-      legPivots.forEach((L, i) => {
-        if (!L) return;
-        L.rotation.x = i >= 2 ? -1.1 : 0.05; // задние согнуты, передние стоят
-      });
+      if (lp0) lp0.rotation.x = 0.05;
+      if (lp1) lp1.rotation.x = 0.05;
+      if (lp2) lp2.rotation.x = -1.1;
+      if (lp3) lp3.rotation.x = -1.1;
     }
 
     // ---- 4. Цепь ----
@@ -508,9 +513,10 @@ export class ObstacleManager {
     const aliveMobs = crowd.getAliveMobs();
 
     // 1. Update and animate obstacles
-    this.obstacles.forEach((obsVis) => {
+    for (let oi = 0; oi < this.obstacles.length; oi++) {
+      const obsVis = this.obstacles[oi];
       const obs = obsVis.data;
-      if (obs.isDead) return;
+      if (obs.isDead) continue;
 
       // Обратный отсчёт rate-limit эмита feedback (screenShake/звук) при контакте.
       if (obsVis.feedbackCooldown && obsVis.feedbackCooldown > 0) {
@@ -658,13 +664,13 @@ export class ObstacleManager {
 
       // Ранний выход: препятствия далеко от толпы не проверяем на коллизии (CPU hot-path).
       const dz = obs.z - crowd.leaderZ;
-      if (dz > 10 || dz < -25) return;
+      if (dz > 10 || dz < -25) continue;
 
       // Check collision with crowd
       this.checkObstacleCollision(obsVis, crowd, particles, aliveMobs);
       // Near-Miss: награда за проход вплотную к активной ловушке без касания.
       this.checkNearMiss(obsVis, crowd, particles);
-    });
+    }
 
     this.prune(crowd.leaderZ);
 
@@ -875,6 +881,11 @@ export class ObstacleManager {
     let anyHit = false;
     for (let mob of aliveMobs) {
       if (!mob.alive) continue;
+
+      // Быстрый AABB-отсев: моб заведомо не касается хитбокса ловушки
+      const maxHalfZ = obsVis.hazardD * 0.5 + 0.45 * mob.scale;
+      const maxHalfX = obsVis.hazardW * 0.5 + 0.45 * mob.scale;
+      if (Math.abs(mob.z - obsVis.hazardZ) > maxHalfZ || Math.abs(mob.x - obsVis.hazardX) > maxHalfX) continue;
 
       // Коллизия ведётся ТОЛЬКО против активного "убивающего" хитбокса препятствия
       // (плита шлагбаума, голова маятника, шар крушителя), а не против статичного
