@@ -497,6 +497,30 @@ export const INITIAL_ACHIEVEMENTS: AchievementItem[] = [
     claimed: false,
     category: 'levels',
   },
+  {
+    id: 'endless_runner_1000',
+    titleKey: 'achEndlessRunner1000',
+    descKey: 'achEndlessRunner1000Desc',
+    icon: 'Route',
+    progress: 0,
+    goal: 1000,
+    rewardCoins: 1500,
+    rewardGems: 20,
+    claimed: false,
+    category: 'levels',
+  },
+  {
+    id: 'endless_runner_5000',
+    titleKey: 'achEndlessRunner5000',
+    descKey: 'achEndlessRunner5000Desc',
+    icon: 'Trophy',
+    progress: 0,
+    goal: 5000,
+    rewardCoins: 5000,
+    rewardGems: 50,
+    claimed: false,
+    category: 'levels',
+  },
 ];
 
 export interface RunStats {
@@ -569,6 +593,8 @@ export class StateManager {
     this.updateAchievementProgressSilent('near_miss_streak_5', this.state.stats.maxNearMissStreak);
     this.updateAchievementProgressSilent('near_miss_streak_10', this.state.stats.maxNearMissStreak);
     this.updateAchievementProgressSilent('games_played', this.state.stats.gamesPlayed);
+    this.updateAchievementProgressSilent('endless_runner_1000', this.state.endlessHighScore);
+    this.updateAchievementProgressSilent('endless_runner_5000', this.state.endlessHighScore);
 
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
@@ -913,6 +939,8 @@ export class StateManager {
   public setEndlessHighScore(score: number): void {
     if (score > this.state.endlessHighScore) {
       this.state.endlessHighScore = score;
+      this.updateAchievementProgressSilent('endless_runner_1000', score);
+      this.updateAchievementProgressSilent('endless_runner_5000', score);
       this.notify();
     }
   }

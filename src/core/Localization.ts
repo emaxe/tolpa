@@ -231,6 +231,10 @@ export const translations = {
     achCampaign50Desc: 'Пройдите все 50 уровней кампании',
     achGamesPlayed: 'Ветеран забегов',
     achGamesPlayedDesc: 'Пройдите 100 уровней за всё время',
+    achEndlessRunner1000: 'Марафонец',
+    achEndlessRunner1000Desc: 'Пробегите 1000 м в Бесконечном режиме',
+    achEndlessRunner5000: 'Стальной Легионер',
+    achEndlessRunner5000Desc: 'Пробегите 5000 м в Бесконечном режиме',
 
     // Скины легиона
     'skins.cyan': 'Кибер-Бирюза',
@@ -506,6 +510,10 @@ export const translations = {
     achCampaign50Desc: 'Complete all 50 campaign levels',
     achGamesPlayed: 'Run Veteran',
     achGamesPlayedDesc: 'Complete 100 levels in total',
+    achEndlessRunner1000: 'Marathoner',
+    achEndlessRunner1000Desc: 'Run 1000 m in Endless mode',
+    achEndlessRunner5000: 'Steel Legionnaire',
+    achEndlessRunner5000Desc: 'Run 5000 m in Endless mode',
 
     // Legion skins
     'skins.cyan': 'Cyber Cyan',
