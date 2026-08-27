@@ -247,7 +247,7 @@ export class CrowdManager {
     soundEngine.playSound('adrenaline_activate');
     // Прогресс достижения adrenaline_god — единая точка активации (кнопка + адреналиновые ворота).
     stateManager.recordAdrenalineActivation();
-    eventBus.emit('adrenalineTriggered', { duration: totalDuration });
+    eventBus.emit('adrenalineTriggered', { duration: totalDuration, x: this.leaderX, z: this.leaderZ });
   }
 
   /** Лечит всех живых мобов на `amount` HP (не выше их максимума). Возвращает число вылеченных. */

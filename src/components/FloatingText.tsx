@@ -127,6 +127,18 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       }
     );
 
+    // Активация гипер-режима (адреналин): центральный всплывающий баннер «ГИПЕР!».
+    // Событие adrenalineTriggered эмитится и при сборе сферы, и при нажатии кнопки —
+    // единый текстовый фидбек для обоих путей активации (раньше только звук).
+    const unsubAdrenalineTriggered = eventBus.on('adrenalineTriggered', (data: { duration?: number; x?: number; z?: number }) => {
+      spawn(
+        data.x ?? 0,
+        data.z ?? 0,
+        i18n.t('bonusHyper', 'ГИПЕР!') + ' +⚡',
+        'text-yellow-300 font-extrabold text-xl drop-shadow-[0_0_12px_rgba(250,204,21,0.9)]'
+      );
+    });
+
     return () => {
       unsubGate();
       unsubMobsKilled();
@@ -134,6 +146,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubObstacle();
       unsubNearMiss();
       unsubBonus();
+      unsubAdrenalineTriggered();
     };
   }, [engine]);
 

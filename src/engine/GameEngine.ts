@@ -185,6 +185,7 @@ export class GameEngine {
   private unsubNearMiss: (() => void) | null = null;
   private unsubNearMissMilestone: (() => void) | null = null;
   private unsubComboMilestone: (() => void) | null = null;
+  private unsubAdrenaline: (() => void) | null = null;
   private unsubSettings: (() => void) | null = null;
 
   // ==== Адаптивное разрешение (watchdog) ====
@@ -345,6 +346,20 @@ export class GameEngine {
     // Живое применение настроек графики: смена качества/теней в настройках сразу
     // влияет на рендер, без перезапуска забега.
     this.unsubSettings = eventBus.on('settingsChanged', () => this.applyGraphicsSettings());
+
+    // VFX при активации гипер-режима (адреналин): событие adrenalineTriggered
+    // эмитится CrowdManager.activateHyperMode, но раньше никем не потреблялось —
+    // вход в гипер-режим был заметен только по звуку. Теперь: световой столб +
+    // ударная волна + лёгкая тряска экрана у позиции лидера толпы.
+    // Цвет 0xfacc15 — жёлтый гипер-режим (совпадает с BONUS_COLORS.adrenaline).
+    this.unsubAdrenaline = eventBus.on('adrenalineTriggered', (data: { duration?: number }) => {
+      const x = this.crowd.leaderX;
+      const z = this.crowd.leaderZ;
+      this.particles.emitLightPillar(x, z, 36, 0xfacc15);
+      this.particles.emitShockwave(x, z, 0xfacc15);
+      this.particles.emitBurst(x, 1.4, z, 24, 0xfde047, 5.0);
+      eventBus.emit('screenShake', { intensity: 0.3 });
+    });
 
     this.animate = this.animate.bind(this);
   }
@@ -2375,6 +2390,7 @@ export class GameEngine {
     this.unsubNearMiss?.();
     this.unsubNearMissMilestone?.();
     this.unsubComboMilestone?.();
+    this.unsubAdrenaline?.();
     this.unsubSettings?.();
 
     this.crowd.dispose();
