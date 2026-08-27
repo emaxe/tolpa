@@ -25,6 +25,12 @@ export class BossManager {
   public isDefeated: boolean = false;
   private bossArenaZ: number = 0;
   private retaliationTimer: number = 0;
+  // Телеграф возмездия: за ~0.45с до удара босс подаёт визуальный сигнал (янтарное
+  // кольцо-«зона поражения»), чтобы игрок успел перестроить толпу в безопасную
+  // формацию. Флаг гейтит однократный эмит VFX внутри окна предупреждения.
+  private retaliationTelegraphed: boolean = false;
+  // Окно предупреждения перед ударом возмездия (сек).
+  private static readonly RETALIATION_TELEGRAPH_TIME = 0.45;
   // Накопитель тиков урона для атаки "minions" (рой мелких тварей грызёт толпу
   // в течение всей длительности атаки, а не одним ударом как slam/laser).
   private minionTickAccum: number = 0;
@@ -60,6 +66,7 @@ export class BossManager {
     this.currentAttackIndex = this.selectNextAttackIndex();
     this.lastAttackIndex = -1;
     this.retaliationTimer = 1.0;
+    this.retaliationTelegraphed = false;
     this.bossLevel = level;
     this.attackInterval = this.computeAttackInterval(level);
     // Грейс-пауза перед первой атакой: даёт игроку время перестроить толпу
@@ -183,8 +190,16 @@ export class BossManager {
       // Boss retaliation — было "8% шанс за кадр" (~4.8 смертей/сек на 60 FPS без единого
       // предупреждения). Теперь фиксированный ритм с небольшой тряской-телеграфом.
       this.retaliationTimer -= dt;
+      // Телеграф: за ~0.45с до удара босс подаёт янтарное кольцо-«зону поражения»,
+      // чтобы игрок успел перестроить толпу в безопасную формацию (phalanx/circle).
+      if (this.retaliationTimer <= BossManager.RETALIATION_TELEGRAPH_TIME && !this.retaliationTelegraphed) {
+        this.retaliationTelegraphed = true;
+        this.particles.emitShockwave(0, this.bossArenaZ - 4.5, 0xf59e0b);
+        this.particles.emitBurst(0, 1.0, this.bossArenaZ - 4.0, 12, 0xf59e0b, 2.5, 0.5);
+      }
       if (this.retaliationTimer <= 0) {
         this.retaliationTimer = 1.4;
+        this.retaliationTelegraphed = false;
         eventBus.emit('screenShake', { intensity: 0.25 });
         crowd.killMobs(1 + Math.floor(aliveMobs.length * 0.02), 'boss');
       }
@@ -403,6 +418,7 @@ export class BossManager {
     this.isShielded = false;
     this.bossData = null;
     this.isDefeated = false;
+    this.retaliationTelegraphed = false;
     this.isCoolingDown = false;
     this.attackCooldown = 0;
     this.currentAttackIndex = 0;
