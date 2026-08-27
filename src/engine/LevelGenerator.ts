@@ -1547,4 +1547,17 @@ export class LevelGenerator {
 
     return { gates, walls: rawWalls, bonuses, obstacles, coins, length };
   }
+
+  /** Базовая скорость для уровня кампании (рост 18 -> 27 к L50, кап 30). */
+  public static getBaseSpeed(levelNum: number): number {
+    const clampedLevel = Math.max(1, levelNum);
+    const speed = 18.0 + (clampedLevel - 1) * (9.0 / 49.0);
+    return Math.min(30.0, Math.round(speed * 100) / 100);
+  }
+
+  /** Базовая скорость для сегмента бесконечного режима (+0.18 м/с за сегмент, кап 30). */
+  public static getEndlessBaseSpeed(segmentIndex: number): number {
+    const s = Math.max(0, segmentIndex);
+    return Math.min(30.0, Math.round((18.0 + s * 0.18) * 100) / 100);
+  }
 }

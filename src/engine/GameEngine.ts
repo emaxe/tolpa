@@ -603,6 +603,7 @@ export class GameEngine {
     stateManager.beginRun();
 
     const levelConfig = LevelGenerator.generateLevel(levelNum);
+    this.baseSpeed = LevelGenerator.getBaseSpeed(levelNum);
     this.currentLevel = levelConfig;
 
     this.setupBiomeEnvironment(levelConfig.biome);
@@ -662,6 +663,7 @@ export class GameEngine {
     this.isEndless = true;
     this.onLevelLoseCb = onLose;
     this.endlessSegmentIndex = 0;
+    this.baseSpeed = LevelGenerator.getEndlessBaseSpeed(0);
     this.currentEndlessZ = 0;
     this.currentLevel = null;
     this.runEnded = false;
@@ -2258,6 +2260,7 @@ export class GameEngine {
     // по мере приближения игрока к концу текущего.
     if (this.crowd.leaderZ > this.currentEndlessZ - 150) {
       this.endlessSegmentIndex++;
+      this.baseSpeed = LevelGenerator.getEndlessBaseSpeed(this.endlessSegmentIndex);
       // На границе биома (каждые ~10 сегментов) перестраиваем окружение и трассу
       // без затрагивания геймплейных менеджеров (gates/obstacles/crowd).
       const segBiome = LevelGenerator.getEndlessBiome(this.endlessSegmentIndex);
