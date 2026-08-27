@@ -37,6 +37,21 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       }, 850);
     };
 
+    // UI-центрированный спавн: для событий без 3D-координат (магазин, скин, финиш).
+    // Использует экранные координаты центра вместо 3D-проекции (0,0) которая
+    // инвертируется при камере на большом Z (финиш) или вне игровой сцены (меню).
+    const spawnScreen = (text: string, colorClass: string, yOffset: number = 0) => {
+      const id = idRef.current++;
+      setItems((prev) => [...prev.slice(-24), {
+        id, text, colorClass,
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2 + yOffset,
+      }]);
+      window.setTimeout(() => {
+        setItems((prev) => prev.filter((it) => it.id !== id));
+      }, 850);
+    };
+
     const unsubGate = eventBus.on(
       'gatePassed',
       (data: { netChange?: number; comboStreak?: number; x?: number; z?: number }) => {
@@ -143,20 +158,20 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
     // Финишная прямая: центральный всплывающий баннер при пересечении линии.
     // Событие finishLineCrossed эмитится FinishLineManager, но раньше никем не потреблялось.
     const unsubFinishLine = eventBus.on('finishLineCrossed', () => {
-      spawn(0, 0, i18n.t('finishLineCrossed', 'ФИНИШ!'), 'text-cyan-300 font-extrabold text-2xl drop-shadow-[0_0_14px_rgba(56,189,248,0.9)]');
+      spawnScreen(i18n.t('finishLineCrossed', 'ФИНИШ!'), 'text-cyan-300 font-extrabold text-2xl drop-shadow-[0_0_14px_rgba(56,189,248,0.9)]', -60);
     });
 
     // Покупка апгрейда: всплывающая плашка в центре экрана.
     // Событие upgradePurchased эмитится StateManager, но раньше никем не потреблялось.
     const unsubUpgrade = eventBus.on('upgradePurchased', (data: { upgradeKey?: string; level?: number }) => {
-      spawn(0, 0, i18n.t('upgradePurchased', 'УЛУЧШЕНО!') + ' Lv.' + (data?.level ?? 1), 'text-emerald-300 font-bold drop-shadow-[0_0_8px_rgba(110,231,183,0.8)]');
+      spawnScreen(i18n.t('upgradePurchased', 'УЛУЧШЕНО!') + ' Lv.' + (data?.level ?? 1), 'text-emerald-300 font-bold drop-shadow-[0_0_8px_rgba(110,231,183,0.8)]');
     });
 
     // Разблокировка скина: всплывающая плашка.
     // Событие skinUnlocked эмитится StateManager, но раньше никем не потреблялось.
     const unsubSkin = eventBus.on('skinUnlocked', () => {
       soundEngine.playSound('upgrade_buy');
-      spawn(0, 0, i18n.t('skinUnlocked', 'НОВЫЙ СКИН!'), 'text-fuchsia-300 font-extrabold text-xl drop-shadow-[0_0_10px_rgba(232,121,249,0.9)]');
+      spawnScreen(i18n.t('skinUnlocked', 'НОВЫЙ СКИН!'), 'text-fuchsia-300 font-extrabold text-xl drop-shadow-[0_0_10px_rgba(232,121,249,0.9)]');
     });
 
     // Урон по боссу: всплывающие числа урона над боссом.
