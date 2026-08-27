@@ -409,9 +409,9 @@ describe('Level Generator Enhanced Tests', () => {
     }
   });
 
-  it('ворота используют только + и ÷ (add/divide), все значения целые и >= 2 для ÷', () => {
+  it('ворота используют только +, ÷ и mystery (add/divide/mystery), все значения целые и >= 2 для ÷', () => {
     // ВНИМАНИЕ: multiply (×N) сознательно удалён из игры. Этот тест защищает от его возврата.
-    const allowed = ['add', 'divide'];
+    const allowed = ['add', 'divide', 'mystery'];
     for (let lvl = 1; lvl <= 50; lvl++) {
       const config = LevelGenerator.generateLevel(lvl);
       for (const g of config.gates) {

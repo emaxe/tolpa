@@ -292,6 +292,28 @@ export class GateManager {
       if (isFirstTrigger && netChange > 0) soundEngine.playSound('gate_pass_multiplier');
       if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 35 : 6, 0x00f0ff, netChange > 0 ? 6.0 : 2.0);
       isPositive = true;
+    } else if (op === 'mystery') {
+      // Мистика: 60% — бонус (+N мобов), 40% — штраф (÷N по шагу). Риск/награда.
+      // One-shot guard: эффект применяется один раз за ворота (isFirstTrigger).
+      const isLucky = Math.random() < 0.6;
+      if (isLucky) {
+        let base = 0;
+        if (isFirstTrigger) {
+          base = crowd.addMobsNear(val, gateX, gateZ);
+        }
+        if (base > 0) {
+          const bonus = Math.floor(base * (comboFactor - 1));
+          netChange = bonus > 0 ? base + crowd.addMobsNear(bonus, gateX, gateZ) : base;
+        }
+        if (isFirstTrigger && netChange > 0) soundEngine.playSound('gate_pass_positive');
+        if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 25 : 6, 0xa855f7, netChange > 0 ? 5.0 : 2.0);
+        isPositive = true;
+      } else {
+        netChange = -crowd.divideMobsByStep(wing, val, 'gate', gateVisual.divideStep);
+        if (isFirstTrigger) soundEngine.playSound('gate_pass_negative');
+        if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 20, 0xef4444, 4.0);
+        if (isFirstTrigger) eventBus.emit('screenShake', { intensity: 0.3 });
+      }
     } else if (op === 'divide') {
       // Хроно-Маг: если Маг прошёл ворота (в любом ряду), трансмутируем ÷N в прибавку.
       // One-shot guard: трансмутация срабатывает ровно один раз за проход ворот.

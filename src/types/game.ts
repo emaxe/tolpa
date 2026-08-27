@@ -4,7 +4,7 @@ export type FormationType = 'wedge' | 'wide' | 'circle' | 'arrow' | 'oval' | 'di
 
 // Ворота применяют только позитивные операции к толпе (целые числа).
 // subtract (−N) вынесен в отдельные СТЕНЫ (см. WallData) со счётчиком.
-export type GateOp = 'add' | 'multiply' | 'divide';
+export type GateOp = 'add' | 'multiply' | 'divide' | 'mystery';
 
 // Тип движения ворот: могут стоять, ездить влево/вправо, подниматься/опускаться,
 // вращаться — или комбинироваться.

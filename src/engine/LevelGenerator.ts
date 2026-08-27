@@ -137,10 +137,15 @@ export class LevelGenerator {
         value = addVal;
       } else {
         // add/divide поровну, с лёгким перекосом в add на ранних уровнях.
+        // mystery — редкая операция риска/награды (~12%).
         const addChance = levelNum < 5 ? 0.65 : 0.5;
-        if (rng() < addChance) {
+        const roll = rng();
+        if (roll < addChance) {
           op = 'add';
           value = addVal;
+        } else if (roll < addChance + 0.12) {
+          op = 'mystery';
+          value = 8 + Math.floor(rng() * 6);
         } else {
           op = 'divide';
           value = divVal;
@@ -1350,9 +1355,14 @@ export class LevelGenerator {
       let value: number;
 
       // add/divide поровну — ворота только + и ÷ (multiply сознательно убран).
-      if (rng() < 0.5) {
+      // mystery — редкая операция риска/награды (~12%).
+      const roll = rng();
+      if (roll < 0.5) {
         op = 'add';
         value = 10 + Math.floor(rng() * 8);
+      } else if (roll < 0.62) {
+        op = 'mystery';
+        value = 8 + Math.floor(rng() * 6);
       } else {
         op = 'divide';
         value = 2 + Math.floor(rng() * 2);

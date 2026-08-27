@@ -16,10 +16,14 @@ export function createGateTexture(
 
   const isPositive = op === 'add' || op === 'multiply';
   const isDanger = op === 'divide';
+  const isMystery = op === 'mystery';
 
   // Base background gradient
   const bgGrad = ctx.createLinearGradient(0, 0, 0, 512);
-  if (isPositive) {
+  if (isMystery) {
+    bgGrad.addColorStop(0, 'rgba(168, 85, 247, 0.85)'); // Purple
+    bgGrad.addColorStop(1, 'rgba(250, 204, 21, 0.75)'); // Gold
+  } else if (isPositive) {
     bgGrad.addColorStop(0, 'rgba(6, 182, 212, 0.85)'); // Cyan / Blue
     bgGrad.addColorStop(1, 'rgba(16, 185, 129, 0.75)'); // Emerald
   } else {
@@ -32,7 +36,7 @@ export function createGateTexture(
 
   // Outer glowing border
   ctx.lineWidth = 24;
-  ctx.strokeStyle = isPositive ? '#67e8f9' : '#fca5a5';
+  ctx.strokeStyle = isMystery ? '#c084fc' : (isPositive ? '#67e8f9' : '#fca5a5');
   ctx.strokeRect(12, 12, 488, 488);
 
   // Tech grid lines
@@ -51,10 +55,11 @@ export function createGateTexture(
   ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
   ctx.shadowBlur = 12;
 
-  // Math gate: +N, ×N, ÷N (все целые)
+  // Math gate: +N, ×N, ÷N (все целые); mystery — «?» с риском/наградой.
   let symbol = '+';
   if (op === 'multiply') symbol = '×';
   if (op === 'divide') symbol = '÷';
+  if (op === 'mystery') symbol = '?';
 
   ctx.font = '900 140px Orbitron, sans-serif';
   ctx.lineWidth = 12;
@@ -66,9 +71,9 @@ export function createGateTexture(
   ctx.font = 'bold 44px Orbitron, sans-serif';
   ctx.lineWidth = 8;
   ctx.strokeStyle = 'rgba(15, 23, 42, 0.85)';
-  ctx.strokeText(isPositive ? 'БОНУС' : 'КВОТА', 256, 380);
+  ctx.strokeText(isMystery ? 'МИСТИКА' : (isPositive ? 'БОНУС' : 'КВОТА'), 256, 380);
   ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-  ctx.fillText(isPositive ? 'БОНУС' : 'КВОТА', 256, 380);
+  ctx.fillText(isMystery ? 'МИСТИКА' : (isPositive ? 'БОНУС' : 'КВОТА'), 256, 380);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;
