@@ -2260,7 +2260,7 @@ export class GameEngine {
       this.endlessSegmentIndex++;
       // На границе биома (каждые ~10 сегментов) перестраиваем окружение и трассу
       // без затрагивания геймплейных менеджеров (gates/obstacles/crowd).
-      const segBiome = LevelGenerator.getBiomeForLevel(this.endlessSegmentIndex);
+      const segBiome = LevelGenerator.getEndlessBiome(this.endlessSegmentIndex);
       const biomeChanged = segBiome !== this.endlessBiome;
       if (biomeChanged) {
         this.endlessBiome = segBiome;

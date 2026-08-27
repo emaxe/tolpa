@@ -64,6 +64,25 @@ export interface PatternContext {
 }
 
 export class LevelGenerator {
+  /** Цикл биомов для бесконечного режима: после сегмента 40 кампанийный
+   *  getBiomeForLevel навсегда застревает на celestial_core, поэтому в Endless
+   *  используем строгий циклический обход всех 5 биомов, чтобы вариативность
+   *  окружения не умирала на длинных забегах. */
+  private static readonly ENDLESS_BIOME_CYCLE: BiomeType[] = [
+    'cyber_city',
+    'magma_citadel',
+    'crystal_cavern',
+    'quantum_void',
+    'celestial_core',
+  ];
+
+  /** Биом для бесконечного сегмента: строго по кругу через все 5 биомов.
+   *  segmentIndex 0 → cyber_city (совпадает с инициализацией endlessBiome). */
+  public static getEndlessBiome(segmentIndex: number): BiomeType {
+    const i = Math.max(0, segmentIndex) % LevelGenerator.ENDLESS_BIOME_CYCLE.length;
+    return LevelGenerator.ENDLESS_BIOME_CYCLE[i];
+  }
+
   public static getBiomeForLevel(levelNum: number): BiomeType {
     if (levelNum <= 10) return 'cyber_city';
     if (levelNum <= 20) return 'magma_citadel';
