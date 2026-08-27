@@ -139,6 +139,24 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       );
     });
 
+    // Финишная прямая: центральный всплывающий баннер при пересечении линии.
+    // Событие finishLineCrossed эмитится FinishLineManager, но раньше никем не потреблялось.
+    const unsubFinishLine = eventBus.on('finishLineCrossed', () => {
+      spawn(0, 0, i18n.t('finishLineCrossed', 'ФИНИШ!'), 'text-cyan-300 font-extrabold text-2xl drop-shadow-[0_0_14px_rgba(56,189,248,0.9)]');
+    });
+
+    // Покупка апгрейда: всплывающая плашка в центре экрана.
+    // Событие upgradePurchased эмитится StateManager, но раньше никем не потреблялось.
+    const unsubUpgrade = eventBus.on('upgradePurchased', (data: { upgradeKey?: string; level?: number }) => {
+      spawn(0, 0, i18n.t('upgradePurchased', 'УЛУЧШЕНО!') + ' Lv.' + (data?.level ?? 1), 'text-emerald-300 font-bold drop-shadow-[0_0_8px_rgba(110,231,183,0.8)]');
+    });
+
+    // Разблокировка скина: всплывающая плашка.
+    // Событие skinUnlocked эмитится StateManager, но раньше никем не потреблялось.
+    const unsubSkin = eventBus.on('skinUnlocked', () => {
+      spawn(0, 0, i18n.t('skinUnlocked', 'НОВЫЙ СКИН!'), 'text-fuchsia-300 font-extrabold text-xl drop-shadow-[0_0_10px_rgba(232,121,249,0.9)]');
+    });
+
     return () => {
       unsubGate();
       unsubMobsKilled();
@@ -147,6 +165,9 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubNearMiss();
       unsubBonus();
       unsubAdrenalineTriggered();
+      unsubFinishLine();
+      unsubUpgrade();
+      unsubSkin();
     };
   }, [engine]);
 

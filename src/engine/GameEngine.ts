@@ -189,6 +189,7 @@ export class GameEngine {
   private unsubBonusCollected: (() => void) | null = null;
   private unsubObstacleSmashed: (() => void) | null = null;
   private unsubLevelCompleted: (() => void) | null = null;
+  private unsubFinishLine: (() => void) | null = null;
   private unsubSettings: (() => void) | null = null;
 
   // ==== Адаптивное разрешение (watchdog) ====
@@ -390,6 +391,19 @@ export class GameEngine {
       this.particles.emitConfetti(x, 2.0, z, 30);
       soundEngine.playCrowdCheer(0.9);
       eventBus.emit('screenShake', { intensity: 0.25 });
+    });
+
+    // Финишная прямая: VFX-салют при пересечении линии толпой.
+    // Событие finishLineCrossed эмитится FinishLineManager, но раньше никем не потреблялось —
+    // игрок пересекал финиш без визуального отклика (только стены afterwards).
+    this.unsubFinishLine = eventBus.on('finishLineCrossed', () => {
+      const x = this.crowd.leaderX;
+      const z = this.crowd.leaderZ;
+      this.particles.emitLightPillar(x, z, 40, 0x00f0ff);
+      this.particles.emitShockwave(x, z, 0x00f0ff);
+      this.particles.emitConfetti(x, 2.5, z, 25);
+      soundEngine.playCrowdCheer(1.0);
+      eventBus.emit('screenShake', { intensity: 0.15 });
     });
 
     this.animate = this.animate.bind(this);
@@ -2425,6 +2439,7 @@ export class GameEngine {
     this.unsubBonusCollected?.();
     this.unsubObstacleSmashed?.();
     this.unsubLevelCompleted?.();
+    this.unsubFinishLine?.();
     this.unsubSettings?.();
 
     this.crowd.dispose();
