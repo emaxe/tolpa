@@ -129,7 +129,11 @@ export class WallManager {
       this.throughScratch.length = 0;
       for (const mob of aliveMobs) {
         if (wv.processedMobs.has(mob.id)) continue;
-        if (mob.z < wall.z - 0.5) continue;
+        // Детект пересечения плоскости Z в текущем кадре (+Z направление движения),
+        // а не статической позиции: иначе при смещении толпы назад (боковой обход
+        // стены) условие повторно срабатывает и стена «в спину» убивает выживших.
+        const crossed = mob.prevZ < wall.z && mob.z >= wall.z;
+        if (!crossed) continue;
         if (Math.abs(mob.x - wall.x) > halfW + 0.4) continue;
         wv.processedMobs.add(mob.id);
         this.throughScratch.push(mob);
