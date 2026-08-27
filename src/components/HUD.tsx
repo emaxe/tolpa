@@ -88,6 +88,7 @@ export const HUD: React.FC<HUDProps> = ({
     comboMilestone: { key: 'comboMilestone', cls: 'border-amber-500 text-amber-600' },
     achievementReady: { key: 'achievementReady', cls: 'border-amber-400 text-amber-600' },
     finishLineCrossed: { key: 'finishLineCrossed', cls: 'border-cyan-400 text-cyan-600' },
+    bossDefeated: { key: 'bossDefeated', cls: 'border-yellow-400 text-yellow-600' },
   };
 
   useEffect(() => {
@@ -97,6 +98,7 @@ export const HUD: React.FC<HUDProps> = ({
 
     const unsubBossDefeat = eventBus.on('bossDefeated', () => {
       setBossInfo(null);
+      setEventAlert({ type: 'bossDefeated', key: Date.now() });
     });
 
     const unsubMobsKilled = eventBus.on('mobsKilled', () => {

@@ -190,6 +190,7 @@ export class GameEngine {
   private unsubObstacleSmashed: (() => void) | null = null;
   private unsubLevelCompleted: (() => void) | null = null;
   private unsubFinishLine: (() => void) | null = null;
+  private unsubBossDefeated: (() => void) | null = null;
   private unsubSettings: (() => void) | null = null;
 
   // ==== Адаптивное разрешение (watchdog) ====
@@ -404,6 +405,22 @@ export class GameEngine {
       this.particles.emitConfetti(x, 2.5, z, 25);
       soundEngine.playCrowdCheer(1.0);
       eventBus.emit('screenShake', { intensity: 0.15 });
+    });
+
+    // Победа над боссом: праздничный VFX-салют. Событие bossDefeated эмитится
+    // BossManager, но в GameEngine не имело VFX-подписки — только HUD убирал бар.
+    this.unsubBossDefeated = eventBus.on('bossDefeated', (data: { boss?: { x?: number; z?: number } }) => {
+      const bx = data?.boss?.x ?? this.crowd.leaderX;
+      const bz = data?.boss?.z ?? this.crowd.leaderZ;
+      this.particles.emitLightPillar(bx, bz, 50, 0xff4444);
+      this.particles.emitShockwave(bx, bz, 0xff6600);
+      this.particles.emitConfetti(bx, 2.5, bz, 40);
+      soundEngine.playSound('boss_defeat');
+      soundEngine.playCrowdCheer(1.2);
+      eventBus.emit('screenShake', { intensity: 0.5 });
+      // Возврат фоновой музыки биома после босс-трек
+      const lvl = this.currentLevel;
+      if (lvl) soundEngine.playMusic(this.getMusicThemeForLevel(lvl.levelNumber, lvl.biome));
     });
 
     this.animate = this.animate.bind(this);
@@ -2440,6 +2457,7 @@ export class GameEngine {
     this.unsubObstacleSmashed?.();
     this.unsubLevelCompleted?.();
     this.unsubFinishLine?.();
+    this.unsubBossDefeated?.();
     this.unsubSettings?.();
 
     this.crowd.dispose();
