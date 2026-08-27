@@ -186,6 +186,9 @@ export class GameEngine {
   private unsubNearMissMilestone: (() => void) | null = null;
   private unsubComboMilestone: (() => void) | null = null;
   private unsubAdrenaline: (() => void) | null = null;
+  private unsubBonusCollected: (() => void) | null = null;
+  private unsubObstacleSmashed: (() => void) | null = null;
+  private unsubLevelCompleted: (() => void) | null = null;
   private unsubSettings: (() => void) | null = null;
 
   // ==== Адаптивное разрешение (watchdog) ====
@@ -359,6 +362,34 @@ export class GameEngine {
       this.particles.emitShockwave(x, z, 0xfacc15);
       this.particles.emitBurst(x, 1.4, z, 24, 0xfde047, 5.0);
       eventBus.emit('screenShake', { intensity: 0.3 });
+    });
+
+    // VFX при сборе бонуса: вспышка частиц в цвет типа бонуса.
+    // bonusCollected эмитится BonusManager, но раньше не имел слушателя —
+    // подбор бонуса был заметен только по HUD. Теперь: короткий burst у позиции.
+    this.unsubBonusCollected = eventBus.on('bonusCollected', (data: { type?: string; value?: number; x?: number; z?: number }) => {
+      const colors: Record<string, number> = { coins: 0xfbbf24, heal: 0x22c55e, score: 0x00f0ff, adrenaline: 0xfacc15 };
+      const color = colors[data?.type ?? ''] ?? 0xfde047;
+      this.particles.emitBurst(data.x ?? this.crowd.leaderX, 1.0, data.z ?? this.crowd.leaderZ, 14, color, 3.0);
+    });
+
+    // VFX при разрушении препятствия: burst искр + лёгкая тряска.
+    // obstacleSmashed эмитится WallManager/ObstacleManager, но не имел слушателя.
+    this.unsubObstacleSmashed = eventBus.on('obstacleSmashed', (data: { type?: string; x?: number; z?: number }) => {
+      this.particles.emitBurst(data.x ?? this.crowd.leaderX, 0.8, data.z ?? this.crowd.leaderZ, 16, 0xff6b6b, 3.5);
+      eventBus.emit('screenShake', { intensity: 0.1 });
+    });
+
+    // Праздничный VFX при завершении уровня: световой столб + ударная волна +
+    // крик толпы. levelCompleted эмитится StateManager, но не имел слушателя.
+    this.unsubLevelCompleted = eventBus.on('levelCompleted', (data: { levelNum?: number; stars?: number; crowdCount?: number }) => {
+      const x = this.crowd.leaderX;
+      const z = this.crowd.leaderZ;
+      this.particles.emitLightPillar(x, z, 36, 0xfacc15);
+      this.particles.emitShockwave(x, z, 0xfacc15);
+      this.particles.emitConfetti(x, 2.0, z, 30);
+      soundEngine.playCrowdCheer(0.9);
+      eventBus.emit('screenShake', { intensity: 0.25 });
     });
 
     this.animate = this.animate.bind(this);
@@ -2391,6 +2422,9 @@ export class GameEngine {
     this.unsubNearMissMilestone?.();
     this.unsubComboMilestone?.();
     this.unsubAdrenaline?.();
+    this.unsubBonusCollected?.();
+    this.unsubObstacleSmashed?.();
+    this.unsubLevelCompleted?.();
     this.unsubSettings?.();
 
     this.crowd.dispose();
