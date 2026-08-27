@@ -101,6 +101,8 @@ export class GameEngine {
   // Объёмные световые лучи (additive конусы) — покачиваются в update.
   private beamMeshes: THREE.Mesh[] = [];
   private beamDummy: THREE.Object3D = new THREE.Object3D();
+  // Предаллоцированный вектор для projectToScreen — 0-GC hot-path (ворота, монеты, near-miss).
+  private projectScratch: THREE.Vector3 = new THREE.Vector3();
   // Флаги (покачивание sin) и дроны (дрейф по X) за дальним краем.
   private flagMeshes: THREE.Mesh[] = [];
   private droneMeshes: THREE.Mesh[] = [];
@@ -2448,7 +2450,7 @@ export class GameEngine {
 
   /** Проецирует мировую точку в пиксели контейнера — используется для флоатинг-текста в HUD. */
   public projectToScreen(x: number, y: number, z: number): { x: number; y: number } {
-    const v = new THREE.Vector3(x, y, z).project(this.camera);
+    const v = this.projectScratch.set(x, y, z).project(this.camera);
     const w = this.container.clientWidth;
     const h = this.container.clientHeight;
     return { x: (v.x * 0.5 + 0.5) * w, y: (-v.y * 0.5 + 0.5) * h };

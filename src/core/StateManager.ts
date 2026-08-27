@@ -759,6 +759,11 @@ export class StateManager {
     if (r.maxCombo > this.state.stats.highestCombo) this.state.stats.highestCombo = r.maxCombo;
     if (r.maxCrowd > this.state.stats.maxCrowdReached) this.state.stats.maxCrowdReached = r.maxCrowd;
 
+    // Счётчик сыгранных игр: раньше инкрементировался только в completeLevel() (победа
+    // кампании), но поражения и забеги Endless завершаются через commitRun() без вызова
+    // completeLevel() — счётчик не рос, достижение "100 игр" было невыполнимо (fix).
+    this.state.stats.gamesPlayed += 1;
+
     this.updateAchievementProgressSilent('rich_boy', this.state.stats.totalCoinsEarned);
     this.updateAchievementProgressSilent('combo_10', this.state.stats.highestCombo);
     // Привязка lifetime-статистики к достижениям (dead-but-supported).
@@ -776,6 +781,9 @@ export class StateManager {
     // поэтому прогресс legion_50/150 привязываем к lifetime-максимуму толпы.
     this.updateAchievementProgressSilent('legion_50', this.state.stats.maxCrowdReached);
     this.updateAchievementProgressSilent('legion_150', this.state.stats.maxCrowdReached);
+    // Достижение "100 игр" привязано к gamesPlayed, который инкрементируется здесь
+    // (commitRun) — охватывает все завершённые забеги: победы, поражения, Endless.
+    this.updateAchievementProgressSilent('games_played', this.state.stats.gamesPlayed);
 
     this.notify();
     this.flushSave();
@@ -898,8 +906,7 @@ export class StateManager {
   // Level Progression
   public completeLevel(levelNum: number, score: number, crowdCount: number, stars: number): void {
     this.state.stats.levelsCompleted += 1;
-    this.state.stats.gamesPlayed += 1;
-    this.updateAchievementProgress('games_played', this.state.stats.gamesPlayed);
+    // gamesPlayed инкрементируется в commitRun() (охватывает все забеги, не только победы).
 
     // High score
     if (!this.state.levelHighScores[levelNum] || score > this.state.levelHighScores[levelNum]) {

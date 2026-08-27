@@ -290,7 +290,9 @@ export class GateManager {
       // Per-mob математика: multiplyGroup вызывается для каждого нового моба/группы.
       // Копии спавнятся на z-1.0 позади ворот и не триггерят повторно.
       const base = crowd.multiplyGroup(wing, val, gateX, gateZ);
-      if (base > 0) {
+      // Комбо-бонус — награда за серию, начисляется ОДИН раз за ворота (isFirstTrigger),
+      // не на каждый кадр пересечения растянутой формации (fix double-counting).
+      if (isFirstTrigger && base > 0) {
         const bonus = Math.floor(base * (comboFactor - 1));
         netChange = bonus > 0 ? base + crowd.addMobsNear(bonus, gateX, gateZ) : base;
       }
