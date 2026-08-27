@@ -348,10 +348,13 @@ export const HUD: React.FC<HUDProps> = ({
       )}
 
       {/* Boss Health Bar if Active */}
-      {bossInfo && (
-        <div className="w-full max-w-md mx-auto bg-white/90 border-2 border-red-500/80 rounded-xl p-3 shadow-2xl shadow-red-950/80 pointer-events-auto animate-pulse">
+      {bossInfo && (() => {
+        const hpPct = bossInfo.maxHp > 0 ? bossInfo.hp / bossInfo.maxHp : 0;
+        const critical = hpPct > 0 && hpPct < 0.25;
+        return (
+        <div className={`w-full max-w-md mx-auto bg-white/90 border-2 ${critical ? 'border-red-600 animate-[pulse_0.4s_ease-in-out_infinite]' : 'border-red-500/80 animate-pulse'} rounded-xl p-3 shadow-2xl shadow-red-950/80 pointer-events-auto`}>
           <div className="flex justify-between items-center mb-1 font-orbitron text-xs">
-            <span className="text-red-400 font-bold tracking-wider flex items-center gap-1">
+            <span className={`font-bold tracking-wider flex items-center gap-1 ${critical ? 'text-red-600' : 'text-red-400'}`}>
               <Skull className="w-3.5 h-3.5" />
               {i18n.t(bossInfo.nameKey, 'BOSS')}
             </span>
@@ -361,12 +364,13 @@ export const HUD: React.FC<HUDProps> = ({
           </div>
           <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-red-900">
             <div
-              className="h-full bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400 transition-all duration-150"
-              style={{ width: `${Math.max(0, (bossInfo.hp / bossInfo.maxHp) * 100)}%` }}
+              className={`h-full ${critical ? 'bg-gradient-to-r from-red-700 via-red-500 to-red-400' : 'bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400'} transition-all duration-150`}
+              style={{ width: `${Math.max(0, hpPct * 100)}%` }}
             />
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Bottom Action Controls.
           Десктоп: широкая панель по центру низа (адреналин + 4 формации).
