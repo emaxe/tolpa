@@ -86,6 +86,7 @@ export const HUD: React.FC<HUDProps> = ({
     speed_boost: { key: 'eventSpeedBoost', cls: 'border-teal-500 text-teal-700' },
     nearMissMilestone: { key: 'nearMissMilestone', cls: 'border-fuchsia-500 text-fuchsia-600' },
     comboMilestone: { key: 'comboMilestone', cls: 'border-amber-500 text-amber-600' },
+    achievementReady: { key: 'achievementReady', cls: 'border-amber-400 text-amber-600' },
   };
 
   useEffect(() => {
@@ -122,6 +123,12 @@ export const HUD: React.FC<HUDProps> = ({
       window.setTimeout(() => setEventAlert(null), 3200);
     });
 
+    // Достижение готово к получению — центральный баннер-тост.
+    const unsubAchReady = eventBus.on('achievementReady', () => {
+      setEventAlert({ type: 'achievementReady', key: Date.now() });
+      window.setTimeout(() => setEventAlert(null), 3200);
+    });
+
     return () => {
       unsubBoss();
       unsubBossDefeat();
@@ -129,6 +136,7 @@ export const HUD: React.FC<HUDProps> = ({
       unsubEvent();
       unsubNearMissMilestone();
       unsubComboMilestone();
+      unsubAchReady();
     };
   }, []);
 

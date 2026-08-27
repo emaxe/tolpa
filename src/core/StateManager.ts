@@ -1032,10 +1032,17 @@ export class StateManager {
   private setAchievementProgress(achId: string, progressValue: number): boolean {
     const current = this.state.achievements[achId] || { progress: 0, claimed: false };
     if (progressValue > current.progress) {
+      const achDef = INITIAL_ACHIEVEMENTS.find((a) => a.id === achId);
+      // Детект первого пересечения порога: было ниже goal, стало >= goal и ещё не claimed
+      const wasBelow = achDef ? current.progress < achDef.goal : false;
       this.state.achievements[achId] = {
         ...current,
         progress: progressValue,
       };
+      // Эмит уведомления ровно один раз — при первом достижении порога
+      if (achDef && wasBelow && progressValue >= achDef.goal && !current.claimed) {
+        eventBus.emit('achievementReady', { achId, titleKey: achDef.titleKey });
+      }
       return true;
     }
     return false;
