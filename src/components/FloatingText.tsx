@@ -172,6 +172,20 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       spawnScreen(i18n.t('finishLineCrossed', 'ФИНИШ!'), 'text-cyan-300 font-extrabold text-2xl drop-shadow-[0_0_14px_rgba(56,189,248,0.9)]', -60);
     });
 
+    // Толпа достигла порога 50/100/150/200 — центральный всплывающий баннер.
+    // Ключевой момент в crowd evolution — игроку нужен фидбек, что его легион растёт.
+    const unsubCrowdMilestone = eventBus.on('crowdMilestone', (data: { count?: number; x?: number; z?: number }) => {
+      const count = data?.count ?? 50;
+      const tier = count >= 200 ? 4 : count >= 150 ? 3 : count >= 100 ? 2 : 1;
+      const text = `${i18n.t('crowdMilestone', 'ЛЕГИОН РАСТЁТ! 🛡️')} ×${count}`;
+      const cls = tier >= 3
+        ? 'text-amber-300 font-extrabold text-2xl drop-shadow-[0_0_14px_rgba(251,191,36,0.9)]'
+        : tier >= 2
+        ? 'text-emerald-300 font-extrabold text-xl drop-shadow-[0_0_12px_rgba(16,185,129,0.9)]'
+        : 'text-emerald-400 font-extrabold text-lg drop-shadow-[0_0_10px_rgba(16,185,129,0.8)]';
+      spawnScreen(text, cls, -40);
+    });
+
     // Покупка апгрейда: всплывающая плашка в центре экрана.
     // Событие upgradePurchased эмитится StateManager, но раньше никем не потреблялось.
     const unsubUpgrade = eventBus.on('upgradePurchased', (data: { upgradeKey?: string; level?: number }) => {
@@ -242,6 +256,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubBonus();
       unsubAdrenalineTriggered();
       unsubFinishLine();
+      unsubCrowdMilestone();
       unsubUpgrade();
       unsubSkin();
       unsubBossDamaged();

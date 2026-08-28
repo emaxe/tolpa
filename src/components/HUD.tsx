@@ -88,6 +88,7 @@ export const HUD: React.FC<HUDProps> = ({
     nearMissMilestone: { key: 'nearMissMilestone', cls: 'border-fuchsia-500 text-fuchsia-600' },
     comboMilestone: { key: 'comboMilestone', cls: 'border-amber-500 text-amber-600' },
     achievementReady: { key: 'achievementReady', cls: 'border-amber-400 text-amber-600' },
+    crowdMilestone: { key: 'crowdMilestone', cls: 'border-emerald-500 text-emerald-600' },
     finishLineCrossed: { key: 'finishLineCrossed', cls: 'border-cyan-400 text-cyan-600' },
     bossDefeated: { key: 'bossDefeated', cls: 'border-yellow-400 text-yellow-600' },
   };
@@ -134,6 +135,12 @@ export const HUD: React.FC<HUDProps> = ({
       window.setTimeout(() => setEventAlert(null), 3200);
     });
 
+    // Толпа достигла порога 50/100/150/200 — центральный баннер-тост.
+    const unsubCrowdMilestone = eventBus.on('crowdMilestone', (data: { count?: number }) => {
+      setEventAlert({ type: 'crowdMilestone', key: Date.now() });
+      window.setTimeout(() => setEventAlert(null), 3200);
+    });
+
     // Финишная прямая пересечена — центральный баннер-тост.
     const unsubFinishLine = eventBus.on('finishLineCrossed', () => {
       setEventAlert({ type: 'finishLineCrossed', key: Date.now() });
@@ -148,6 +155,7 @@ export const HUD: React.FC<HUDProps> = ({
       unsubNearMissMilestone();
       unsubComboMilestone();
       unsubAchReady();
+      unsubCrowdMilestone();
       unsubFinishLine();
     };
   }, []);

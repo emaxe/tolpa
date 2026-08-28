@@ -176,6 +176,10 @@ export class GameEngine {
 
   // Speed-trail particle accumulator (hyper mode / arrow formation)
   private trailAccum: number = 0;
+  // Crowd size milestone — последний пройденный порог численности толпы (0 = ни один).
+  // Эмитит crowdMilestone при пересечении 50/100/150/200 бойцов — ключевой момент в crowd evolution.
+  private lastCrowdMilestone: number = 0;
+  private static readonly CROWD_MILESTONES = [50, 100, 150, 200];
 
   // Динамические события уровня (ambush/coin_train/emp_storm/meteor_rain/speed_boost).
   // Система была "мёртвой" — события генерировались в LevelGenerator, но не исполнялись.
@@ -206,6 +210,7 @@ export class GameEngine {
   private unsubFinishLine: (() => void) | null = null;
   private unsubBossDefeated: (() => void) | null = null;
   private unsubComboBreak: (() => void) | null = null;
+  private unsubCrowdMilestone: (() => void) | null = null;
   private unsubSettings: (() => void) | null = null;
   private unsubFormation: (() => void) | null = null;
   // Haptic: троттлинг частых событий (coinCollected, bossDamaged) — не чаще 40мс.
@@ -394,6 +399,21 @@ export class GameEngine {
       this.particles.emitBurst(sx, 1.5, sz, count, 0xef4444, 4.0);
       eventBus.emit('screenShake', { intensity: streak >= 10 ? 0.3 : 0.2 });
       this.triggerHaptic([40, 30, 40]);
+    });
+
+    // Crowd size milestone: толпа достигла порога 50/100/150/200 бойцов —
+    // ключевой момент в crowd evolution. Зелёный взрыв + cheer + тряска.
+    this.unsubCrowdMilestone = eventBus.on('crowdMilestone', (data: { count?: number; x?: number; z?: number }) => {
+      const count = data?.count ?? 50;
+      const sx = data?.x ?? this.crowd.leaderX;
+      const sz = data?.z ?? this.crowd.leaderZ;
+      const tier = count >= 200 ? 4 : count >= 150 ? 3 : count >= 100 ? 2 : 1;
+      const particleCount = tier >= 3 ? 50 : tier >= 2 ? 35 : 22;
+      const color = tier >= 3 ? 0xf59e0b : tier >= 2 ? 0xfbbf24 : 0x10b981;
+      this.particles.emitBurst(sx, 1.8, sz, particleCount, color, 6.0);
+      soundEngine.playCrowdCheer(tier >= 3 ? 1.0 : tier >= 2 ? 0.8 : 0.6);
+      eventBus.emit('screenShake', { intensity: tier >= 3 ? 0.3 : 0.2 });
+      this.triggerHaptic([30, 40, 30, 40]);
     });
 
     // Живое применение настроек графики: смена качества/теней в настройках сразу
@@ -759,6 +779,7 @@ export class GameEngine {
     this.camera.fov = GameEngine.FOV_BASE;
     this.camera.updateProjectionMatrix();
     this.trackOffsetZ = 0;
+    this.lastCrowdMilestone = 0;
     stateManager.beginRun();
 
     const levelConfig = LevelGenerator.generateLevel(levelNum);
@@ -832,6 +853,7 @@ export class GameEngine {
     this.camera.fov = GameEngine.FOV_BASE;
     this.camera.updateProjectionMatrix();
     this.trackOffsetZ = 0;
+    this.lastCrowdMilestone = 0;
     stateManager.beginRun();
 
     // Стартуем с биома, соответствующего первому сегменту (getBiomeForLevel(0) = cyber_city)
@@ -2258,6 +2280,19 @@ export class GameEngine {
 
     // Адреналин заряжается сам собой (плюс бонусы за ворота из подписки в конструкторе)
     this.adrenalineCharge = Math.min(100, this.adrenalineCharge + 8 * this.crowd.getAdrenalineMultiplier() * dt);
+
+    // Crowd size milestone: проверяем после всех subsystem updates, чтобы поймать
+    // рост толпы от ворот/бонусов в одном месте. Эмитим событие при пересечении
+    // порога 50/100/150/200 — VFX consumer ниже (частицы + cheer + shake), HUD баннер.
+    const crowdNow = this.crowd.getAliveCount();
+    for (let i = 0; i < GameEngine.CROWD_MILESTONES.length; i++) {
+      const m = GameEngine.CROWD_MILESTONES[i];
+      if (crowdNow >= m && this.lastCrowdMilestone < m) {
+        this.lastCrowdMilestone = m;
+        eventBus.emit('crowdMilestone', { count: m, x: this.crowd.leaderX, z: this.crowd.leaderZ });
+        break;
+      }
+    }
   }
 
   // Анимация зрителей: прыжки (sin по Y), качание (rotation.z), махание руками
@@ -2568,6 +2603,7 @@ export class GameEngine {
     this.unsubNearMissMilestone?.();
     this.unsubComboMilestone?.();
     this.unsubComboBreak?.();
+    this.unsubCrowdMilestone?.();
     this.unsubAdrenaline?.();
     this.unsubBonusCollected?.();
     this.unsubObstacleSmashed?.();
