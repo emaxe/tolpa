@@ -194,6 +194,7 @@ export class GameEngine {
   private unsubFinishLine: (() => void) | null = null;
   private unsubBossDefeated: (() => void) | null = null;
   private unsubSettings: (() => void) | null = null;
+  private unsubFormation: (() => void) | null = null;
   // Haptic: троттлинг частых событий (coinCollected, bossDamaged) — не чаще 40мс.
   private lastHapticMs: number = 0;
 
@@ -372,6 +373,33 @@ export class GameEngine {
     // Живое применение настроек графики: смена качества/теней в настройках сразу
     // влияет на рендер, без перезапуска забега.
     this.unsubSettings = eventBus.on('settingsChanged', () => this.applyGraphicsSettings());
+
+    // VFX при смене боевого построения (formationChanged): событие эмитится
+    // CrowdManager.setFormation при переключении строя игроком (клавиши 1-6 / HUD).
+    // Раньше единственным подписчиком был GameCanvas (только обновлял React-состояние
+    // для подсветки кнопки) — смена строя происходила без 3D-отклика. Теперь: цветная
+    // ударная волна + всплеск частиц в цвет строя + тактильный отклик.
+    const FORMATION_COLORS: Record<string, number> = {
+      wedge: 0xa855f7,   // фиолетовый — Клин (защита)
+      wide: 0x38bdf8,    // голубой — Шеренга (сбор)
+      circle: 0xf59e0b,  // янтарный — Фаланга (таран)
+      arrow: 0x00f0ff,   // циан — Стрела (скорость)
+      oval: 0x10b981,    // зелёный — Овал (баланс)
+      diamond: 0xe2e8f0, // светло-серый — Ромб (броня)
+    };
+    this.unsubFormation = eventBus.on(
+      'formationChanged',
+      (data: { formation?: string; x?: number; z?: number }) => {
+        if (!data?.formation) return;
+        const x = data.x ?? this.crowd.leaderX;
+        const z = data.z ?? this.crowd.leaderZ;
+        const color = FORMATION_COLORS[data.formation] ?? 0xffffff;
+        // Радиальная ударная волна + всплеск частиц в цвет строя.
+        this.particles.emitShockwave(x, z, color);
+        this.particles.emitBurst(x, 1.0, z, 12, color, 2.5);
+        this.triggerHaptic(15);
+      }
+    );
 
     // VFX при активации гипер-режима (адреналин): событие adrenalineTriggered
     // эмитится CrowdManager.activateHyperMode, но раньше никем не потреблялось —
@@ -2496,6 +2524,7 @@ export class GameEngine {
     this.unsubFinishLine?.();
     this.unsubBossDefeated?.();
     this.unsubSettings?.();
+    this.unsubFormation?.();
 
     this.crowd.dispose();
     this.gates.clear();

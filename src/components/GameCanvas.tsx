@@ -92,8 +92,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     setComboFactor(1.0);
     setHud(engine.getHudSnapshot());
 
-    const unsubFormation = eventBus.on('formationChanged', (f: FormationType) => {
-      setFormation(f);
+    const unsubFormation = eventBus.on('formationChanged', (data: { formation: FormationType; x?: number; z?: number }) => {
+      setFormation(data.formation);
     });
 
     const unsubGate = eventBus.on('gatePassed', (data: { comboStreak?: number; comboFactor?: number }) => {

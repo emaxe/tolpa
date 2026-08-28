@@ -191,6 +191,36 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       }, 850);
     });
 
+    // 3D-бейдж при смене боевого построения: название строя всплывает над толпой.
+    // Событие formationChanged эмитится CrowdManager.setFormation, но FloatingText
+    // раньше не потреблял его — игрок видел только звук + частицы, без текстовой
+    // подсказки какой строй активирован.
+    const FORMATION_LABELS: Record<string, string> = {
+      wedge: 'КЛИН',
+      wide: 'ШЕРЕНГА',
+      circle: 'ФАЛАНГА',
+      arrow: 'СТРЕЛА',
+      oval: 'ОВАЛ',
+      diamond: 'РОМБ',
+    };
+    const FORMATION_TEXT_COLORS: Record<string, string> = {
+      wedge: 'text-purple-400 font-extrabold text-xl drop-shadow-[0_0_8px_rgba(168,85,247,0.9)]',
+      wide: 'text-sky-400 font-extrabold text-xl drop-shadow-[0_0_8px_rgba(56,189,248,0.9)]',
+      circle: 'text-amber-400 font-extrabold text-xl drop-shadow-[0_0_8px_rgba(245,158,11,0.9)]',
+      arrow: 'text-cyan-300 font-extrabold text-xl drop-shadow-[0_0_8px_rgba(0,240,255,0.9)]',
+      oval: 'text-emerald-400 font-extrabold text-xl drop-shadow-[0_0_8px_rgba(16,185,129,0.9)]',
+      diamond: 'text-slate-300 font-extrabold text-xl drop-shadow-[0_0_8px_rgba(226,232,240,0.9)]',
+    };
+    const unsubFormation = eventBus.on(
+      'formationChanged',
+      (data: { formation?: string; x?: number; z?: number }) => {
+        if (!data?.formation) return;
+        const label = FORMATION_LABELS[data.formation] ?? data.formation.toUpperCase();
+        const colorClass = FORMATION_TEXT_COLORS[data.formation] ?? 'text-white font-extrabold text-xl';
+        spawn(data.x ?? 0, data.z ?? 0, label, colorClass);
+      }
+    );
+
     return () => {
       unsubGate();
       unsubMobsKilled();
@@ -203,6 +233,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubUpgrade();
       unsubSkin();
       unsubBossDamaged();
+      unsubFormation();
     };
   }, [engine]);
 

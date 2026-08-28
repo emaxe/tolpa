@@ -234,7 +234,7 @@ export class CrowdManager {
     if (this.formation !== f) {
       this.formation = f;
       soundEngine.playSound('formation_change');
-      eventBus.emit('formationChanged', f);
+      eventBus.emit('formationChanged', { formation: f, x: this.leaderX, z: this.leaderZ });
     }
   }
 
