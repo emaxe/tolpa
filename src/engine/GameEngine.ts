@@ -132,6 +132,8 @@ export class GameEngine {
   private endlessBiome: BiomeType = 'cyber_city';
   private endlessTrackLength: number = 500;
   private endlessTrackWidth: number = DEFAULT_TRACK_WIDTH;
+  private bossInterval = 5;
+  private lastBossSegment = -1;
 
   // Controls
   private inputEnabled: boolean = true;
@@ -518,8 +520,12 @@ export class GameEngine {
       eventBus.emit('screenShake', { intensity: 0.5 });
       this.triggerHaptic([50, 30, 50]);
       // Возврат фоновой музыки биома после босс-трек
-      const lvl = this.currentLevel;
-      if (lvl) soundEngine.playMusic(this.getMusicThemeForLevel(lvl.levelNumber, lvl.biome));
+      if (this.isEndless) {
+        soundEngine.playMusic(this.getMusicThemeForLevel(this.endlessSegmentIndex, this.endlessBiome));
+      } else {
+        const lvl = this.currentLevel;
+        if (lvl) soundEngine.playMusic(this.getMusicThemeForLevel(lvl.levelNumber, lvl.biome));
+      }
     });
 
     this.animate = this.animate.bind(this);
@@ -866,6 +872,7 @@ export class GameEngine {
     this.crowd.reset(8, 0, DEFAULT_TRACK_WIDTH);
     this.particles.clear();
     this.boss.clear();
+    this.lastBossSegment = -1;
     this.finishLine.clear();
     this.resetEventState();
 
@@ -2508,6 +2515,16 @@ export class GameEngine {
       this.obstacles.prune(this.crowd.leaderZ);
       this.currentEndlessZ += seg.length;
 
+      // Спавн босса в бесконечном режиме — каждые bossInterval сегментов
+      if (seg.boss && seg.bossArenaZ !== undefined && seg.bossLevel !== undefined) {
+        this.boss.initBoss(seg.boss, seg.bossArenaZ, seg.bossLevel);
+        this.lastBossSegment = this.endlessSegmentIndex;
+      }
+      // Очистка побеждённого босса после удаления на +50м
+      if (this.boss.isDefeated && this.crowd.leaderZ > this.boss.getArenaZ() + 50) {
+        this.boss.clear();
+      }
+
       // Циклический сдвиг полотна трассы вперёд, чтобы толпа не бежала по пустоте
       if (this.crowd.leaderZ > this.trackOffsetZ + this.endlessTrackLength - 150) {
         this.trackOffsetZ += seg.length;
@@ -2533,7 +2550,9 @@ export class GameEngine {
 
   public getHudSnapshot(): HudSnapshot {
     const len = this.currentLevel?.trackLength ?? 1;
-    const bossArenaZ = this.currentLevel?.boss ? this.currentLevel.trackLength - 20 : -1;
+    const bossArenaZ = this.isEndless
+      ? (this.boss.isActive() ? this.boss.getArenaZ() : -1)
+      : (this.currentLevel?.boss ? this.currentLevel.trackLength - 20 : -1);
     return {
       crowd: this.crowd.getAliveCount(),
       coins: stateManager.getRunCoins(),

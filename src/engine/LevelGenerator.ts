@@ -1339,6 +1339,22 @@ export class LevelGenerator {
     };
   }
 
+  public static generateEndlessBoss(segmentIndex: number, biome: BiomeType): BossData {
+    const bossInterval = 5;
+    const cycle = Math.floor(segmentIndex / bossInterval); // 1, 2, 3, ...
+    const tier = Math.min(5, Math.max(1, cycle)); // 1..5
+    const levelNum = tier * 10; // 10, 20, 30, 40, 50
+    const boss = this.generateBoss(levelNum, biome);
+    // Рост HP для циклов после 5 (segmentIndex >= 25): +40% за каждый полный цикл
+    const extraCycles = Math.max(0, Math.floor(segmentIndex / (bossInterval * 5)));
+    if (extraCycles > 0) {
+      const hpMult = 1 + extraCycles * 0.4;
+      boss.maxHp = Math.round(boss.maxHp * hpMult);
+      boss.hp = boss.maxHp;
+    }
+    return boss;
+  }
+
   public static generateEndlessSegment(
     segmentIndex: number,
     currentZ: number
@@ -1350,6 +1366,9 @@ export class LevelGenerator {
     coins: CoinData[];
     events: LevelDynamicEvent[];
     length: number;
+    boss?: BossData;
+    bossArenaZ?: number;
+    bossLevel?: number;
   } {
     const length = 120;
     const rawGates: GateData[] = [];
@@ -1359,6 +1378,8 @@ export class LevelGenerator {
     const bonuses: BonusData[] = [];
     const trackWidth = DEFAULT_TRACK_WIDTH;
     const playableHalf = trackWidth / 2 - TRACK_RAIL_MARGIN;
+    const isBossSegment = segmentIndex > 0 && segmentIndex % 5 === 0;
+    const bossArenaZoneStart = isBossSegment ? currentZ + length - 45 : Infinity;
 
     // Детерминированный PRNG для бесконечного режима
     const rng = createRng(segmentIndex * 7919 + 9973);
@@ -1484,6 +1505,13 @@ export class LevelGenerator {
       idPrefix: `endless_obs_${segmentIndex}`,
     });
 
+    if (isBossSegment) {
+      // Убираем препятствия из зоны арены босса (последние 45м) — толпа будет драться там
+      const filtered = rawObstacles.filter(o => o.z < bossArenaZoneStart);
+      rawObstacles.length = 0;
+      rawObstacles.push(...filtered);
+    }
+
     const obstacles = this.resolveOverlaps(
       gates,
       rawObstacles,
@@ -1567,11 +1595,20 @@ export class LevelGenerator {
       events.push({ triggerZ, type, duration, intensity });
     }
 
+    let boss: BossData | undefined;
+    let bossArenaZ: number | undefined;
+    let bossLevel: number | undefined;
+    if (isBossSegment) {
+      boss = LevelGenerator.generateEndlessBoss(segmentIndex, LevelGenerator.getEndlessBiome(segmentIndex));
+      bossArenaZ = currentZ + length - 20;
+      bossLevel = Math.min(50, Math.floor(segmentIndex / 5) * 10);
+    }
+
     rawWalls.sort((a, b) => a.z - b.z);
     bonuses.sort((a, b) => a.z - b.z);
     coins.sort((a, b) => a.z - b.z);
 
-    return { gates, walls: rawWalls, bonuses, obstacles, coins, events, length };
+    return { gates, walls: rawWalls, bonuses, obstacles, coins, events, length, boss, bossArenaZ, bossLevel };
   }
 
   /** Базовая скорость для уровня кампании (рост 18 -> 27 к L50, кап 30). */

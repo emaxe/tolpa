@@ -24,6 +24,8 @@ export class BossManager {
   private isAttacking: boolean = false;
   public isDefeated: boolean = false;
   private bossArenaZ: number = 0;
+  public isActive(): boolean { return !!this.bossData && !this.isDefeated; }
+  public getArenaZ(): number { return this.bossArenaZ; }
   private retaliationTimer: number = 0;
   // Телеграф возмездия: за ~0.45с до удара босс подаёт визуальный сигнал (янтарное
   // кольцо-«зона поражения»), чтобы игрок успел перестроить толпу в безопасную
