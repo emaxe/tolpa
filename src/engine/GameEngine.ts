@@ -205,6 +205,7 @@ export class GameEngine {
   private unsubLevelCompleted: (() => void) | null = null;
   private unsubFinishLine: (() => void) | null = null;
   private unsubBossDefeated: (() => void) | null = null;
+  private unsubComboBreak: (() => void) | null = null;
   private unsubSettings: (() => void) | null = null;
   private unsubFormation: (() => void) | null = null;
   // Haptic: троттлинг частых событий (coinCollected, bossDamaged) — не чаще 40мс.
@@ -380,6 +381,19 @@ export class GameEngine {
       this.particles.emitBurst(data.x ?? this.crowd.leaderX, 1.6, data.z ?? this.crowd.leaderZ, count, color, 5.0);
       soundEngine.playCrowdCheer(tier >= 3 ? 1.0 : tier >= 2 ? 0.7 : 0.5);
       if (tier >= 2) eventBus.emit('screenShake', { intensity: tier >= 3 ? 0.25 : 0.15 });
+    });
+
+    // Серия ворот сбита отрицательными воротами. Эмитится только при потере
+    // значимой серии (≥5). Красный взрыв частиц + тряска + хаптик — игрок
+    // чувствует утрату множителя (до ×1.8), а не видит «обычный» минус.
+    this.unsubComboBreak = eventBus.on('comboBreak', (data: { streak?: number; x?: number; z?: number }) => {
+      const sx = data?.x ?? this.crowd.leaderX;
+      const sz = data?.z ?? this.crowd.leaderZ;
+      const streak = data?.streak ?? 5;
+      const count = streak >= 15 ? 30 : streak >= 10 ? 22 : 14;
+      this.particles.emitBurst(sx, 1.5, sz, count, 0xef4444, 4.0);
+      eventBus.emit('screenShake', { intensity: streak >= 10 ? 0.3 : 0.2 });
+      this.triggerHaptic([40, 30, 40]);
     });
 
     // Живое применение настроек графики: смена качества/теней в настройках сразу
@@ -2553,6 +2567,7 @@ export class GameEngine {
     this.unsubNearMiss?.();
     this.unsubNearMissMilestone?.();
     this.unsubComboMilestone?.();
+    this.unsubComboBreak?.();
     this.unsubAdrenaline?.();
     this.unsubBonusCollected?.();
     this.unsubObstacleSmashed?.();

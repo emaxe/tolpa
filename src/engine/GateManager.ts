@@ -367,6 +367,11 @@ export class GateManager {
         }
         stateManager.runRecordCombo(this.comboStreak);
       } else {
+        // Серия сбита отрицательными воротами. Если серия была длинной (≥5),
+        // эмитим comboBreak — игрок теряет до ×1.8 множителя, это значимый момент.
+        if (this.comboStreak >= 5) {
+          eventBus.emit('comboBreak', { streak: this.comboStreak, x: gateX, z: gateZ });
+        }
         this.comboStreak = 0;
         this.lastComboTier = 0;
       }

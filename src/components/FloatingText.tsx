@@ -83,6 +83,17 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       spawn(data.x || 0, data.z || 0, `+${data.value}`, 'text-amber-400');
     });
 
+    // Серия ворот сбита: всплывающая надпись «СЕРИЯ СБИТА!» с указанием утраченной
+    // длины. Показывается только при потере значимой серии (≥5), эмитится GateManager.
+    const unsubComboBreak = eventBus.on('comboBreak', (data: { streak?: number; x?: number; z?: number }) => {
+      if (!data || !data.streak) return;
+      spawnScreen(
+        `${i18n.t('comboBreak', 'СЕРИЯ СБИТА!')} x${data.streak}`,
+        'text-red-500 font-extrabold text-xl drop-shadow-[0_0_10px_rgba(239,68,68,0.9)]',
+        -30
+      );
+    });
+
     // Разрушение препятствия (Hyper-режим / класс Tank): всплывающая подпись над местом слома.
     // Раньше событие obstacleSmashed эмитилось, но никем не потреблялось — игрок видел только
     // звук + частицы, без текстового фидбека. Цвет совпадает с взрывом частиц (0xf97316).
@@ -225,6 +236,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubGate();
       unsubMobsKilled();
       unsubCoin();
+      unsubComboBreak();
       unsubObstacle();
       unsubNearMiss();
       unsubBonus();
