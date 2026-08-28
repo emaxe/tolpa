@@ -159,10 +159,17 @@ export class GameEngine {
   // Базируется на CAMERA_BASE_DISTANCE + SPECTATOR_WINDOW (видимая зона ~61м).
   private static readonly DECOR_ANIM_CULL_BACK = 40.0;
   private static readonly DECOR_ANIM_CULL_AHEAD = 60.0;
+  // Dynamic FOV: расширение угла обзора при ускорении для ощущения скорости.
+  private static readonly FOV_BASE = 55.0;
+  private static readonly FOV_MAX = 65.0;
+  private static readonly FOV_PER_MULT = 10.0;
+  private static readonly FOV_LERP = 6.0;
 
   // Adrenaline (перенесено сюда из HUD-таймера — заряд должен стоять на паузе
   // и не быть отвязан от реальной игры)
   public adrenalineCharge: number = 0;
+  // Текущий FOV камеры — плавно интерполируется к целевому при ускорении.
+  private currentFov: number = GameEngine.FOV_BASE;
 
   // Screen shake
   private screenShakeIntensity: number = 0;
@@ -734,6 +741,9 @@ export class GameEngine {
     this.runEnded = false;
     this.deathGrace = 0;
     this.adrenalineCharge = 0;
+    this.currentFov = GameEngine.FOV_BASE;
+    this.camera.fov = GameEngine.FOV_BASE;
+    this.camera.updateProjectionMatrix();
     this.trackOffsetZ = 0;
     stateManager.beginRun();
 
@@ -804,6 +814,9 @@ export class GameEngine {
     this.runEnded = false;
     this.deathGrace = 0;
     this.adrenalineCharge = 0;
+    this.currentFov = GameEngine.FOV_BASE;
+    this.camera.fov = GameEngine.FOV_BASE;
+    this.camera.updateProjectionMatrix();
     this.trackOffsetZ = 0;
     stateManager.beginRun();
 
@@ -2109,6 +2122,19 @@ export class GameEngine {
     this.camera.position.x = THREE.MathUtils.lerp(this.camera.position.x, targetCamX, 10 * dt);
     this.camera.position.z = THREE.MathUtils.lerp(this.camera.position.z, targetCamZ, 12 * dt);
     this.camera.position.y = GameEngine.CAMERA_HEIGHT;
+
+    // Dynamic FOV: расширение угла обзора при ускорении — ощущение "вваливания" скорости.
+    // Целевой FOV растёт от 55 до 65 пропорционально множителю скорости (speedMult).
+    const targetFov = Math.min(
+      GameEngine.FOV_MAX,
+      GameEngine.FOV_BASE + (speedMult - 1.0) * GameEngine.FOV_PER_MULT
+    );
+    const newFov = THREE.MathUtils.lerp(this.currentFov, targetFov, GameEngine.FOV_LERP * dt);
+    if (Math.abs(newFov - this.currentFov) > 0.01) {
+      this.currentFov = newFov;
+      this.camera.fov = newFov;
+      this.camera.updateProjectionMatrix();
+    }
 
     // Apply Screen Shake
     if (this.screenShakeIntensity > 0) {
