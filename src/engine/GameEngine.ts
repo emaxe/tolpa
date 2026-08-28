@@ -154,6 +154,11 @@ export class GameEngine {
   // назад > CAMERA_BASE_DISTANCE + speedLag, вперёд — до предела читаемости силуэта.
   private static readonly SPECTATOR_WINDOW_BACK = 30.0;
   private static readonly SPECTATOR_WINDOW_AHEAD = 45.0;
+  // Радиус отсева анимации декораций: объекты дальше этого значения от лидера
+  // не пересчитывают sin/cos/rotation — визуальный эффект вне зоны видимости.
+  // Базируется на CAMERA_BASE_DISTANCE + SPECTATOR_WINDOW (видимая зона ~61м).
+  private static readonly DECOR_ANIM_CULL_BACK = 40.0;
+  private static readonly DECOR_ANIM_CULL_AHEAD = 60.0;
 
   // Adrenaline (перенесено сюда из HUD-таймера — заряд должен стоять на паузе
   // и не быть отвязан от реальной игры)
@@ -2128,6 +2133,11 @@ export class GameEngine {
       const list = this.decorAnimated;
       for (let i = 0; i < list.length; i++) {
         const child = list[i];
+        // Spatial culling: пропускаем анимацию для декораций вне зоны видимости.
+        // Камера на leaderZ - 16, смотрит вперёд; видимое окно ~45м вперёд/30м назад.
+        // Декорации вне этого окна не видны — анимация sin/cos/rotation бесполезна.
+        const dz = child.position.z - this.crowd.leaderZ;
+        if (dz > GameEngine.DECOR_ANIM_CULL_AHEAD || dz < -GameEngine.DECOR_ANIM_CULL_BACK) continue;
         const tag = child.userData.animate;
         if (tag === 'orb') {
           child.position.y = (child.userData.baseY ?? 2.6) + Math.sin(t * 1.5 + child.position.z) * 0.25;
