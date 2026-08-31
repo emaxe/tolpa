@@ -54,9 +54,25 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
 
     const unsubGate = eventBus.on(
       'gatePassed',
-      (data: { netChange?: number; comboStreak?: number; x?: number; z?: number }) => {
+      (data: { op?: string; netChange?: number; comboStreak?: number; x?: number; z?: number }) => {
         if (!data || typeof data.netChange !== 'number' || data.netChange === 0) return;
-        const { netChange, comboStreak = 0, x = 0, z = 0 } = data;
+        const { op, netChange, comboStreak = 0, x = 0, z = 0 } = data;
+        // Мистические ворота (риск/награда) получают отдельный яркий фидбек — игрок
+        // должен видеть, что исход был случайным, а не обычным приростом/потерей.
+        if (op === 'mystery') {
+          const lucky = netChange > 0;
+          spawn(
+            x,
+            z,
+            lucky
+              ? `${i18n.t('mysteryLucky', 'УДАЧА!')} +${netChange}`
+              : `${i18n.t('mysteryUnlucky', 'НЕ ПОВЕЗЛО!')} ${netChange}`,
+            lucky
+              ? 'text-fuchsia-300 font-black text-xl drop-shadow-[0_0_12px_rgba(217,70,239,0.9)]'
+              : 'text-red-500 font-black text-xl drop-shadow-[0_0_12px_rgba(239,68,68,0.9)]'
+          );
+          return;
+        }
         // При длинной серии позитивных ворот показываем маркер серии рядом с приростом толпы.
         const text = netChange > 0
           ? (comboStreak >= 3 ? `+${netChange} x${comboStreak}` : `+${netChange}`)
