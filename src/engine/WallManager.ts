@@ -89,6 +89,23 @@ export class WallManager {
     data.forEach((w) => this.walls.push(this.buildWall(w)));
   }
 
+  /**
+   * Единая точка инициации разрушения стены. Фидбек (звук, партиклы, статистика
+   * obstaclesSmashed, событие obstacleSmashed, тряска экрана) срабатывает ОДИН раз
+   * в момент старта коллапса, а не при завершении анимации падения. Это убирает
+   * двойное начисление достижения obstacle_crusher и дубль звука/тряски в
+   * гипер-режиме, и делает разрушение при обычном пробое snappier (без задержки ~0.4с).
+   */
+  private breakWall(wv: WallVisual, isHyper: boolean, particles: ParticleSystem): void {
+    wv.falling = true;
+    wv.fallT = 0;
+    soundEngine.playSound('obstacle_smash');
+    particles.emitBurst(wv.data.x, 1.5, wv.data.z, 30, isHyper ? 0xfacc15 : 0xef4444, isHyper ? 6.0 : 5.0);
+    stateManager.runRecordObstacleSmash();
+    eventBus.emit('obstacleSmashed', { type: 'wall', x: wv.data.x, z: wv.data.z });
+    eventBus.emit('screenShake', { intensity: 0.35 });
+  }
+
   public appendWalls(data: WallData[]): void {
     this.ensureSharedGeometry();
     data.forEach((w) => this.walls.push(this.buildWall(w)));
@@ -113,13 +130,8 @@ export class WallManager {
         if (wv.fallT >= 1.2) {
           wall.destroyed = true;
           this.scene.remove(wv.group);
-          particles.emitBurst(wall.x, 1.5, wall.z, 30, 0xef4444, 5.0);
-          // Джуис/учёт: сломанная стена играет звук, засчитывается в
-          // obstaclesSmashed (достижение obstacle_crusher) и даёт тряску экрана.
-          soundEngine.playSound('obstacle_smash');
-          stateManager.runRecordObstacleSmash();
-          eventBus.emit('obstacleSmashed', { type: 'wall', x: wall.x, z: wall.z });
-          eventBus.emit('screenShake', { intensity: 0.35 });
+          // Удаление меша из сцены — фидбек уже отправлен в breakWall() в момент
+          // старта коллапса; здесь только очистка.
         }
         continue;
       }
@@ -144,14 +156,7 @@ export class WallManager {
       // Гипер-режим: толпа неуязвима (killOneFromGroup возвращает null), поэтому
       // кинетические стены мгновенно сокрушаются при контакте с толпой.
       if (crowd.isHyperMode) {
-        wall.killsRemaining = 0;
-        wv.falling = true;
-        wv.fallT = 0;
-        soundEngine.playSound('obstacle_smash');
-        particles.emitBurst(wall.x, 1.5, wall.z, 30, 0xfacc15, 6.0);
-        stateManager.runRecordObstacleSmash();
-        eventBus.emit('obstacleSmashed', { type: 'wall', x: wall.x, z: wall.z });
-        eventBus.emit('screenShake', { intensity: 0.35 });
+        this.breakWall(wv, true, particles);
         continue;
       }
 
@@ -170,8 +175,7 @@ export class WallManager {
           particles.emitBurst(wall.x, 1.5, wall.z, 12, 0xef4444, 4.0);
           eventBus.emit('screenShake', { intensity: 0.25 });
           if (wall.killsRemaining <= 0) {
-            wv.falling = true;
-            wv.fallT = 0;
+            this.breakWall(wv, false, particles);
             break;
           }
         }
