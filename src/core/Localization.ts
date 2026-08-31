@@ -75,6 +75,9 @@ export const translations = {
     ninjaDesc: 'Молниеносный маневр. Уклоняется от лезвий и собирает двойные монеты.',
     mageName: 'Хроно-Маг',
     mageDesc: 'Трансмутирует отрицательные ворота в положительные и дает щит.',
+    ninjaDodge: 'УВОРОТ!',
+    tankShield: 'ЩИТ!',
+    mageTransmute: 'МАГИЯ!',
 
     // Dynamic Events
     eventAmbush: 'ВНИМАНИЕ: Вражеская засада впереди!',
@@ -360,6 +363,9 @@ export const translations = {
     ninjaDesc: 'Lightning fast. Evades blades and collects double coins.',
     mageName: 'Chrono Mage',
     mageDesc: 'Transmutes negative gates into positive and grants shields.',
+    ninjaDodge: 'DODGE!',
+    tankShield: 'SHIELD!',
+    mageTransmute: 'MAGIC!',
 
     // Dynamic Events
     eventAmbush: 'WARNING: Enemy ambush ahead!',

@@ -215,6 +215,7 @@ export class GameEngine {
   private unsubCrowdMilestone: (() => void) | null = null;
   private unsubSettings: (() => void) | null = null;
   private unsubFormation: (() => void) | null = null;
+  private unsubClassAbility: (() => void) | null = null;
   // Haptic: троттлинг частых событий (coinCollected, bossDamaged) — не чаще 40мс.
   private lastHapticMs: number = 0;
 
@@ -527,6 +528,32 @@ export class GameEngine {
         if (lvl) soundEngine.playMusic(this.getMusicThemeForLevel(lvl.levelNumber, lvl.biome));
       }
     });
+
+    // Аудиовизуальный фидбек классовых способностей (Уворот Ниндзя, Блок Щита Танка, Трансмутация Мага)
+    this.unsubClassAbility = eventBus.on(
+      'classAbility',
+      (data: { type?: string; ability?: string; x?: number; z?: number; value?: number }) => {
+        if (!data) return;
+        const x = data.x ?? this.crowd.leaderX;
+        const z = data.z ?? this.crowd.leaderZ;
+
+        if (data.type === 'ninja') {
+          // Уворот Ниндзя: фиолетовый бурст частиц (0xa855f7, ~12 шт) + звук near_miss с pitch 1.4
+          this.particles.emitBurst(x, 1.0, z, 12, 0xa855f7, 3.5);
+          soundEngine.playSound('near_miss', 1.4);
+          this.triggerHaptic(10);
+        } else if (data.type === 'tank') {
+          // Блок Щита Танка: янтарные искры (0xf59e0b, ~14 шт) + звук отражения (hammer_impact)
+          this.particles.emitBurst(x, 1.0, z, 14, 0xf59e0b, 3.5);
+          soundEngine.playSound('hammer_impact', 1.3);
+          this.triggerHaptic(15);
+        } else if (data.type === 'mage') {
+          // Трансмутация Мага: изумрудный бурст частиц (0x10b981)
+          this.particles.emitBurst(x, 1.5, z, 25, 0x10b981, 5.0);
+          this.triggerHaptic(20);
+        }
+      }
+    );
 
     this.animate = this.animate.bind(this);
   }
@@ -2643,6 +2670,7 @@ export class GameEngine {
     this.unsubBossDefeated?.();
     this.unsubSettings?.();
     this.unsubFormation?.();
+    this.unsubClassAbility?.();
 
     this.crowd.dispose();
     this.gates.clear();

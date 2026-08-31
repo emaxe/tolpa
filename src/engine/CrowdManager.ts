@@ -390,6 +390,7 @@ export class CrowdManager {
 
       // Ninja evasion check — уворот ТРАТИТ удар, не перекладывает его на соседа
       if (mob.type === 'ninja' && Math.random() < 0.5) {
+        eventBus.emit('classAbility', { type: 'ninja', ability: 'dodge', x: mob.x, z: mob.z });
         budget--;
         continue;
       }
@@ -397,6 +398,7 @@ export class CrowdManager {
       // Tank shield/armor check — щит/броня тоже поглощают удар целиком
       if (mob.shieldHp > 0) {
         mob.shieldHp--;
+        eventBus.emit('classAbility', { type: 'tank', ability: 'shield', x: mob.x, z: mob.z });
         budget--;
         continue;
       }
@@ -563,8 +565,17 @@ export class CrowdManager {
       const mob = this.groupScratch[i];
       if (budget <= 0) break;
       if (mob.invulnerableTime > 0) continue;
-      if (mob.type === 'ninja' && Math.random() < 0.5) { budget--; continue; }
-      if (mob.shieldHp > 0) { mob.shieldHp--; budget--; continue; }
+      if (mob.type === 'ninja' && Math.random() < 0.5) {
+        eventBus.emit('classAbility', { type: 'ninja', ability: 'dodge', x: mob.x, z: mob.z });
+        budget--;
+        continue;
+      }
+      if (mob.shieldHp > 0) {
+        mob.shieldHp--;
+        eventBus.emit('classAbility', { type: 'tank', ability: 'shield', x: mob.x, z: mob.z });
+        budget--;
+        continue;
+      }
       if (mob.hp > 1) { mob.hp--; budget--; continue; }
       mob.alive = false;
       this.aliveCount--;
@@ -654,8 +665,17 @@ export class CrowdManager {
 
     while (budget > 0) {
       if (target.invulnerableTime > 0) break;
-      if (target.type === 'ninja' && Math.random() < 0.5) { budget--; break; }
-      if (target.shieldHp > 0) { target.shieldHp--; budget--; continue; }
+      if (target.type === 'ninja' && Math.random() < 0.5) {
+        eventBus.emit('classAbility', { type: 'ninja', ability: 'dodge', x: target.x, z: target.z });
+        budget--;
+        break;
+      }
+      if (target.shieldHp > 0) {
+        target.shieldHp--;
+        eventBus.emit('classAbility', { type: 'tank', ability: 'shield', x: target.x, z: target.z });
+        budget--;
+        continue;
+      }
       if (target.hp > 1) { target.hp--; budget--; continue; }
       target.alive = false;
       this.aliveCount--;

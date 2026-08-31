@@ -334,6 +334,15 @@ export class GateManager {
         const shouldSpawn = isNewTransmute || (!gateVisual.transmutedByMage && isFirstTrigger);
         gateVisual.transmutedByMage = true;
         const transmuteVal = Math.max(1, Math.round(val * 0.6));
+        if (isNewTransmute) {
+          eventBus.emit('classAbility', {
+            type: 'mage',
+            ability: 'transmute',
+            x: gateX,
+            z: gateZ,
+            value: transmuteVal,
+          });
+        }
         let base = 0;
         if (shouldSpawn) {
           base = crowd.addMobsNear(transmuteVal, gateX, gateZ);
