@@ -204,6 +204,7 @@ export class GameEngine {
   private unsubCombo: (() => void) | null = null;
   private unsubNearMiss: (() => void) | null = null;
   private unsubNearMissMilestone: (() => void) | null = null;
+  private unsubNearMissBreak: (() => void) | null = null;
   private unsubComboMilestone: (() => void) | null = null;
   private unsubAdrenaline: (() => void) | null = null;
   private unsubBonusCollected: (() => void) | null = null;
@@ -378,6 +379,20 @@ export class GameEngine {
       this.particles.emitBurst(data.x ?? this.crowd.leaderX, 1.6, data.z ?? this.crowd.leaderZ, count, color, 5.0);
       soundEngine.playCrowdCheer(mult >= 10 ? 1.0 : mult >= 5 ? 0.7 : 0.5);
       if (mult >= 5) eventBus.emit('screenShake', { intensity: mult >= 10 ? 0.25 : 0.15 });
+    });
+
+    // Серия уворотов сбита препятствием. Эмитится только при потере значимой
+    // серии (≥2). Красный взрыв частиц + тряска + хаптик — игрок чувствует
+    // утрату множителя, а не видит «обычный» минус. Дополняет текстовый
+    // консьюмер (FloatingText) VFX/haptic-откликом.
+    this.unsubNearMissBreak = eventBus.on('nearMissBreak', (data: { streak?: number; x?: number; z?: number }) => {
+      const sx = data?.x ?? this.crowd.leaderX;
+      const sz = data?.z ?? this.crowd.leaderZ;
+      const streak = data?.streak ?? 2;
+      const count = streak >= 10 ? 28 : streak >= 5 ? 20 : 12;
+      this.particles.emitBurst(sx, 1.4, sz, count, 0xf87171, 3.5);
+      if (streak >= 5) eventBus.emit('screenShake', { intensity: streak >= 10 ? 0.25 : 0.15 });
+      this.triggerHaptic([35, 25, 35]);
     });
 
     // Порог серии ворот (5/10/15...) — эскалирующий фидбек: крик толпы, золотистый
@@ -2660,6 +2675,7 @@ export class GameEngine {
     this.unsubCombo?.();
     this.unsubNearMiss?.();
     this.unsubNearMissMilestone?.();
+    this.unsubNearMissBreak?.();
     this.unsubComboMilestone?.();
     this.unsubComboBreak?.();
     this.unsubCrowdMilestone?.();
