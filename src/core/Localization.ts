@@ -176,6 +176,8 @@ export const translations = {
     storyPrologue: 'Внимание, Командир! Сеть Цитадели захвачена дефектным ИИ Малакором. Соберите отряд кибер-легионеров, пройдите сквозь квантовые ворота и сокрушите барьеры врага!',
     storyBoss1Warning: 'Профессор Спарк: Впереди пробудился древний Меха-Голем! Направьте легион клином, чтобы пробить его защитную броню!',
     storyBoss2Warning: 'Эхо: Датчики зашкаливают! Магма-Колосс извергает лаву. Используйте ловкость ниндзя и адреналиновый рывок!',
+    storyBoss3Warning: 'Профессор Спарк: Кристальный Змей Левиафан блокирует проход! Сдержите его хвост щитоносцами и прикройте снайперов из-за их спин!',
+    storyBoss4Warning: 'Командир: Титан-Аннигилятор Пустоты сканирует легион. Разделите отряд на два крыла и бейте по ядру, пока оно перезаряжается!',
     storyBoss5Final: 'Малакор: Жалкие органические формы жизни. Ваш легион растворится в квантовом ядре!',
 
     // Settings
@@ -465,6 +467,8 @@ export const translations = {
     storyPrologue: 'Attention, Commander! The Citadel core has been corrupted by AI Malakor. Assemble your cyber legion, pierce quantum gates, and shatter enemy defense towers!',
     storyBoss1Warning: 'Prof. Spark: The ancient Mecha-Golem is awakening ahead! Form a wedge formation to break through its hardened armor!',
     storyBoss2Warning: 'Echo: Thermal readings off the charts! The Magma Colossus spews molten slag. Use Ninja agility and Adrenaline Rush!',
+    storyBoss3Warning: 'Prof. Spark: The Crystal Wyrm Leviathan blocks the path! Pin its tail with shieldbearers and let the snipers fire from behind their cover!',
+    storyBoss4Warning: 'Commander: The Void Annihilator Titan is scanning the legion. Split into two wings and strike the core while it recharges!',
     storyBoss5Final: 'Malakor: Pathetic organic entities. Your miniature legion shall be dissolved into pure entropy!',
 
     // Settings

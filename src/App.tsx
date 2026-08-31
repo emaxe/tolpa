@@ -97,6 +97,28 @@ export const App: React.FC = () => {
         },
       ]);
       setPhase('story_dialogue');
+    } else if (levelNum === 30) {
+      setDialogueQueue([
+        {
+          speaker: 'professor',
+          speakerNameKey: 'speakerProfessor',
+          avatar: 'professor',
+          textKey: 'storyBoss3Warning',
+          fallbackText: 'Профессор Спарк: Кристальный Змей Левиафан блокирует проход! Сдержите его хвост щитоносцами и прикройте снайперов из-за их спин!',
+        },
+      ]);
+      setPhase('story_dialogue');
+    } else if (levelNum === 40) {
+      setDialogueQueue([
+        {
+          speaker: 'commander',
+          speakerNameKey: 'speakerCommander',
+          avatar: 'commander',
+          textKey: 'storyBoss4Warning',
+          fallbackText: 'Командир: Титан-Аннигилятор Пустоты сканирует легион. Разделите отряд на два крыла и бейте по ядру, пока оно перезаряжается!',
+        },
+      ]);
+      setPhase('story_dialogue');
     } else {
       setPhase('running');
     }
