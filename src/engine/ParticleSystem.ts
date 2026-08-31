@@ -28,6 +28,13 @@ export class ParticleSystem {
   // Счётчик активных частиц (skip-empty-pass): update() ранне-выходит, когда
   // ни одна частица не активна, вместо итерации всего пула (300) каждый кадр.
   private activeCount: number = 0;
+  // Верхняя граница окна сканирования в update(): слоты [0, poolTail) проверяются покадрово.
+  // Растёт при эмиссии и сжимается вниз, когда верхние частицы умирают — чтобы при малом
+  // числе активных частиц не итерировать весь пул (300) целиком.
+  private poolTail: number = 0;
+  private maxParticles: number = 0;
+  // Порог переполнения пула: если активных уже >= 90% слотов, новые эмиссии пропускаются.
+  private readonly overflowThreshold: number = 0.9;
   private instancedMesh: THREE.InstancedMesh;
   private dummy: THREE.Object3D = new THREE.Object3D();
   private colorDummy: THREE.Color = new THREE.Color();
@@ -61,6 +68,7 @@ export class ParticleSystem {
         color: new THREE.Color(0x00ffff),
         active: false,
       });
+      this.maxParticles = maxParticles;
       this.dummy.position.set(0, -100, 0);
       this.dummy.updateMatrix();
       this.instancedMesh.setMatrixAt(i, this.dummy.matrix);
@@ -103,6 +111,9 @@ export class ParticleSystem {
     speed: number = 4.0,
     upBias: number = 1.5
   ): void {
+    // Защита от переполнения: при шквале бурстов (краш-коллапс стен, АОЕ босса) не позволяем
+    // активному счётчику неограниченно расти — если пул почти забит, новые эмиссии пропускаем.
+    if (this.activeCount >= this.maxParticles * this.overflowThreshold) return;
     let emitted = 0;
     this.colorDummy.setHex(colorHex);
 
@@ -111,6 +122,7 @@ export class ParticleSystem {
       if (!p.active) {
         p.active = true;
         this.activeCount++;
+        if (i >= this.poolTail) this.poolTail = i + 1;
         p.x = x;
         p.y = y;
         p.z = z;
@@ -139,6 +151,7 @@ export class ParticleSystem {
   // Разноцветное конфетти для финиша и комбо. Частицы подбрасываются вверх и
   // разлетаются в стороны с лёгкой гравитацией — 0-GC, переиспользует пул.
   public emitConfetti(x: number, y: number, z: number, count: number = 40): void {
+    if (this.activeCount >= this.maxParticles * this.overflowThreshold) return;
     let emitted = 0;
     const palette = [0xff3b30, 0xff9500, 0xffcc00, 0x34c759, 0x00c7be, 0x007aff, 0xaf52de, 0xff2d55, 0x5ac8fa, 0xffd60a];
 
@@ -147,6 +160,7 @@ export class ParticleSystem {
       if (!p.active) {
         p.active = true;
         this.activeCount++;
+        if (i >= this.poolTail) this.poolTail = i + 1;
         p.x = x;
         p.y = y;
         p.z = z;
@@ -172,6 +186,7 @@ export class ParticleSystem {
 
   // Световой столб: частицы взлетают вертикально вверх из точки (x, z).
   public emitLightPillar(x: number, z: number, count: number = 30, colorHex: number = 0x00f0ff): void {
+    if (this.activeCount >= this.maxParticles * this.overflowThreshold) return;
     let emitted = 0;
     this.colorDummy.setHex(colorHex);
 
@@ -180,6 +195,7 @@ export class ParticleSystem {
       if (!p.active) {
         p.active = true;
         this.activeCount++;
+        if (i >= this.poolTail) this.poolTail = i + 1;
         p.x = x + (Math.random() - 0.5) * 0.6;
         p.y = 0.2;
         p.z = z + (Math.random() - 0.5) * 0.6;
@@ -226,12 +242,20 @@ export class ParticleSystem {
   }
 
   public update(dt: number): void {
-    // Skip-empty-pass: когда ни одна частица не активна, не итерируем весь пул.
-    if (this.activeCount === 0) return;
+    // Skip-empty-pass: когда ни одна частица не активна, не итерируем пул вовсе.
+    if (this.activeCount === 0) {
+      // При этом сбрасываем окно сканирования — весь пул снова пуст, следующий emit
+      // начнёт с нулевого индекса и раздвинет poolTail заново.
+      this.poolTail = 0;
+      return;
+    }
 
     let changed = false;
+    // Сканируем только активное окно [0, poolTail), а не весь пул целиком — при малом
+    // числе частиц это избавляет от лишних dummy.updateMatrix() в кадр.
+    const scanEnd = this.poolTail;
 
-    for (let i = 0; i < this.particles.length; i++) {
+    for (let i = 0; i < scanEnd; i++) {
       const p = this.particles[i];
       if (p.active) {
         p.life += dt;
@@ -263,6 +287,17 @@ export class ParticleSystem {
       }
     }
 
+    // Сжимаем окно сканирования вниз, пока верхний слот пуст — чтобы update() не итерировал
+    // "мёртвый хвост" пула, пока активных частиц мало. 0-GC: только перестройка границы.
+    while (
+      this.poolTail > 0 &&
+      !this.particles[this.poolTail - 1].active
+    ) {
+      this.poolTail--;
+    }
+
+    // Флаг изменений уже стоит: instanceMatrix.needsUpdate выставляем только когда что-то
+    // реально обновилось (частица двигается/умерла), избегая лишних GPU-аплоадов в кадр.
     if (changed) {
       this.instancedMesh.instanceMatrix.needsUpdate = true;
     }

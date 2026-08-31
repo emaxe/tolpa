@@ -29,6 +29,15 @@ export class CrowdManager {
   private groupScratch: MobInstance[] = [];
   // Таймер шагов толпы — ритмичный топот при беге (dead sound 'footstep').
   private footstepTimer: number = 0;
+  // Троттлинг визуально-звукового фидбека classAbility (ninja-dodge/tank-shield).
+  // При массовой гибели толпы за один кадр (деление ворот, коллапс стен, АОЕ босса)
+  // раньше на КАЖДОГО убитого моба эмитилось classAbility → GameEngine запускал
+  // частицы + звук + haptic для каждого, что давало десятки эмитов и фризы.
+  // Ограничиваем частоту: не чаще одного эмита за CLASS_ABILITY_EMIT_INTERVAL_MS,
+  // независимо от числа убитых. Сама игровая логика (бюджет, shieldHp, invulnerableTime)
+  // остаётся нетронутой — троттлится только частота фидбека.
+  private lastClassAbilityEmitMs: number = 0;
+  private static readonly CLASS_ABILITY_EMIT_INTERVAL_MS: number = 120;
 
   // Reusable 3D math objects to guarantee ZERO runtime GC allocations
   private dummy: THREE.Object3D = new THREE.Object3D();
@@ -217,6 +226,19 @@ export class CrowdManager {
     this.aliveSnapshotValid = false;
   }
 
+  /** Троттлинг-эмит визуально-звукового фидбека classAbility (уворот ниндзя / щит танка).
+   *  Не чаще одного события за CLASS_ABILITY_EMIT_INTERVAL_MS — при массовой гибели
+   *  толпы за один кадр это убирает десятки частиц/звуков/haptic и связанные фризы.
+   *  Игровой смысл не меняется: способность уже сработала логически (бюджет списан),
+   *  здесь ограничивается только частота фидбека. Зовётся и из групповых киллов, и из
+   *  killOneFromGroup — единая точка, чтобы не дублировать условие троттлинга. */
+  private emitClassAbility(type: 'ninja' | 'tank', ability: 'dodge' | 'shield', x: number, z: number): void {
+    const now = performance.now();
+    if (now - this.lastClassAbilityEmitMs < CrowdManager.CLASS_ABILITY_EMIT_INTERVAL_MS) return;
+    this.lastClassAbilityEmitMs = now;
+    eventBus.emit('classAbility', { type, ability, x, z });
+  }
+
   /** Возвращает живых мобов. ВАЖНО: возвращает переиспользуемый внутренний буфер —
    *  содержимое валидно только до следующего вызова getAliveMobs()/killMobs()/consumeMobs().
    *  Не храни ссылку на результат между кадрами. */
@@ -390,7 +412,7 @@ export class CrowdManager {
 
       // Ninja evasion check — уворот ТРАТИТ удар, не перекладывает его на соседа
       if (mob.type === 'ninja' && Math.random() < 0.5) {
-        eventBus.emit('classAbility', { type: 'ninja', ability: 'dodge', x: mob.x, z: mob.z });
+        this.emitClassAbility('ninja', 'dodge', mob.x, mob.z);
         budget--;
         continue;
       }
@@ -398,7 +420,7 @@ export class CrowdManager {
       // Tank shield/armor check — щит/броня тоже поглощают удар целиком
       if (mob.shieldHp > 0) {
         mob.shieldHp--;
-        eventBus.emit('classAbility', { type: 'tank', ability: 'shield', x: mob.x, z: mob.z });
+        this.emitClassAbility('tank', 'shield', mob.x, mob.z);
         budget--;
         continue;
       }
@@ -566,13 +588,13 @@ export class CrowdManager {
       if (budget <= 0) break;
       if (mob.invulnerableTime > 0) continue;
       if (mob.type === 'ninja' && Math.random() < 0.5) {
-        eventBus.emit('classAbility', { type: 'ninja', ability: 'dodge', x: mob.x, z: mob.z });
+        this.emitClassAbility('ninja', 'dodge', mob.x, mob.z);
         budget--;
         continue;
       }
       if (mob.shieldHp > 0) {
         mob.shieldHp--;
-        eventBus.emit('classAbility', { type: 'tank', ability: 'shield', x: mob.x, z: mob.z });
+        this.emitClassAbility('tank', 'shield', mob.x, mob.z);
         budget--;
         continue;
       }
@@ -666,13 +688,13 @@ export class CrowdManager {
     while (budget > 0) {
       if (target.invulnerableTime > 0) break;
       if (target.type === 'ninja' && Math.random() < 0.5) {
-        eventBus.emit('classAbility', { type: 'ninja', ability: 'dodge', x: target.x, z: target.z });
+        this.emitClassAbility('ninja', 'dodge', target.x, target.z);
         budget--;
         break;
       }
       if (target.shieldHp > 0) {
         target.shieldHp--;
-        eventBus.emit('classAbility', { type: 'tank', ability: 'shield', x: target.x, z: target.z });
+        this.emitClassAbility('tank', 'shield', target.x, target.z);
         budget--;
         continue;
       }
