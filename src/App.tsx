@@ -160,6 +160,9 @@ export const App: React.FC = () => {
         setPhase('level_lost');
         return;
       }
+      // Утешительная награда при поражении в кампании (совпадает с LevelEndModal: +25).
+      const consolationCoins = 25;
+      stateManager.addCoins(consolationCoins);
       setEndResult({
         isVictory: false,
         score: 0,
