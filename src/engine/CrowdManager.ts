@@ -280,16 +280,64 @@ export class CrowdManager {
     eventBus.emit('adrenalineTriggered', { duration: totalDuration, x: this.leaderX, z: this.leaderZ });
   }
 
-  /** Лечит всех живых мобов на `amount` HP (не выше их максимума). Возвращает число вылеченных. */
+  /**
+   * Комплексное лечение толпы на `amount` единиц:
+   * 1. Фаза HP: восстанавливает потерянное здоровье раненых мобов (до maxHp).
+   * 2. Фаза щитов: восстанавливает израсходованные щиты танков (до 2) и магов (до 1).
+   * 3. Фаза оверхила: если все мобы в строю целы, спавнит 1-2 бойцов подкрепления,
+   *    а при заполненном лимите толпы (200) даёт авангарду 1.0с неуязвимости.
+   * Возвращает число получивших пользу мобов (>0 гарантирует фидбек бонуса).
+   */
   public healAll(amount: number): number {
     let healed = 0;
+
+    // Фаза 1 (HP) и Фаза 2 (щиты)
     for (const mob of this.mobs) {
       if (!mob.alive) continue;
-      if (mob.hp >= mob.maxHp) continue;
-      mob.hp = Math.min(mob.maxHp, mob.hp + amount);
-      healed++;
+      let benefited = false;
+
+      // 1. Восстановление недостающего HP
+      if (mob.hp < mob.maxHp) {
+        mob.hp = Math.min(mob.maxHp, mob.hp + amount);
+        benefited = true;
+      }
+
+      // 2. Восстановление базовых щитов (tank: max 2, mage: max 1)
+      const maxShield = mob.type === 'tank' ? 2 : mob.type === 'mage' ? 1 : 0;
+      if (maxShield > 0 && mob.shieldHp < maxShield) {
+        mob.shieldHp = Math.min(maxShield, mob.shieldHp + amount);
+        benefited = true;
+      }
+
+      if (benefited) {
+        healed++;
+      }
     }
-    if (healed > 0) soundEngine.playSound('heal');
+
+    // Фаза 3: Оверхил (если лечить и восстанавливать щиты было не нужно)
+    if (healed === 0) {
+      const extraCount = Math.max(1, Math.min(amount, 2));
+      const added = this.addMobsNear(extraCount, this.leaderX, this.leaderZ);
+      if (added > 0) {
+        healed = added;
+      } else {
+        // При заполненном лимите (200 мобов) усиливаем авангард временной неуязвимостью
+        let buffed = 0;
+        for (const mob of this.mobs) {
+          if (!mob.alive) continue;
+          mob.invulnerableTime = Math.max(mob.invulnerableTime, 1.0);
+          buffed++;
+          if (buffed >= 5) break; // Защищаем первые 5 бойцов авангарда
+        }
+        if (buffed > 0) {
+          healed = 1;
+        }
+      }
+    }
+
+    if (healed > 0) {
+      soundEngine.playSound('heal');
+    }
     return healed;
   }
 
