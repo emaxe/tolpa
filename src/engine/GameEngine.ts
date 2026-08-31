@@ -1950,6 +1950,18 @@ export class GameEngine {
         this.nextEventIndex++;
         this.triggerEvent(evt, trackWidth);
       }
+      // Компакция: удаляем уже потреблённые события, чтобы массив не рос
+      // неограниченно в бесконечном режиме (каждый сегмент добавляет новые).
+      // nextEventIndex сбрасывается в 0 — id монет (evt_coin_<idx>_<i>) транзиентны,
+      // монеты собираются и удаляются, поэтому повторное использование id безопасно.
+      if (this.nextEventIndex > 0) {
+        if (this.nextEventIndex >= this.pendingEvents.length) {
+          this.pendingEvents.length = 0;
+        } else {
+          this.pendingEvents.splice(0, this.nextEventIndex);
+        }
+        this.nextEventIndex = 0;
+      }
     }
 
     // Тик активного события.
