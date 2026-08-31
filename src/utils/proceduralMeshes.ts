@@ -129,6 +129,109 @@ export function createWallTexture(count: number): THREE.CanvasTexture {
   return texture;
 }
 
+// Процедурная текстура финишной стены множителя (Runway Multiplier Step)
+export function createFinishWallTexture(
+  multiplier: number,
+  cost: number,
+  isApex: boolean = false
+): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d')!;
+
+  const isMax = isApex || multiplier >= 10;
+  const isHigh = multiplier >= 4.0;
+
+  // Неоновый градиент (циан / янтарь / золото для ×10)
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, 512);
+  if (isMax) {
+    bgGrad.addColorStop(0, 'rgba(245, 158, 11, 0.95)'); // Золото / Янтарь
+    bgGrad.addColorStop(0.5, 'rgba(234, 179, 8, 0.9)');
+    bgGrad.addColorStop(1, 'rgba(180, 83, 9, 0.95)');
+  } else if (isHigh) {
+    bgGrad.addColorStop(0, 'rgba(249, 115, 22, 0.9)'); // Оранжевый / Янтарь
+    bgGrad.addColorStop(1, 'rgba(217, 119, 6, 0.85)');
+  } else {
+    bgGrad.addColorStop(0, 'rgba(6, 182, 212, 0.9)'); // Неоновый циан / синий
+    bgGrad.addColorStop(1, 'rgba(14, 165, 233, 0.85)');
+  }
+
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Внешний светящийся контур
+  ctx.lineWidth = 24;
+  ctx.strokeStyle = isMax ? '#fef08a' : (isHigh ? '#fdba74' : '#67e8f9');
+  ctx.strokeRect(12, 12, 488, 488);
+
+  // Техно-полосы / сетка
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+  for (let i = 40; i < 512; i += 40) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i, 512);
+    ctx.stroke();
+  }
+
+  // Горизонтальные плашки-панели
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+  for (let y = 60; y < 512; y += 90) {
+    ctx.fillRect(36, y, 440, 24);
+  }
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+  ctx.shadowBlur = 14;
+
+  // Крупный множитель: ×2.5, ×5.0, ×10.0 МАКС!
+  const multText = isMax ? `×${multiplier.toFixed(1)} МАКС!` : `×${multiplier.toFixed(1)}`;
+  ctx.font = isMax ? '900 84px Orbitron, sans-serif' : '900 130px Orbitron, sans-serif';
+  ctx.lineWidth = 14;
+  ctx.strokeStyle = 'rgba(15, 23, 42, 0.95)';
+  ctx.strokeText(multText, 256, isMax ? 205 : 195);
+  ctx.fillStyle = isMax ? '#fef08a' : '#ffffff';
+  ctx.fillText(multText, 256, isMax ? 205 : 195);
+
+  // Бейдж цены прорыва (−8 👤)
+  const badgeY = 345;
+  const badgeW = 340;
+  const badgeH = 88;
+  const badgeX = (512 - badgeW) / 2;
+
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+  if (typeof ctx.roundRect === 'function') {
+    ctx.beginPath();
+    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 18);
+    ctx.fill();
+  } else {
+    ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
+  }
+
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = isMax ? '#f59e0b' : '#ef4444';
+  if (typeof ctx.roundRect === 'function') {
+    ctx.beginPath();
+    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 18);
+    ctx.stroke();
+  } else {
+    ctx.strokeRect(badgeX, badgeY, badgeW, badgeH);
+  }
+
+  ctx.font = 'bold 50px Orbitron, sans-serif';
+  ctx.lineWidth = 8;
+  ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
+  ctx.strokeText(`−${cost} 👤`, 256, badgeY + badgeH / 2);
+  ctx.fillStyle = '#fca5a5';
+  ctx.fillText(`−${cost} 👤`, 256, badgeY + badgeH / 2);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
+
 // Procedural Humanoid Mesh for Crowd
 export function createHumanoidGeometry(): THREE.BufferGeometry {
   const geometries: THREE.BufferGeometry[] = [];

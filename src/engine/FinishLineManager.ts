@@ -4,14 +4,20 @@ import { ParticleSystem } from './ParticleSystem';
 import { soundEngine } from '../audio/SoundEngine';
 import { eventBus } from '../core/EventBus';
 import { stateManager } from '../core/StateManager';
+import { createFinishWallTexture } from '../utils/proceduralMeshes';
 import confetti from 'canvas-confetti';
 
 interface WallStep {
+  group: THREE.Group;
   mesh: THREE.Mesh;
   multiplier: number;
   costMobs: number;
   z: number;
   smashed: boolean;
+  falling: boolean;
+  fallT: number;
+  texture: THREE.CanvasTexture;
+  materials: THREE.Material[];
 }
 
 export class FinishLineManager {
@@ -48,27 +54,52 @@ export class FinishLineManager {
       const mult = multipliers[i] || 1.0 + i * 0.5;
       const stepZ = finishZ + 10 + i * 8;
       const cost = costs[i] ?? Math.floor(2 + i * 3.5);
+      const isApex = i === stepsCount - 1;
 
-      // Create Step Barrier Mesh
-      const stepGeo = new THREE.BoxGeometry(8, 2.0 + i * 0.3, 2.5);
-      const stepMat = new THREE.MeshStandardMaterial({
-        color: i === stepsCount - 1 ? 0xfacc15 : 0x334155,
+      // Процедурная текстура для финишной стены
+      const texture = createFinishWallTexture(mult, cost, isApex);
+
+      // Массив материалов для BoxGeometry: [+X, -X, +Y, -Y, +Z, -Z]
+      const sideMat = new THREE.MeshStandardMaterial({
+        color: isApex ? 0xfacc15 : 0x334155,
         metalness: 0.8,
         roughness: 0.2,
-        emissive: i === stepsCount - 1 ? 0xeab308 : 0x0ea5e9,
+        emissive: isApex ? 0xeab308 : 0x0ea5e9,
         emissiveIntensity: 0.3 + i * 0.05,
       });
 
-      const stepMesh = new THREE.Mesh(stepGeo, stepMat);
-      stepMesh.position.set(0, (2.0 + i * 0.3) / 2, stepZ);
-      this.scene.add(stepMesh);
+      const faceMat = new THREE.MeshStandardMaterial({
+        map: texture,
+        metalness: 0.4,
+        roughness: 0.3,
+        emissive: isApex ? 0x7c2d12 : 0x0f172a,
+        emissiveIntensity: 0.2,
+      });
+
+      const stepMaterials: THREE.Material[] = [sideMat, sideMat, sideMat, sideMat, faceMat, faceMat];
+
+      // Create Step Barrier Mesh
+      const stepH = 2.0 + i * 0.3;
+      const stepGeo = new THREE.BoxGeometry(8, stepH, 2.5);
+      const stepMesh = new THREE.Mesh(stepGeo, stepMaterials);
+      stepMesh.position.set(0, stepH / 2, 0);
+
+      const stepGroup = new THREE.Group();
+      stepGroup.position.set(0, 0, stepZ);
+      stepGroup.add(stepMesh);
+      this.scene.add(stepGroup);
 
       this.wallSteps.push({
+        group: stepGroup,
         mesh: stepMesh,
         multiplier: mult,
         costMobs: cost,
         z: stepZ,
         smashed: false,
+        falling: false,
+        fallT: 0,
+        texture,
+        materials: [sideMat, faceMat],
       });
     }
 
@@ -90,12 +121,22 @@ export class FinishLineManager {
   }
 
   public update(
-    _dt: number,
+    dt: number,
     crowd: CrowdManager,
     particles: ParticleSystem,
     onLevelWon: (finalScore: number, finalMultiplier: number, remainingMobs: number) => void
   ): void {
     const crowdZ = crowd.leaderZ;
+
+    // Гладкий кинематический коллапс пробитых ступеней (0-GC)
+    for (let i = 0; i < this.wallSteps.length; i++) {
+      const step = this.wallSteps[i];
+      if (step.falling) {
+        step.fallT += dt;
+        step.group.rotation.x = Math.min(Math.PI / 2, step.fallT * 3.5);
+        step.group.position.y = -step.fallT * 0.8;
+      }
+    }
 
     if (!this.hasCrossedFinish && crowdZ >= this.finishLineZ) {
       this.hasCrossedFinish = true;
@@ -118,18 +159,20 @@ export class FinishLineManager {
 
             // Smash wall!
             step.smashed = true;
+            step.falling = true;
+            step.fallT = 0;
             this.finalMultiplier = step.multiplier;
             soundEngine.playSound('finish_wall_hit', 1.0 + this.finalStepIndex * 0.08);
             particles.emitBurst(0, 1.5, step.z, 35, 0x00f0ff, 6.0);
             eventBus.emit('screenShake', { intensity: 0.35 });
 
+            // Эмитим событие пробития финишной ступени
+            eventBus.emit('finishStepSmashed', { multiplier: step.multiplier, x: 0, z: step.z });
+
             // Красная вспышка урона + плавающий текст потерь при жертве.
             if (sacrificed > 0) {
               eventBus.emit('mobsKilled', { count: sacrificed, reason: 'finish_wall', x: 0, z: step.z });
             }
-
-            // Animate barrier breaking downwards
-            step.mesh.position.y = -2;
 
             this.finalStepIndex++;
           } else {
@@ -201,9 +244,10 @@ export class FinishLineManager {
 
   public clear(): void {
     this.wallSteps.forEach((s) => {
-      this.scene.remove(s.mesh);
+      this.scene.remove(s.group);
       s.mesh.geometry.dispose();
-      (s.mesh.material as THREE.Material).dispose();
+      s.materials.forEach((m) => m.dispose());
+      s.texture.dispose();
     });
     this.wallSteps = [];
 
@@ -214,5 +258,9 @@ export class FinishLineManager {
     this.hasCrossedFinish = false;
     this.isCelebrating = false;
     this.sacrificedTotal = 0;
+  }
+
+  public dispose(): void {
+    this.clear();
   }
 }

@@ -246,6 +246,23 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       }
     );
 
+    // Финишная дорожка множителей: всплывающий яркий 3D-множитель при пробитии стены
+    const unsubFinishStep = eventBus.on(
+      'finishStepSmashed',
+      (data: { multiplier?: number; x?: number; z?: number }) => {
+        if (!data || typeof data.multiplier !== 'number') return;
+        const mult = data.multiplier;
+        const isMax = mult >= 10;
+        const text = isMax ? `×${mult.toFixed(1)} МАКС!` : `×${mult.toFixed(1)}!`;
+        const colorClass = isMax
+          ? 'text-yellow-300 font-black text-2xl scale-125 drop-shadow-[0_0_16px_rgba(250,204,21,1)]'
+          : mult >= 4.0
+          ? 'text-amber-300 font-extrabold text-xl scale-110 drop-shadow-[0_0_12px_rgba(245,158,11,0.9)]'
+          : 'text-cyan-300 font-extrabold text-lg drop-shadow-[0_0_10px_rgba(6,182,212,0.9)]';
+        spawn(data.x ?? 0, data.z ?? 0, text, colorClass);
+      }
+    );
+
     return () => {
       unsubGate();
       unsubMobsKilled();
@@ -261,6 +278,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubSkin();
       unsubBossDamaged();
       unsubFormation();
+      unsubFinishStep();
     };
   }, [engine]);
 
