@@ -479,6 +479,7 @@ export class GameEngine {
     this.unsubObstacleSmashed = eventBus.on('obstacleSmashed', (data: { type?: string; x?: number; z?: number }) => {
       this.particles.emitBurst(data.x ?? this.crowd.leaderX, 0.8, data.z ?? this.crowd.leaderZ, 16, 0xff6b6b, 3.5);
       eventBus.emit('screenShake', { intensity: 0.1 });
+      this.triggerHaptic([30, 20, 40]);
     });
 
     // Праздничный VFX при завершении уровня: световой столб + ударная волна +
