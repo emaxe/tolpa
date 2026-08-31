@@ -19,6 +19,12 @@ export class CrowdManager {
   // Живой счётчик толпы — getAliveCount() раньше сканировал все 200 слотов на каждый
   // вызов (а вызывался по многу раз за кадр из FinishLine/GameEngine/Gate/Boss).
   private aliveCount: number = 0;
+  // Skip-empty-pass счётчики для updateFallingMobs()/updateDeathMobs(): раньше оба
+  // метода каждый кадр сканировали ВСЕ до 200 слотов this.mobs, даже когда ни один
+  // моб не падал/не умирал (штатный бег без потерь). Счётчики дают ранний выход —
+  // по образцу activeCount в ParticleSystem. Ортогональны: падение и смерть независимы.
+  private fallingCount: number = 0;
+  private dyingCount: number = 0;
   // Frame-cached snapshot живых мобов: getAliveMobs() вызывается до ~6 раз/кадр из
   // разных менеджеров (Obstacle/Wall/Boss/Gate). Раньше каждый вызов заново сканировал
   // все до 200 слотов (длина=0 + до 200 push) — ~1k лишних push/кадр чистой избыточности.
@@ -194,6 +200,8 @@ export class CrowdManager {
 
     // Reset all mobs
     this.aliveCount = 0;
+    this.fallingCount = 0;
+    this.dyingCount = 0;
     this.aliveSnapshotValid = false;
     for (let i = 0; i < this.maxCapacity; i++) {
       this.mobs[i].alive = false;
@@ -485,12 +493,16 @@ export class CrowdManager {
     this.aliveCount--;
     this.invalidateAliveSnapshot();
     mob.dying = true;
+    this.dyingCount++;
     mob.deathT = 0;
     mob.deathRotX = (Math.random() - 0.5) * 2.2;
     mob.deathRotZ = (Math.random() - 0.5) * 2.2;
     mob.deathScale = 1.0;
     // Сбрасываем падение с края, если моб успел улететь
-    mob.falling = false;
+    if (mob.falling) {
+      mob.falling = false;
+      this.fallingCount--;
+    }
     mob.fallVy = 0;
     return true;
   }
@@ -787,6 +799,8 @@ export class CrowdManager {
   // Анимация падения мобов, вышедших за край дорожки: ускорение вниз + вращение.
   // Когда моб улетает достаточно далеко вниз — окончательно удаляется из сцены.
   private updateFallingMobs(dt: number): void {
+    // Skip-empty-pass: когда ни один моб не падает — не итерируем пул вовсе.
+    if (this.fallingCount === 0) return;
     for (let i = 0; i < this.mobs.length; i++) {
       const mob = this.mobs[i];
       if (!mob.falling) continue;
@@ -811,6 +825,7 @@ export class CrowdManager {
       // очистка геометрии — повторный декремент дал бы двойное списание.
       if (mob.y < -12) {
         mob.falling = false;
+        this.fallingCount--;
         mob.y = -100;
         this.dummy.position.set(0, -100, 0);
         this.dummy.updateMatrix();
@@ -824,6 +839,8 @@ export class CrowdManager {
   // Моб уже убран из живых (alive=false), но слот удерживается, пока проигрывается
   // анимация (~0.5с), затем матрица отправляется в (0,-100,0) и слот освобождается.
   private updateDeathMobs(dt: number): void {
+    // Skip-empty-pass: когда ни один моб не умирает — не итерируем пул вовсе.
+    if (this.dyingCount === 0) return;
     for (let i = 0; i < this.mobs.length; i++) {
       const mob = this.mobs[i];
       if (!mob.dying) continue;
@@ -844,6 +861,7 @@ export class CrowdManager {
 
       if (t >= 1) {
         mob.dying = false;
+        this.dyingCount--;
         mob.y = -100;
         this.dummy.position.set(0, -100, 0);
         this.dummy.scale.set(1, 1, 1);
@@ -910,6 +928,7 @@ export class CrowdManager {
       // updateFallingMobs().
       if (Math.abs(mob.x) > this.trackHalfWidth && !mob.falling) {
         mob.falling = true;
+        this.fallingCount++;
         // Моб выбывает из геймплея СРАЗУ в момент срыва с края: иначе он ~0.7с
         // остаётся в aliveMobs (надувает aliveCount, попадает в зоны коллизий
         // гейтов/ловушек/босса) и может быть повторно «убит», что даёт двойное
