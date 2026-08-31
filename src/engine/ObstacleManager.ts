@@ -940,7 +940,15 @@ export class ObstacleManager {
       }
       // Толпа понесла урон от ловушки — серия уворотов сбрасывается (без rate-limit,
       // чтобы стрик сбрасывался корректно в момент удара).
-      stateManager.runResetNearMissStreak();
+      this.breakNearMissStreak(obsVis.hazardX, obsVis.hazardZ);
+    }
+  }
+
+  /** Сбрасывает серию уворотов и при срыве серии >=2 даёт визуальный фидбек. */
+  private breakNearMissStreak(x: number, z: number): void {
+    const brokenStreak = stateManager.runResetNearMissStreak();
+    if (brokenStreak >= 2) {
+      eventBus.emit('nearMissBreak', { streak: brokenStreak, x, z });
     }
   }
 
@@ -1006,7 +1014,7 @@ export class ObstacleManager {
         // рискнул, серия уворотов сбрасывается. Полноширинные ловушки (gap <= 0)
         // серию НЕ ломают — там награда невозможна в принципе.
         obsVis.nearMissAwarded = true;
-        stateManager.runResetNearMissStreak();
+        this.breakNearMissStreak(obsVis.hazardX, rz);
       }
     }
     obsVis.lastLeaderZ = lz;
@@ -1093,7 +1101,7 @@ export class ObstacleManager {
       }
     }
     // Взрыв мины убил мобов — серия уворотов сбрасывается.
-    stateManager.runResetNearMissStreak();
+    this.breakNearMissStreak(obs.x, obs.z);
   }
 
   private resolveDog(
@@ -1177,7 +1185,7 @@ export class ObstacleManager {
     if (vol > 0) soundEngine.playSound('dog_snap', 1, vol);
     eventBus.emit('screenShake', { intensity: 0.25 });
     // Собака укусила моба — серия уворотов сбрасывается.
-    stateManager.runResetNearMissStreak();
+    this.breakNearMissStreak(obs.x, obs.z);
   }
 
   private disposeMeshTree(root: THREE.Object3D): void {

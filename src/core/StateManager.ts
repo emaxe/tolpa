@@ -703,9 +703,12 @@ export class StateManager {
     return { streak: this.run.nearMissStreak, multiplier: getNearMissMultiplier(this.run.nearMissStreak) };
   }
 
-  /** Сбрасывает текущую серию уворотов (при уроне толпы или безопасном объезде ловушки). */
-  public runResetNearMissStreak(): void {
+  /** Сбрасывает текущую серию уворотов (при уроне толпы или безопасном объезде ловушки).
+   *  Возвращает длину сброшенной серии (для фидбека о срыве). */
+  public runResetNearMissStreak(): number {
+    const prev = this.run?.nearMissStreak ?? 0;
     if (this.run) this.run.nearMissStreak = 0;
+    return prev;
   }
 
   /** Возвращает текущую длину серии уворотов в активном забеге. */

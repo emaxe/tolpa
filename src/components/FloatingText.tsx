@@ -125,6 +125,23 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       spawn(data.x || 0, data.z || 0, text, colorClass);
     });
 
+    // Срыв серии уворотов (урон толпы / безопасный объезд / мина / собака): когда серия
+    // была >=2, показываем красную плашку о потере мультипликатора. Раньше сброс серии
+    // происходил молча — без текстового фидбека.
+    const unsubNearMissBreak = eventBus.on(
+      'nearMissBreak',
+      (data: { streak?: number; x?: number; z?: number }) => {
+        if (!data) return;
+        const streak = data.streak ?? 0;
+        spawn(
+          data.x || 0,
+          data.z || 0,
+          i18n.t('nearMissBreak', 'УВОРОТ СБИТ!') + ` x${streak}`,
+          'text-red-400 font-bold drop-shadow-[0_0_8px_rgba(248,113,113,0.9)]'
+        );
+      }
+    );
+
     // Сбор бонусов-сфер (add_mobs / heal / adrenaline): событие bonusCollected эмитится
     // BonusManager, но раньше никем не потреблялось — игрок видел только звук + частицы.
     // Подключаем текстовый фидбек, цвет совпадает с BONUS_COLORS.
@@ -289,6 +306,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubComboBreak();
       unsubObstacle();
       unsubNearMiss();
+      unsubNearMissBreak();
       unsubBonus();
       unsubAdrenalineTriggered();
       unsubFinishLine();
