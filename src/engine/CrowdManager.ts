@@ -754,6 +754,8 @@ export class CrowdManager {
       if (this.hyperTimer <= 0) {
         this.isHyperMode = false;
         this.hyperTimer = 0;
+        // Сигнал окончания гипер-режима: игрок теряет неуязвимость.
+        eventBus.emit('adrenalineEnded', { x: this.leaderX, z: this.leaderZ });
       }
     }
 

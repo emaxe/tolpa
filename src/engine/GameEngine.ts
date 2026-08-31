@@ -207,6 +207,7 @@ export class GameEngine {
   private unsubNearMissBreak: (() => void) | null = null;
   private unsubComboMilestone: (() => void) | null = null;
   private unsubAdrenaline: (() => void) | null = null;
+  private unsubAdrenalineEnded: (() => void) | null = null;
   private unsubBonusCollected: (() => void) | null = null;
   private unsubObstacleSmashed: (() => void) | null = null;
   private unsubLevelCompleted: (() => void) | null = null;
@@ -477,6 +478,18 @@ export class GameEngine {
       this.particles.emitShockwave(x, z, 0xfacc15);
       this.particles.emitBurst(x, 1.4, z, 24, 0xfde047, 5.0);
       eventBus.emit('screenShake', { intensity: 0.3 });
+    });
+
+    // VFX при окончании гипер-режима: рассеивающаяся волна + искры остывания +
+    // нисходящий звук разрядки + лёгкий тактильный импульс. Игрок теряет
+    // неуязвимость — нужен чёткий сигнал вместо внезапного вайпа толпы.
+    this.unsubAdrenalineEnded = eventBus.on('adrenalineEnded', (data: { x?: number; z?: number }) => {
+      const x = data?.x ?? this.crowd.leaderX;
+      const z = data?.z ?? this.crowd.leaderZ;
+      this.particles.emitShockwave(x, z, 0x94a3b8);
+      this.particles.emitBurst(x, 1.0, z, 14, 0xfacc15, 2.5);
+      soundEngine.playSound('adrenaline_whoosh', 0.6);
+      this.triggerHaptic([20, 20]);
     });
 
     // VFX при сборе бонуса: вспышка частиц в цвет типа бонуса.
@@ -2680,6 +2693,7 @@ export class GameEngine {
     this.unsubComboBreak?.();
     this.unsubCrowdMilestone?.();
     this.unsubAdrenaline?.();
+    this.unsubAdrenalineEnded?.();
     this.unsubBonusCollected?.();
     this.unsubObstacleSmashed?.();
     this.unsubLevelCompleted?.();
