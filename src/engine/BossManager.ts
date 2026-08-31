@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import { BossAttack, BossData } from '../types/game';
-import { createBossMesh } from '../utils/proceduralMeshes';
+import {
+  createBossMesh,
+  createBossLaserBeamMesh,
+  createBossLaserTelegraphMesh,
+} from '../utils/proceduralMeshes';
 import { CrowdManager } from './CrowdManager';
 import { ParticleSystem } from './ParticleSystem';
 import { soundEngine } from '../audio/SoundEngine';
@@ -18,13 +22,20 @@ export class BossManager {
   public bossData: BossData | null = null;
   public bossMesh: THREE.Group | null = null;
   private telegraphMesh: THREE.Mesh | null = null;
+  private laserBeamMesh: THREE.Mesh | null = null;
+  private laserTelegraphMesh: THREE.Mesh | null = null;
   private attackTimer: number = 0;
   private currentAttackIndex: number = 0;
   private lastAttackIndex: number = -1;
   private isAttacking: boolean = false;
   public isDefeated: boolean = false;
+  private isDefeatCollapsing: boolean = false;
+  private defeatTimer: number = 0;
+  private defeatBurstTimer: number = 0;
+  private hitFlashTimer: number = 0;
+  private cachedMaterials: { mat: THREE.MeshStandardMaterial; baseEmissive: number }[] = [];
   private bossArenaZ: number = 0;
-  public isActive(): boolean { return !!this.bossData && !this.isDefeated; }
+  public isActive(): boolean { return !!this.bossData && !this.isDefeated && !this.isDefeatCollapsing; }
   public getArenaZ(): number { return this.bossArenaZ; }
   private retaliationTimer: number = 0;
   // Телеграф возмездия: за ~0.45с до удара босс подаёт визуальный сигнал (янтарное
@@ -73,6 +84,10 @@ export class BossManager {
     this.bossData = { ...bossData, hp: bossData.maxHp };
     this.bossArenaZ = arenaZ;
     this.isDefeated = false;
+    this.isDefeatCollapsing = false;
+    this.defeatTimer = 0;
+    this.defeatBurstTimer = 0;
+    this.hitFlashTimer = 0;
     this.attackTimer = 0;
     this.currentAttackIndex = this.selectNextAttackIndex();
     this.lastAttackIndex = -1;
@@ -90,7 +105,24 @@ export class BossManager {
     this.bossMesh.position.set(0, 0, arenaZ);
     this.scene.add(this.bossMesh);
 
-    // Create Telegraph Ring Mesh
+    // Кэшируем Standard-материалы для 0-GC хит-флэша при уроне
+    this.cachedMaterials = [];
+    this.bossMesh.traverse((child) => {
+      const mesh = child as THREE.Mesh;
+      if (mesh.material) {
+        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        mats.forEach((m) => {
+          if ('emissiveIntensity' in m) {
+            this.cachedMaterials.push({
+              mat: m as THREE.MeshStandardMaterial,
+              baseEmissive: (m as THREE.MeshStandardMaterial).emissiveIntensity ?? 0,
+            });
+          }
+        });
+      }
+    });
+
+    // Create Telegraph Ring Mesh (для круговых атак / slam)
     const teleGeo = new THREE.RingGeometry(0.1, 4.0, 32);
     const teleMat = new THREE.MeshBasicMaterial({
       color: 0xef4444,
@@ -101,7 +133,17 @@ export class BossManager {
     this.telegraphMesh = new THREE.Mesh(teleGeo, teleMat);
     this.telegraphMesh.rotation.x = -Math.PI / 2;
     this.telegraphMesh.position.set(0, 0.05, arenaZ - 5);
+    this.telegraphMesh.visible = false;
     this.scene.add(this.telegraphMesh);
+
+    // Create Laser Telegraph & Laser Beam Meshes (0-GC: живут весь бой)
+    this.laserTelegraphMesh = createBossLaserTelegraphMesh(arenaZ);
+    this.laserTelegraphMesh.visible = false;
+    this.scene.add(this.laserTelegraphMesh);
+
+    this.laserBeamMesh = createBossLaserBeamMesh(arenaZ);
+    this.laserBeamMesh.visible = false;
+    this.scene.add(this.laserBeamMesh);
 
     soundEngine.playSound('boss_roar');
     soundEngine.playMusic('boss_battle');
@@ -122,13 +164,65 @@ export class BossManager {
     crowd: CrowdManager,
     particles: ParticleSystem
   ): void {
-    if (!this.bossData || !this.bossMesh || this.isDefeated) return;
+    if (!this.bossData || !this.bossMesh) return;
+
+    // Фаза гибели (1.0-секундный коллапс корпуса)
+    if (this.isDefeatCollapsing) {
+      this.defeatTimer += dt;
+      this.defeatBurstTimer += dt;
+
+      // Оседание корпуса и опрокидывание назад
+      this.bossMesh.position.y -= dt * 2.5;
+      this.bossMesh.rotation.x -= dt * 1.4;
+      // Лёгкая предсмертная вибрация по X
+      this.bossMesh.position.x = (Math.random() - 0.5) * 0.15;
+
+      // Каскадные вспышки взрывов каждые 0.15с
+      if (this.defeatBurstTimer >= 0.15) {
+        this.defeatBurstTimer = 0;
+        const rx = (Math.random() - 0.5) * 3.0;
+        const ry = 1.0 + Math.random() * 3.0;
+        const rz = this.bossArenaZ + (Math.random() - 0.5) * 2.0;
+        const color = Math.random() > 0.5 ? 0xfacc15 : 0xef4444;
+        particles.emitBurst(rx, ry, rz, 25, color, 6.0);
+        soundEngine.playSound('boss_hit');
+        eventBus.emit('screenShake', { intensity: 0.25 });
+      }
+
+      // По истечении 1.0с — окончательное скрытие меша и эмит события bossDefeated
+      if (this.defeatTimer >= 1.0) {
+        this.isDefeatCollapsing = false;
+        particles.emitBurst(0, 2.5, this.bossArenaZ, 80, 0xfacc15, 10.0);
+        particles.emitShockwave(0, this.bossArenaZ, 0xfacc15);
+        this.scene.remove(this.bossMesh);
+        if (this.telegraphMesh) this.scene.remove(this.telegraphMesh);
+        if (this.laserTelegraphMesh) this.scene.remove(this.laserTelegraphMesh);
+        if (this.laserBeamMesh) this.scene.remove(this.laserBeamMesh);
+        stateManager.runRecordBossKill(500, 15);
+        eventBus.emit('bossDefeated', { boss: this.bossData });
+      }
+      return;
+    }
+
+    if (this.isDefeated) return;
 
     const crowdZ = crowd.leaderZ;
     const distanceToArena = this.bossArenaZ - crowdZ;
 
     // Boss breathing / idle animation
     this.bossMesh.position.y = Math.sin(Date.now() * 0.003) * 0.2;
+    this.bossMesh.position.x = 0;
+
+    // Хит-флэш реакция на материалах корпуса (0.08с)
+    if (this.hitFlashTimer > 0) {
+      this.hitFlashTimer -= dt;
+      const isFlashing = this.hitFlashTimer > 0;
+      const boost = isFlashing ? 1.5 : 0;
+      for (let i = 0; i < this.cachedMaterials.length; i++) {
+        const item = this.cachedMaterials[i];
+        item.mat.emissiveIntensity = item.baseEmissive + boost;
+      }
+    }
 
     // Only engage battle when crowd is within 35 units of boss arena
     if (distanceToArena > 35) return;
@@ -153,7 +247,18 @@ export class BossManager {
         this.isCoolingDown = false;
         this.attackTimer = 0;
       }
-      // Телеграф скрыт — opacity уже сброшен при завершении атаки.
+      // Скрываем все телеграфы и луч во время кулдауна
+      if (this.telegraphMesh) {
+        this.telegraphMesh.visible = false;
+        (this.telegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+      }
+      if (this.laserTelegraphMesh) {
+        this.laserTelegraphMesh.visible = false;
+        (this.laserTelegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+      }
+      if (this.laserBeamMesh) {
+        this.laserBeamMesh.visible = false;
+      }
     } else {
       this.attackTimer += dt;
       const attacks = this.bossData.attacks;
@@ -161,19 +266,82 @@ export class BossManager {
 
       if (!this.isAttacking) {
         // Telegraph phase
-        if (this.telegraphMesh) {
-          const prog = this.attackTimer / currentAttack.telegraphTime;
-          (this.telegraphMesh.material as THREE.MeshBasicMaterial).opacity = Math.min(0.7, prog * 0.7);
-          this.telegraphMesh.scale.set(prog, prog, prog);
+        const prog = Math.min(1.0, this.attackTimer / currentAttack.telegraphTime);
+        if (currentAttack.type === 'laser') {
+          if (this.telegraphMesh) {
+            this.telegraphMesh.visible = false;
+            (this.telegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+          }
+          if (this.laserTelegraphMesh) {
+            this.laserTelegraphMesh.visible = true;
+            const pulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.02);
+            const alpha = Math.min(0.75, prog * 0.5 + pulse * 0.25);
+            (this.laserTelegraphMesh.material as THREE.MeshBasicMaterial).opacity = alpha;
+            const scaleX = 1.0 + Math.sin(Date.now() * 0.025) * 0.15;
+            this.laserTelegraphMesh.scale.set(scaleX, 1.0, 1.0);
+          }
+        } else {
+          if (this.laserTelegraphMesh) {
+            this.laserTelegraphMesh.visible = false;
+            (this.laserTelegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+          }
+          if (this.telegraphMesh) {
+            this.telegraphMesh.visible = true;
+            (this.telegraphMesh.material as THREE.MeshBasicMaterial).opacity = Math.min(0.7, prog * 0.7);
+            this.telegraphMesh.scale.set(prog, prog, prog);
+          }
         }
 
         if (this.attackTimer >= currentAttack.telegraphTime) {
           this.isAttacking = true;
           this.attackTimer = 0;
+          if (this.telegraphMesh) {
+            this.telegraphMesh.visible = false;
+            (this.telegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+          }
+          if (this.laserTelegraphMesh) {
+            this.laserTelegraphMesh.visible = false;
+            (this.laserTelegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+          }
           this.executeBossAttack(currentAttack, crowd, particles);
         }
       } else {
         // Attack execution phase
+        if (currentAttack.type === 'laser' && this.laserBeamMesh) {
+          this.laserBeamMesh.visible = true;
+          const attackDur = Math.max(0.1, currentAttack.duration || 1.5);
+          const p = Math.min(1.0, this.attackTimer / attackDur);
+
+          // Анимация толщины луча: всплеск (0..0.15) -> удержание (0.15..0.75) -> затухание (0.75..1.0)
+          let thickness = 1.0;
+          if (p < 0.15) {
+            thickness = (p / 0.15) * 1.35;
+          } else if (p < 0.75) {
+            thickness = 1.0 + Math.sin(Date.now() * 0.04) * 0.12;
+          } else {
+            thickness = Math.max(0.01, 1.0 - (p - 0.75) / 0.25);
+          }
+
+          // Вибрация по X/Y
+          const jitterX = (Math.random() - 0.5) * 0.12;
+          const jitterY = (Math.random() - 0.5) * 0.12;
+          this.laserBeamMesh.position.set(jitterX, 1.8 + jitterY, this.bossArenaZ - 14);
+          this.laserBeamMesh.scale.set(thickness, thickness, 1.0);
+          (this.laserBeamMesh.material as THREE.MeshBasicMaterial).opacity = Math.min(0.9, thickness * 0.9);
+
+          // Искры на стыке луча с зоной поражения
+          if (Math.random() < 0.3) {
+            particles.emitBurst(
+              (Math.random() - 0.5) * 2.5,
+              0.5 + Math.random() * 1.5,
+              this.bossArenaZ - 6 - Math.random() * 12,
+              4,
+              0x00f0ff,
+              3.0
+            );
+          }
+        }
+
         // Рой мелких тварей наносит урон тиками на протяжении всей длительности атаки.
         this.tickMinionDamage(dt, crowd, particles);
         if (this.attackTimer >= currentAttack.duration) {
@@ -181,6 +349,11 @@ export class BossManager {
           this.attackTimer = 0;
           this.lastAttackIndex = this.currentAttackIndex;
           this.currentAttackIndex = this.selectNextAttackIndex();
+          if (this.laserBeamMesh) {
+            this.laserBeamMesh.visible = false;
+            this.laserBeamMesh.position.set(0, 1.8, this.bossArenaZ - 14);
+            this.laserBeamMesh.scale.set(1, 1, 1);
+          }
           // Атака "shield": по завершении купол спадает, босс снова уязвим.
           if (this.isShielded) {
             this.setShielded(false);
@@ -189,7 +362,12 @@ export class BossManager {
           this.isCoolingDown = true;
           this.attackCooldown = this.attackInterval;
           if (this.telegraphMesh) {
+            this.telegraphMesh.visible = false;
             (this.telegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+          }
+          if (this.laserTelegraphMesh) {
+            this.laserTelegraphMesh.visible = false;
+            (this.laserTelegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
           }
         }
       }
@@ -229,7 +407,7 @@ export class BossManager {
 
     // Блокируем продвижение толпы, пока босс жив — иначе толпа физически пробегает
     // сквозь него и "бой" сводится к паре кадров контакта.
-    if (!this.isDefeated) {
+    if (!this.isDefeated && !this.isDefeatCollapsing) {
       crowd.leaderZ = Math.min(crowd.leaderZ, this.bossArenaZ - 5.5);
     }
   }
@@ -276,7 +454,7 @@ export class BossManager {
       this.minionTickAccum = 0;
     } else if (attack.type === 'meteors') {
       // Метеоритный залп: серия огненных всплесков по арене перед боссом.
-      soundEngine.playSound('boss_laser');
+      soundEngine.playSound('boss_slam');
       eventBus.emit('screenShake', { intensity: 0.5 });
       const strikes = attack.areaRadius ? Math.floor(attack.areaRadius) : 3;
       for (let i = 0; i < strikes; i++) {
@@ -351,12 +529,17 @@ export class BossManager {
   }
 
   public takeDamage(amount: number, particles: ParticleSystem, pierceShield: boolean = false): void {
-    if (!this.bossData || this.isDefeated) return;
+    if (!this.bossData || this.isDefeated || this.isDefeatCollapsing) return;
 
     // Энергетический купол (атака "shield") блокирует урон толпы. Фаланга (circle)
     // пробивает барьер на 20% от урона (тактическая синергия плотного строя).
     if (this.isShielded) {
       amount = pierceShield ? amount * 0.2 : 0;
+    }
+
+    if (amount > 0) {
+      // Хит-флэш на материалах корпуса (0.08с)
+      this.hitFlashTimer = 0.08;
     }
 
     this.bossData.hp = Math.max(0, this.bossData.hp - amount);
@@ -367,7 +550,7 @@ export class BossManager {
     // HP при этом списывается непрерывно — тормозим только аудио/визуал/эмит.
     this.hitFxAccum -= 1;
     if (this.hitFxAccum > 0) {
-      if (this.bossData.hp <= 0) {
+      if (this.bossData.hp <= 0 && !this.isDefeatCollapsing && !this.isDefeated) {
         this.defeatBoss(particles);
       }
       return;
@@ -397,25 +580,35 @@ export class BossManager {
     });
     this.hitDamageAccum = 0;
 
-    if (this.bossData.hp <= 0) {
+    if (this.bossData.hp <= 0 && !this.isDefeatCollapsing && !this.isDefeated) {
       this.defeatBoss(particles);
     }
   }
 
   private defeatBoss(particles: ParticleSystem): void {
     this.isDefeated = true;
+    this.isDefeatCollapsing = true;
+    this.defeatTimer = 0;
+    this.defeatBurstTimer = 0;
     soundEngine.playSound('boss_defeat');
 
-    if (this.bossMesh) {
-      particles.emitBurst(0, 3.0, this.bossArenaZ, 80, 0xfacc15, 10.0);
-      this.scene.remove(this.bossMesh);
-    }
     if (this.telegraphMesh) {
-      this.scene.remove(this.telegraphMesh);
+      this.telegraphMesh.visible = false;
+      (this.telegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+    }
+    if (this.laserTelegraphMesh) {
+      this.laserTelegraphMesh.visible = false;
+      (this.laserTelegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+    }
+    if (this.laserBeamMesh) {
+      this.laserBeamMesh.visible = false;
+    }
+    if (this.isShielded) {
+      this.setShielded(false);
     }
 
-    stateManager.runRecordBossKill(500, 15);
-    eventBus.emit('bossDefeated', { boss: this.bossData });
+    particles.emitBurst(0, 3.0, this.bossArenaZ, 40, 0xfacc15, 8.0);
+    eventBus.emit('screenShake', { intensity: 0.6 });
   }
 
   public clear(): void {
@@ -436,15 +629,32 @@ export class BossManager {
       (this.telegraphMesh.material as THREE.Material).dispose();
       this.telegraphMesh = null;
     }
+    if (this.laserTelegraphMesh) {
+      this.scene.remove(this.laserTelegraphMesh);
+      this.laserTelegraphMesh.geometry.dispose();
+      (this.laserTelegraphMesh.material as THREE.Material).dispose();
+      this.laserTelegraphMesh = null;
+    }
+    if (this.laserBeamMesh) {
+      this.scene.remove(this.laserBeamMesh);
+      this.laserBeamMesh.geometry.dispose();
+      (this.laserBeamMesh.material as THREE.Material).dispose();
+      this.laserBeamMesh = null;
+    }
     if (this.shieldMesh) {
       this.scene.remove(this.shieldMesh);
       this.shieldMesh.geometry.dispose();
       (this.shieldMesh.material as THREE.Material).dispose();
       this.shieldMesh = null;
     }
+    this.cachedMaterials = [];
     this.isShielded = false;
     this.bossData = null;
     this.isDefeated = false;
+    this.isDefeatCollapsing = false;
+    this.defeatTimer = 0;
+    this.defeatBurstTimer = 0;
+    this.hitFlashTimer = 0;
     this.retaliationTelegraphed = false;
     this.isCoolingDown = false;
     this.attackCooldown = 0;
@@ -453,6 +663,10 @@ export class BossManager {
     this.hitFxAccum = 0;
     this.hitDamageAccum = 0;
     this.arenaEntered = false;
+  }
+
+  public dispose(): void {
+    this.clear();
   }
 
   /** Дефолтные веса атак по типу (если не заданы явно в LevelGenerator). */

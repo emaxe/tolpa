@@ -1426,6 +1426,44 @@ export function createBossMesh(boss: BossData): THREE.Group {
   return group;
 }
 
+// Procedural Boss Laser Beam Mesh — 3D-лазерный луч босса
+export function createBossLaserBeamMesh(arenaZ: number): THREE.Mesh {
+  const length = 28.0;
+  const radius = 0.5;
+  const geo = new THREE.CylinderGeometry(radius, radius, length, 16, 1, false);
+  geo.rotateX(Math.PI / 2); // Ориентируем вдоль оси Z
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0x00f0ff,
+    transparent: true,
+    opacity: 0.85,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(0, 1.8, arenaZ - length / 2);
+  mesh.visible = false;
+  return mesh;
+}
+
+// Procedural Boss Laser Telegraph Mesh — направленный телеграф опасной зоны на полу
+export function createBossLaserTelegraphMesh(arenaZ: number): THREE.Mesh {
+  const length = 28.0;
+  const width = 4.2;
+  const geo = new THREE.PlaneGeometry(width, length);
+  geo.rotateX(-Math.PI / 2); // Лежит горизонтально на полу в плоскости XZ
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0xef4444,
+    transparent: true,
+    opacity: 0.0,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(0, 0.06, arenaZ - length / 2);
+  mesh.visible = false;
+  return mesh;
+}
+
 // Procedural Street Lamp Mesh — Г-образный фонарь: столб, изогнутый кронштейн
 // и светящийся плафон (MeshBasicMaterial, без PointLight).
 export function createStreetLampMesh(): THREE.Group {
