@@ -25,6 +25,9 @@ interface Shockwave {
 export class ParticleSystem {
   private scene: THREE.Scene;
   private particles: Particle[] = [];
+  // Счётчик активных частиц (skip-empty-pass): update() ранне-выходит, когда
+  // ни одна частица не активна, вместо итерации всего пула (300) каждый кадр.
+  private activeCount: number = 0;
   private instancedMesh: THREE.InstancedMesh;
   private dummy: THREE.Object3D = new THREE.Object3D();
   private colorDummy: THREE.Color = new THREE.Color();
@@ -107,6 +110,7 @@ export class ParticleSystem {
       const p = this.particles[i];
       if (!p.active) {
         p.active = true;
+        this.activeCount++;
         p.x = x;
         p.y = y;
         p.z = z;
@@ -142,6 +146,7 @@ export class ParticleSystem {
       const p = this.particles[i];
       if (!p.active) {
         p.active = true;
+        this.activeCount++;
         p.x = x;
         p.y = y;
         p.z = z;
@@ -174,6 +179,7 @@ export class ParticleSystem {
       const p = this.particles[i];
       if (!p.active) {
         p.active = true;
+        this.activeCount++;
         p.x = x + (Math.random() - 0.5) * 0.6;
         p.y = 0.2;
         p.z = z + (Math.random() - 0.5) * 0.6;
@@ -220,6 +226,9 @@ export class ParticleSystem {
   }
 
   public update(dt: number): void {
+    // Skip-empty-pass: когда ни одна частица не активна, не итерируем весь пул.
+    if (this.activeCount === 0) return;
+
     let changed = false;
 
     for (let i = 0; i < this.particles.length; i++) {
@@ -228,6 +237,7 @@ export class ParticleSystem {
         p.life += dt;
         if (p.life >= p.maxLife) {
           p.active = false;
+          this.activeCount--;
           p.y = -100;
           this.dummy.position.set(0, -100, 0);
           this.dummy.updateMatrix();
@@ -283,6 +293,7 @@ export class ParticleSystem {
       this.dummy.updateMatrix();
       this.instancedMesh.setMatrixAt(i, this.dummy.matrix);
     }
+    this.activeCount = 0;
     this.instancedMesh.instanceMatrix.needsUpdate = true;
 
     for (let i = 0; i < this.shockwaves.length; i++) {
