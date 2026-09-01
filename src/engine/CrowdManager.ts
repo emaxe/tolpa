@@ -929,6 +929,10 @@ export class CrowdManager {
 
     // Вычисляем масштаб формации 1 раз за кадр на всю толпу (0-GC оптимизация)
     const formationScale = getFormationScale(this.formation, totalCount, this.playableHalfWidth);
+    // Инварианты кадра, вынесенные из per-mob цикла (0-GC / hoist invariant math):
+    // 14.0 * dt строго константен на протяжении кадра, isHyperMode не меняется внутри цикла.
+    const flockT = Math.min(1.0, 14.0 * dt);
+    const hyperScale = this.isHyperMode ? 1.15 : 1.0;
 
     for (let mob of aliveMobs) {
       // Моб уже упал с края дорожки — его позиция больше НЕ пересчитывается формацией.
@@ -969,8 +973,8 @@ export class CrowdManager {
         mob.z = mob.targetZ;
       } else {
         // Organic flocking spring interpolation
-        mob.x = lerp(mob.x, mob.targetX, Math.min(1.0, 14.0 * dt));
-        mob.z = lerp(mob.z, mob.targetZ, Math.min(1.0, 14.0 * dt));
+        mob.x = lerp(mob.x, mob.targetX, flockT);
+        mob.z = lerp(mob.z, mob.targetZ, flockT);
       }
 
       // Если боец вышел за физический край дорожки — начинает падать вниз (анимация
@@ -998,7 +1002,7 @@ export class CrowdManager {
       const phase = this.animTime + mob.animOffset;
       const stride = Math.sin(phase);                     // -1..1, цикл шага
       // Двухфазный подскок-шаг: 2 отрыва от земли за цикл (abs → двойная частота)
-      const bounce = Math.abs(Math.sin(phase)) * 0.28;
+      const bounce = Math.abs(stride) * 0.28;
       mob.y = bounce;
 
       // Setup 3D transform
@@ -1013,7 +1017,7 @@ export class CrowdManager {
       const yaw = Math.sin(phase * 0.5) * 0.05;
       // Лёгкий squash при приземлении (ZERO-alloc: dummy.scale переиспользуется)
       const sq = 1.0 - bounce * 0.12;
-      const s = mob.scale * (this.isHyperMode ? 1.15 : 1.0);
+      const s = mob.scale * hyperScale;
 
       // Лидер (слот #0) визуально представлен отдельной моделью скина.
       if (isLeaderSlot && this.leaderModel) {
