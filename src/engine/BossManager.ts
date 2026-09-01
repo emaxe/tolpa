@@ -551,6 +551,18 @@ export class BossManager {
     this.hitFxAccum -= 1;
     if (this.hitFxAccum > 0) {
       if (this.bossData.hp <= 0 && !this.isDefeatCollapsing && !this.isDefeated) {
+        // Добивающий урон в окне троттлинга: эмитим bossDamaged с hp=0, чтобы
+        // HUD-полоса HP упала до нуля сразу, а не замирала на остаточном значении
+        // на всю секунду анимации коллапса. Иначе финальный урон теряется.
+        eventBus.emit('bossDamaged', {
+          hp: 0,
+          maxHp: this.bossData.maxHp,
+          nameKey: this.bossData.nameKey,
+          x: 0,
+          z: this.bossArenaZ,
+          damage: this.hitDamageAccum,
+        });
+        this.hitDamageAccum = 0;
         this.defeatBoss(particles);
       }
       return;
