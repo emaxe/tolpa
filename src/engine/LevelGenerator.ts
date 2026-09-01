@@ -128,8 +128,8 @@ export class LevelGenerator {
     // ЭТАП 3: НЕЗАВИСИМЫЕ ВОРОТА (add/divide) и СТЕНЫ (−N со счётчиком)
     // -------------------------------------------------------------
     // Ворота теперь независимые: 1..3 на ряд, могут быть уступами, занимать часть ширины
-    // или всю, и могут двигаться/вращаться. Операции только позитивные (add/divide).
-    // ВНИМАНИЕ: multiply (×N) сознательно УДАЛЁН — ворота только + и ÷. НЕ возвращать.
+    // или всю, и могут двигаться/вращаться. Операции позитивные (add/divide/multiply).
+    // multiply (×N) возрождён: редкая награда за риск, N∈{2,3}, не раньше 3-х ворот.
     // subtract (−N) вынесен в отдельные стены со счётчиком.
     const motionTypes: GateMotion[] = ['none', 'none', 'none', 'horizontal', 'vertical', 'rotate'];
     const gateCount = Math.min(40, 16 + Math.floor(levelNum / 2));
@@ -146,9 +146,8 @@ export class LevelGenerator {
       const addVal = Math.max(3, Math.round(6 + Math.floor(rng() * 8) + Math.floor(levelNum * 0.12)));
       const divVal = 2 + Math.floor(rng() * 2); // 2 или 3
 
-      // Выбор операции: на старте безопасный add, дальше add или divide.
-      // ВНИМАНИЕ: multiply (×N) сознательно УДАЛЁН из игры по требованию дизайна —
-      // ворота бывают только + (прибавь) и ÷ (отними). НЕ возвращать ×-ворота.
+      // Выбор операции: на старте безопасный add, дальше add/divide/multiply.
+      // multiply (×N) — редкая награда за риск (N∈{2,3}), не раньше 3-х ворот.
       let op: GateOp;
       let value: number;
       if (g < 2) {
@@ -157,12 +156,16 @@ export class LevelGenerator {
       } else {
         // add/divide поровну, с лёгким перекосом в add на ранних уровнях.
         // mystery — редкая операция риска/награды (~12%).
-        const addChance = levelNum < 5 ? 0.65 : 0.5;
+        // multiply — редкая награда за риск (~10%), N∈{2,3}.
+        const addChance = levelNum < 5 ? 0.6 : 0.45;
         const roll = rng();
         if (roll < addChance) {
           op = 'add';
           value = addVal;
-        } else if (roll < addChance + 0.12) {
+        } else if (roll < addChance + 0.1) {
+          op = 'multiply';
+          value = 2 + Math.floor(rng() * 2); // 2 или 3
+        } else if (roll < addChance + 0.22) {
           op = 'mystery';
           value = 8 + Math.floor(rng() * 6);
         } else {
@@ -1374,9 +1377,8 @@ export class LevelGenerator {
     // Детерминированный PRNG для бесконечного режима
     const rng = createRng(segmentIndex * 7919 + 9973);
 
-    // 2-3 независимых ворот в сегменте (только add/divide)
-    // ВНИМАНИЕ: multiply (×N) сознательно УДАЛЁН из игры по требованию дизайна —
-    // ворота бывают только + (прибавь) и ÷ (отними). НЕ возвращать ×-ворота.
+    // 2-3 независимых ворот в сегменте (add/divide/multiply)
+    // multiply (×N) возрождён: редкая награда за риск, N∈{2,3}.
     const motionTypes: GateMotion[] = ['none', 'none', 'none', 'horizontal', 'vertical', 'rotate'];
     const gateCount = 2 + (rng() < 0.5 ? 1 : 0);
     const gateSpacing = (length - 40) / Math.max(1, gateCount);
@@ -1385,13 +1387,16 @@ export class LevelGenerator {
       let op: GateOp;
       let value: number;
 
-      // add/divide поровну — ворота только + и ÷ (multiply сознательно убран).
+      // add/divide поровну — ворота +, ÷ и редкий multiply (×N).
       // mystery — редкая операция риска/награды (~12%).
       const roll = rng();
-      if (roll < 0.5) {
+      if (roll < 0.45) {
         op = 'add';
         value = 10 + Math.floor(rng() * 8);
-      } else if (roll < 0.62) {
+      } else if (roll < 0.55) {
+        op = 'multiply';
+        value = 2 + Math.floor(rng() * 2); // 2 или 3
+      } else if (roll < 0.67) {
         op = 'mystery';
         value = 8 + Math.floor(rng() * 6);
       } else {
