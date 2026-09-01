@@ -336,10 +336,12 @@ export class LevelGenerator {
       const zCenter = 16 + c * (trackLength / Math.max(1, coinClusters));
       const rawXCenter = (rng() - 0.5) * (trackWidth - 4);
       const safeXCenter = this.findSafeCoinX(rawXCenter, zCenter, obstacles, trackWidth);
+      if (safeXCenter === null) continue;
 
       for (let i = 0; i < 4; i++) {
         const coinZ = zCenter + i * 1.5;
         const individualSafeX = this.findSafeCoinX(safeXCenter, coinZ, obstacles, trackWidth);
+        if (individualSafeX === null) continue;
         coins.push({
           id: `coin_${levelNum}_${c}_${i}`,
           x: individualSafeX,
@@ -1189,7 +1191,7 @@ export class LevelGenerator {
     z: number,
     obstacles: ObstacleData[],
     trackWidth: number
-  ): number {
+  ): number | null {
     const maxPlayableX = trackWidth / 2 - 1.2;
     const nearbyObs = obstacles.filter((obs) => Math.abs(obs.z - z) < 2.5);
 
@@ -1225,22 +1227,10 @@ export class LevelGenerator {
       }
     }
 
-    // Если все перекрыты, выбираем самую удаленную от центров препятствий
-    let bestLane = 0;
-    let maxDist = -1;
-    for (const lane of testLanes) {
-      if (Math.abs(lane) > maxPlayableX) continue;
-      let minDistToObs = 999;
-      for (const obs of nearbyObs) {
-        const d = Math.abs(lane - obs.x) - obs.width / 2;
-        if (d < minDistToObs) minDistToObs = d;
-      }
-      if (minDistToObs > maxDist) {
-        maxDist = minDistToObs;
-        bestLane = lane;
-      }
-    }
-    return bestLane;
+    // Если все полосы перекрыты — безопасной позиции нет, монету не спавним.
+    // Возвращаем null, вызывающий код пропускает монету (иначе она легла бы
+    // вплотную к хитбоксу препятствия, что ломает тест и геймплей).
+    return null;
   }
 
   private static generateBoss(levelNum: number, biome: BiomeType): BossData {
@@ -1525,6 +1515,7 @@ export class LevelGenerator {
       const coinZ = currentZ + 8 + c * 11;
       const rawCoinX = (rng() - 0.5) * (trackWidth - 4);
       const safeCoinX = this.findSafeCoinX(rawCoinX, coinZ, obstacles, trackWidth);
+      if (safeCoinX === null) continue;
 
       coins.push({
         id: `endless_coin_${segmentIndex}_${c}`,
