@@ -80,6 +80,7 @@ export const translations = {
     ninjaDodge: 'УВОРОТ!',
     tankShield: 'ЩИТ!',
     mageTransmute: 'МАГИЯ!',
+    mageShield: 'ЭНЕРГОЩИТ!',
     bossShieldBlocked: 'ЩИТ БОССА!',
     bossShieldPierced: 'ПРОБИТИЕ!',
 
@@ -376,6 +377,7 @@ export const translations = {
     ninjaDodge: 'DODGE!',
     tankShield: 'SHIELD!',
     mageTransmute: 'MAGIC!',
+    mageShield: 'ENERGY SHIELD!',
     bossShieldBlocked: 'BOSS SHIELD!',
     bossShieldPierced: 'PIERCED!',
 

@@ -242,7 +242,7 @@ export class CrowdManager {
    *  Игровой смысл не меняется: способность уже сработала логически (бюджет списан),
    *  здесь ограничивается только частота фидбека. Зовётся и из групповых киллов, и из
    *  killOneFromGroup — единая точка, чтобы не дублировать условие троттлинга. */
-  private emitClassAbility(type: 'ninja' | 'tank', ability: 'dodge' | 'shield', x: number, z: number): void {
+  private emitClassAbility(type: 'ninja' | 'tank' | 'mage', ability: 'dodge' | 'shield' | 'transmute', x: number, z: number): void {
     const now = performance.now();
     if (now - this.lastClassAbilityEmitMs < CrowdManager.CLASS_ABILITY_EMIT_INTERVAL_MS) return;
     this.lastClassAbilityEmitMs = now;
@@ -475,10 +475,10 @@ export class CrowdManager {
         continue;
       }
 
-      // Tank shield/armor check — щит/броня тоже поглощают удар целиком
+      // Tank/Mage shield/armor check — щит/броня тоже поглощают удар целиком
       if (mob.shieldHp > 0) {
         mob.shieldHp--;
-        this.emitClassAbility('tank', 'shield', mob.x, mob.z);
+        this.emitClassAbility(mob.type === 'mage' ? 'mage' : 'tank', 'shield', mob.x, mob.z);
         budget--;
         continue;
       }
@@ -656,7 +656,7 @@ export class CrowdManager {
       }
       if (mob.shieldHp > 0) {
         mob.shieldHp--;
-        this.emitClassAbility('tank', 'shield', mob.x, mob.z);
+        this.emitClassAbility(mob.type === 'mage' ? 'mage' : 'tank', 'shield', mob.x, mob.z);
         budget--;
         continue;
       }
@@ -742,7 +742,7 @@ export class CrowdManager {
     // Щит (танк/маг): поглощает контакт, моб выживает, урон стене наносится
     if (mob.shieldHp > 0) {
       mob.shieldHp--;
-      this.emitClassAbility('tank', 'shield', mob.x, mob.z);
+      this.emitClassAbility(mob.type === 'mage' ? 'mage' : 'tank', 'shield', mob.x, mob.z);
       this.wallImpactScratch.killed = false;
       return this.wallImpactScratch;
     }
@@ -778,9 +778,9 @@ export class CrowdManager {
     return this.formation === 'arrow' ? 1.5 : 1.0;
   }
 
-  /** Урон моба по кинетической стене: танки наносят 3 урона, формации Стрела и Фаланга — по 2, остальные — 1. */
+  /** Урон моба по кинетической стене: танки наносят 3 урона, маги — 2, формации Стрела и Фаланга — по 2, остальные — 1. */
   public getMobWallDamage(mob: MobInstance): number {
-    return mob.type === 'tank' ? 3 : (this.formation === 'arrow' || this.formation === 'circle' ? 2 : 1);
+    return mob.type === 'tank' ? 3 : mob.type === 'mage' ? 2 : (this.formation === 'arrow' || this.formation === 'circle' ? 2 : 1);
   }
 
   /** Фаланга (circle) с достаточной толпой может таранить разрушаемые препятствия. */

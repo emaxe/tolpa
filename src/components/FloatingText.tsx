@@ -329,9 +329,13 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
         } else if (data.type === 'tank') {
           spawn(x, z, i18n.t('tankShield', 'ЩИТ!'), 'text-amber-300 font-extrabold drop-shadow-[0_0_8px_rgba(245,158,11,0.9)]');
         } else if (data.type === 'mage') {
-          const valPrefix = data.value ? `+${data.value} ` : '';
-          const text = `${valPrefix}${i18n.t('mageTransmute', 'МАГИЯ!')}`;
-          spawn(x, z, text, 'text-emerald-300 font-extrabold drop-shadow-[0_0_8px_rgba(16,185,129,0.9)]');
+          if (data.ability === 'shield') {
+            spawn(x, z, i18n.t('mageShield', 'ЭНЕРГОЩИТ!'), 'text-emerald-300 font-extrabold drop-shadow-[0_0_8px_rgba(16,185,129,0.9)]');
+          } else {
+            const valPrefix = data.value ? `+${data.value} ` : '';
+            const text = `${valPrefix}${i18n.t('mageTransmute', 'МАГИЯ!')}`;
+            spawn(x, z, text, 'text-emerald-300 font-extrabold drop-shadow-[0_0_8px_rgba(16,185,129,0.9)]');
+          }
         }
       }
     );

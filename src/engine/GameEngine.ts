@@ -609,9 +609,16 @@ export class GameEngine {
           soundEngine.playSound('hammer_impact', 1.3);
           this.triggerHaptic(15);
         } else if (data.type === 'mage') {
-          // Трансмутация Мага: изумрудный бурст частиц (0x10b981)
-          this.particles.emitBurst(x, 1.5, z, 25, 0x10b981, 5.0);
-          this.triggerHaptic(20);
+          // Способности Мага: Энергощит (mage_shield) или Трансмутация (near_miss 1.5)
+          if (data.ability === 'shield') {
+            soundEngine.playSound('mage_shield');
+            this.particles.emitBurst(x, 1.5, z, 25, 0x10b981, 5.0);
+            this.triggerHaptic(20);
+          } else {
+            soundEngine.playSound('near_miss', 1.5);
+            this.particles.emitBurst(x, 1.5, z, 25, 0x10b981, 5.0);
+            this.triggerHaptic(20);
+          }
         }
       }
     );

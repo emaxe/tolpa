@@ -33,6 +33,7 @@ export type SoundEffect =
   | 'upgrade_buy'
   | 'combo_ding'
   | 'near_miss'
+  | 'mage_shield'
   | 'crowd_cheer';
 
 export type MusicTheme =

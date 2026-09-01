@@ -625,6 +625,24 @@ export class SoundEngine {
         break;
       }
 
+      case 'mage_shield': {
+        // Мягкий резонансный всплеск энергощита мага (520 -> 260 Гц)
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520 * pitchShift, t);
+        osc.frequency.exponentialRampToValueAtTime(260 * pitchShift, t + 0.25);
+
+        gain.gain.setValueAtTime(0.3, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+
+        osc.connect(gain);
+        gain.connect(outGain);
+        osc.start(t);
+        osc.stop(t + 0.25);
+        break;
+      }
+
       case 'upgrade_buy': {
         // Покупка улучшения/скина — короткий восходящий "кассовый" звоночек
         const notes = [660, 880, 1100];
