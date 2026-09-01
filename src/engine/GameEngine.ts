@@ -354,10 +354,24 @@ export class GameEngine {
       soundEngine.playSound('mob_fall');
     });
 
-    // Ударная волна при пробитии финишной стены
+    // Агрегатный фидбек при гибели мобов (финишная стена, атаки боссов)
     this.unsubMobsKilled = eventBus.on('mobsKilled', (data: { reason?: string; x?: number; z?: number }) => {
       if (data?.reason === 'finish_wall') {
+        // Ударная волна при пробитии финишной стены
         this.particles.emitShockwave(data.x ?? 0, data.z ?? this.crowd.leaderZ, 0xffd700);
+      } else if (data?.reason === 'boss_minions') {
+        // Рой миньонов босса грызёт толпу тиками: фиолетовый бурст + звук с высоким питчем
+        const x = data?.x ?? this.crowd.leaderX;
+        const z = data?.z ?? this.crowd.leaderZ;
+        this.particles.emitBurst(x, 1.0, z, 10, 0xa855f7, 3.5);
+        soundEngine.playSound('mob_death', 1.2);
+      } else if (data?.reason === 'boss_slam' || data?.reason === 'boss_laser') {
+        // Мощные удары босса (слэм/лазер): красный бурст + звук с низким питчем + лёгкая тряска экрана
+        const x = data?.x ?? this.crowd.leaderX;
+        const z = data?.z ?? this.crowd.leaderZ;
+        this.particles.emitBurst(x, 1.0, z, 16, 0xef4444, 5.0);
+        soundEngine.playSound('mob_death', 0.9);
+        eventBus.emit('screenShake', { intensity: 0.15 });
       }
     });
 
