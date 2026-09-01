@@ -162,6 +162,11 @@ export class WallManager {
 
       // Стена бьёт по проходящим мобам, пока счётчик > 0.
       // Кинетический пробой стен: урон зависит от класса моба (танки) и формации (стрела/фаланга).
+      // Батч-обработка: аккумулируем урон за кадр, а фидбек (текстура счётчика, звук,
+      // партиклы, тряска) отдаём ОДИН раз после цикла. Иначе при широком строе (wide/oval/circle)
+      // в один кадр пересоздаётся CanvasTexture и дублируется звук/тряска на каждого моба
+      // (0-GC нарушение + аудио-клиппинг).
+      let totalDamage = 0;
       for (const _mob of this.throughScratch) {
         if (wall.killsRemaining <= 0) break;
         // Убиваем ровно одного моба и списываем урон ЭТОГО ЖЕ моба,
@@ -169,15 +174,22 @@ export class WallManager {
         const killed = crowd.killOneFromGroup(this.throughScratch, 'wall');
         if (killed) {
           const mobDmg = crowd.getMobWallDamage(killed);
+          totalDamage += mobDmg;
           wall.killsRemaining -= mobDmg;
+          if (wall.killsRemaining <= 0) break;
+        }
+      }
+      if (totalDamage > 0) {
+        if (wall.killsRemaining <= 0) {
+          // Стена сокрушена в этом кадре — breakWall() сам даёт полный фидбек
+          // (obstacle_smash, burst, тряска) ровно один раз.
+          this.breakWall(wv, false, particles);
+        } else {
+          // Стена устояла — один батч-фидбек за кадр вместо N на каждого моба.
           this.updateCounterTexture(wv);
           soundEngine.playSound('gate_pass_negative');
           particles.emitBurst(wall.x, 1.5, wall.z, 12, 0xef4444, 4.0);
           eventBus.emit('screenShake', { intensity: 0.25 });
-          if (wall.killsRemaining <= 0) {
-            this.breakWall(wv, false, particles);
-            break;
-          }
         }
       }
     }
