@@ -50,6 +50,8 @@ export class CrowdManager {
   private colorDummy: THREE.Color = new THREE.Color();
   // Переиспользуемый scratch-объект для расчёта смещения формации (0-GC)
   private formationOffsetScratch: FormationOffset = { x: 0, z: 0 };
+  // Переиспользуемый scratch-объект для контакта со стеной (0-GC)
+  private wallImpactScratch: { damageDealt: number; killed: boolean } = { damageDealt: 0, killed: false };
   private animTime: number = 0;
   /** Цвет обычных мобов из снаряжённого скина игрока (обновляется при reset). */
   private currentSkinColor: number = 0x00f0ff;
@@ -714,63 +716,56 @@ export class CrowdManager {
     return this.killMobsFromGroup(this.groupScratch, this.groupScratch.length, reason);
   }
 
-  /** Убивает ровно одного моба из группы (для стены со счётчиком −N).
-   *  Возвращает убитый инстанс или null, если некого убивать.
-   *  Стена списывает урон ИМЕННО этого моба, устраняя десинхрон:
-   *  раньше killMobsFromGroup убивал фронтлайн-моба (сорт по z), а урон
-   *  списывался с внешнего моба из цикла — из-за чего танковая толпа
-   *  обрушивала счётчик сильнее, чем гибло мобов. */
-  public killOneFromGroup(group: MobInstance[], reason: string = 'wall'): MobInstance | null {
-    if (this.isHyperMode) return null;
-    let hasAlive = false;
-    for (let i = 0; i < group.length; i++) {
-      if (group[i].alive) {
-        hasAlive = true;
-        break;
-      }
+  /**
+   * Разрешает контакт конкретного моба с кинетической стеной.
+   * Возвращает преаллоцированный scratch { damageDealt, killed } (0-GC).
+   * Урон стене наносится ВСЕГДА (по getMobWallDamage), даже если моб выжил
+   * благодаря щиту танка, запасу HP или увороту ниндзя.
+   */
+  public resolveWallImpact(mob: MobInstance, reason: string = 'wall'): { damageDealt: number; killed: boolean } {
+    if (this.isHyperMode || !mob.alive || mob.invulnerableTime > 0) {
+      this.wallImpactScratch.damageDealt = 0;
+      this.wallImpactScratch.killed = false;
+      return this.wallImpactScratch;
     }
-    if (!hasAlive) return null;
 
-    // Копируем логику killMobsFromGroup для ОДНОГО моба, но возвращаем сам инстанс.
-    const defenseAuraLvl = stateManager.getState().upgrades.defenseAura;
-    const damageReduction = defenseAuraLvl * 0.1;
-    let budget = Math.max(1, Math.round(1 * (1 - damageReduction)));
+    const damageDealt = this.getMobWallDamage(mob);
+    this.wallImpactScratch.damageDealt = damageDealt;
 
-    // Фронтлайн — моб с максимальным z (killMobsFromGroup сортирует b.z - a.z).
-    let target: MobInstance | null = null;
-    for (let i = 0; i < group.length; i++) {
-      const mob = group[i];
-      if (!mob.alive) continue;
-      if (target === null || mob.z > target.z) target = mob;
+    // Додж ниндзя: уворачивается от гибели, но урон стене наносит
+    if (mob.type === 'ninja' && Math.random() < 0.5) {
+      this.emitClassAbility('ninja', 'dodge', mob.x, mob.z);
+      this.wallImpactScratch.killed = false;
+      return this.wallImpactScratch;
     }
-    if (target === null) return null;
 
-    while (budget > 0) {
-      if (target.invulnerableTime > 0) break;
-      if (target.type === 'ninja' && Math.random() < 0.5) {
-        this.emitClassAbility('ninja', 'dodge', target.x, target.z);
-        budget--;
-        break;
-      }
-      if (target.shieldHp > 0) {
-        target.shieldHp--;
-        this.emitClassAbility('tank', 'shield', target.x, target.z);
-        budget--;
-        continue;
-      }
-      if (target.hp > 1) { target.hp--; budget--; continue; }
-      target.alive = false;
-      this.aliveCount--;
-      this.invalidateAliveSnapshot();
-      target.y = -100;
-      this.dummy.position.set(0, -100, 0);
-      this.dummy.updateMatrix();
-      this.instancedMesh.setMatrixAt(target.id, this.dummy.matrix);
-      soundEngine.playSound('mob_death');
-      eventBus.emit('mobsKilled', { count: 1, reason, x: target.x, z: target.z });
-      return target;
+    // Щит (танк/маг): поглощает контакт, моб выживает, урон стене наносится
+    if (mob.shieldHp > 0) {
+      mob.shieldHp--;
+      this.emitClassAbility('tank', 'shield', mob.x, mob.z);
+      this.wallImpactScratch.killed = false;
+      return this.wallImpactScratch;
     }
-    return null;
+
+    // Запас HP > 1: теряет 1 HP, выживает, урон стене наносится
+    if (mob.hp > 1) {
+      mob.hp--;
+      this.wallImpactScratch.killed = false;
+      return this.wallImpactScratch;
+    }
+
+    // Иначе моб погибает
+    mob.alive = false;
+    this.aliveCount--;
+    this.invalidateAliveSnapshot();
+    mob.y = -100;
+    this.dummy.position.set(0, -100, 0);
+    this.dummy.updateMatrix();
+    this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
+    soundEngine.playSound('mob_death');
+    eventBus.emit('mobsKilled', { count: 1, reason, x: mob.x, z: mob.z });
+    this.wallImpactScratch.killed = true;
+    return this.wallImpactScratch;
   }
 
   /** Тактический бонус Фаланги (circle): множитель урона толпы по боссу. */

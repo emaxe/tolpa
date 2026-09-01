@@ -260,3 +260,50 @@ export function checkCircleRectCollision(
   const dz = cz - closestZ;
   return dx * dx + dz * dz < cr * cr;
 }
+
+export interface WallImpactMobInput {
+  type: string;
+  shieldHp: number;
+  hp: number;
+  alive: boolean;
+  invulnerableTime?: number;
+}
+
+export interface WallImpactResult {
+  damageDealt: number;
+  killed: boolean;
+}
+
+/**
+ * Чистая функция расчёта контакта моба с кинетической стеной (для тестов и чистой логики).
+ * Не зависит от Three.js, Web Audio и EventBus.
+ */
+export function computeWallImpact(
+  mob: WallImpactMobInput,
+  formation: FormationType = 'oval',
+  isHyperMode: boolean = false,
+  dodgeSuccess: boolean = false
+): WallImpactResult {
+  if (isHyperMode || !mob.alive || (mob.invulnerableTime !== undefined && mob.invulnerableTime > 0)) {
+    return { damageDealt: 0, killed: false };
+  }
+
+  const damageDealt = mob.type === 'tank' ? 3 : (formation === 'arrow' || formation === 'circle' ? 2 : 1);
+
+  if (mob.type === 'ninja' && dodgeSuccess) {
+    return { damageDealt, killed: false };
+  }
+
+  if (mob.shieldHp > 0) {
+    mob.shieldHp--;
+    return { damageDealt, killed: false };
+  }
+
+  if (mob.hp > 1) {
+    mob.hp--;
+    return { damageDealt, killed: false };
+  }
+
+  mob.alive = false;
+  return { damageDealt, killed: true };
+}

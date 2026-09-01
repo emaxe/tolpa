@@ -167,17 +167,15 @@ export class WallManager {
       // в один кадр пересоздаётся CanvasTexture и дублируется звук/тряска на каждого моба
       // (0-GC нарушение + аудио-клиппинг).
       let totalDamage = 0;
-      for (const _mob of this.throughScratch) {
+      for (let i = 0; i < this.throughScratch.length; i++) {
         if (wall.killsRemaining <= 0) break;
-        // Убиваем ровно одного моба и списываем урон ЭТОГО ЖЕ моба,
-        // чтобы счётчик стены соответствовал реально погибшим мобам.
-        const killed = crowd.killOneFromGroup(this.throughScratch, 'wall');
-        if (killed) {
-          const mobDmg = crowd.getMobWallDamage(killed);
-          totalDamage += mobDmg;
-          wall.killsRemaining -= mobDmg;
-          if (wall.killsRemaining <= 0) break;
-        }
+        const mob = this.throughScratch[i];
+        if (!mob.alive) continue;             // защита от мёртвых (может быть после инвока)
+        const impact = crowd.resolveWallImpact(mob, 'wall');
+        if (impact.damageDealt <= 0) continue;  // инвул/гипер/мёртвый
+        totalDamage += impact.damageDealt;
+        wall.killsRemaining -= impact.damageDealt;
+        if (wall.killsRemaining <= 0) break;    // стена сокрушена — остальные мобы проходят без урона
       }
       if (totalDamage > 0) {
         if (wall.killsRemaining <= 0) {

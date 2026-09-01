@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { LevelGenerator, DEFAULT_TRACK_WIDTH } from '../../engine/LevelGenerator';
 import { StateManager } from '../../core/StateManager';
 import { ObjectPool, Poolable } from '../../core/ObjectPool';
-import { calculateFormationOffset, clamp, lerp, circleRectGap, getNearMissMultiplier } from '../../utils/math';
+import { calculateFormationOffset, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact } from '../../utils/math';
 
 describe('Gate & Math Operations', () => {
   it('выполняет сложение мобов (+15 к 10 = 25)', () => {
@@ -692,3 +692,66 @@ describe('Skin Rewards (бонусные скины)', () => {
     expect(bonusFor(100, 1)).toBe(0);
   });
 });
+
+describe('Kinetic Wall Impact & Damage Accounting', () => {
+  it('Тест A: Танк со щитом наносит 3 урона стене и выживает (shieldHp 2 -> 1, damage=3, killed=false)', () => {
+    const tank = { type: 'tank', shieldHp: 2, hp: 3, alive: true };
+    const res = computeWallImpact(tank, 'circle');
+    expect(res.damageDealt).toBe(3);
+    expect(res.killed).toBe(false);
+    expect(tank.shieldHp).toBe(1);
+    expect(tank.hp).toBe(3);
+    expect(tank.alive).toBe(true);
+  });
+
+  it('Тест B: Обычный моб наносит 1 урон стене и погибает (damage=1, killed=true)', () => {
+    const regular = { type: 'regular', shieldHp: 0, hp: 1, alive: true };
+    const res = computeWallImpact(regular, 'oval');
+    expect(res.damageDealt).toBe(1);
+    expect(res.killed).toBe(true);
+    expect(regular.alive).toBe(false);
+  });
+
+  it('Формации arrow и circle дают 2 урона стене для обычного моба', () => {
+    const mobArrow = { type: 'regular', shieldHp: 0, hp: 1, alive: true };
+    const resArrow = computeWallImpact(mobArrow, 'arrow');
+    expect(resArrow.damageDealt).toBe(2);
+    expect(resArrow.killed).toBe(true);
+    expect(mobArrow.alive).toBe(false);
+
+    const mobCircle = { type: 'regular', shieldHp: 0, hp: 1, alive: true };
+    const resCircle = computeWallImpact(mobCircle, 'circle');
+    expect(resCircle.damageDealt).toBe(2);
+    expect(resCircle.killed).toBe(true);
+    expect(mobCircle.alive).toBe(false);
+  });
+
+  it('Ниндзя с успешным уворотом наносит урон стене и выживает', () => {
+    const ninja = { type: 'ninja', shieldHp: 0, hp: 1, alive: true };
+    const res = computeWallImpact(ninja, 'oval', false, true);
+    expect(res.damageDealt).toBe(1);
+    expect(res.killed).toBe(false);
+    expect(ninja.alive).toBe(true);
+  });
+
+  it('Моб с hp > 1 без щита наносит урон и теряет 1 hp', () => {
+    const beefy = { type: 'regular', shieldHp: 0, hp: 2, alive: true };
+    const res = computeWallImpact(beefy, 'oval');
+    expect(res.damageDealt).toBe(1);
+    expect(res.killed).toBe(false);
+    expect(beefy.hp).toBe(1);
+    expect(beefy.alive).toBe(true);
+  });
+
+  it('Моб в инвуле, гипер-режиме или мёртвый не наносит урон через resolveWallImpact', () => {
+    const invulMob = { type: 'tank', shieldHp: 2, hp: 3, alive: true, invulnerableTime: 1.0 };
+    expect(computeWallImpact(invulMob, 'circle').damageDealt).toBe(0);
+
+    const deadMob = { type: 'tank', shieldHp: 2, hp: 3, alive: false };
+    expect(computeWallImpact(deadMob, 'circle').damageDealt).toBe(0);
+
+    const hyperMob = { type: 'tank', shieldHp: 2, hp: 3, alive: true };
+    expect(computeWallImpact(hyperMob, 'circle', true).damageDealt).toBe(0);
+  });
+});
+
