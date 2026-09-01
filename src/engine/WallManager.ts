@@ -129,6 +129,12 @@ export class WallManager {
         wv.group.position.y = -wv.fallT * 0.5;
         if (wv.fallT >= 1.2) {
           wall.destroyed = true;
+          // Сбрасываем falling, чтобы prune() мог собрать стену из массива.
+          // Раньше falling оставался true навсегда, и условие удаления в prune()
+          // ((destroyed || z<threshold) && !falling) никогда не срабатывало —
+          // каждая разрушенная стена навсегда утекала в this.walls (unbounded
+          // рост массива в endless-режиме). Меш уже удалён из сцены выше.
+          wv.falling = false;
           this.scene.remove(wv.group);
           // Удаление меша из сцены — фидбек уже отправлен в breakWall() в момент
           // старта коллапса; здесь только очистка.
