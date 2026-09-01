@@ -171,6 +171,111 @@ describe('Gate & Math Operations', () => {
     expect(res2.isPositive).toBe(true);
     expect(spawnedMobsTotal).toBe(3); // спавн не повторился
   });
+
+  it('трансмутация ворот mystery (÷N) Хроно-Магом: без Мага делит толпу, с Магом трансмутирует в бонус и не задваивает спавн', () => {
+    const val = 10;
+    const comboFactor = 1;
+
+    // 1) Без Мага в крыле: netChange отрицательный (-div), transmutedByMage = false, isPositive = false
+    {
+      const gateVisual = {
+        mysteryResult: false,
+        transmutedByMage: false,
+        triggered: false,
+      };
+      const wing = [
+        { id: 1, type: 'regular' },
+        { id: 2, type: 'regular' },
+        { id: 3, type: 'regular' },
+        { id: 4, type: 'regular' },
+      ];
+      const isFirstTrigger = !gateVisual.triggered;
+      const isNewTransmute = !gateVisual.transmutedByMage && wing.some((m) => m.type === 'mage');
+      let isPositive = false;
+      let netChange = 0;
+
+      if (gateVisual.transmutedByMage || isNewTransmute) {
+        gateVisual.transmutedByMage = true;
+        const transmuteVal = Math.max(1, Math.round(val * 0.6));
+        const shouldSpawn = isNewTransmute;
+        let base = 0;
+        if (shouldSpawn && isFirstTrigger) {
+          base = transmuteVal;
+        }
+        if (base > 0) {
+          const bonus = Math.floor(base * (comboFactor - 1));
+          netChange = bonus > 0 ? base + bonus : base;
+        }
+        isPositive = true;
+      } else {
+        const killed = Math.floor(wing.length / 2);
+        netChange = -killed;
+      }
+      gateVisual.triggered = true;
+
+      expect(isPositive).toBe(false);
+      expect(gateVisual.transmutedByMage).toBe(false);
+      expect(netChange).toBe(-2);
+    }
+
+    // 2) С Магом в крыле: transmutedByMage = true, netChange = Math.round(val * 0.6), isPositive = true,
+    // а повторный проход хвостом НЕ задваивает спавн (спавнит 0, а не дублирует)
+    {
+      const gateVisual = {
+        mysteryResult: false,
+        transmutedByMage: false,
+        triggered: false,
+      };
+      let spawnedMobsTotal = 0;
+
+      const simulateMysteryPass = (wing: { id: number; type: string }[]) => {
+        const isFirstTrigger = !gateVisual.triggered;
+        const isNewTransmute = !gateVisual.transmutedByMage && wing.some((m) => m.type === 'mage');
+        let isPositive = false;
+        let netChange = 0;
+
+        if (gateVisual.transmutedByMage || isNewTransmute) {
+          gateVisual.transmutedByMage = true;
+          const transmuteVal = Math.max(1, Math.round(val * 0.6));
+          const shouldSpawn = isNewTransmute;
+          let base = 0;
+          if (shouldSpawn && isFirstTrigger) {
+            base = transmuteVal;
+            spawnedMobsTotal += base;
+          }
+          if (base > 0) {
+            const bonus = Math.floor(base * (comboFactor - 1));
+            netChange = bonus > 0 ? base + bonus : base;
+          }
+          isPositive = true;
+        } else {
+          const killed = Math.floor(wing.length / 2);
+          netChange = -killed;
+        }
+        gateVisual.triggered = true;
+        return { isPositive, netChange };
+      };
+
+      // Пачка 1: с Магом
+      const res1 = simulateMysteryPass([
+        { id: 1, type: 'regular' },
+        { id: 2, type: 'mage' },
+      ]);
+      expect(res1.isPositive).toBe(true);
+      expect(gateVisual.transmutedByMage).toBe(true);
+      expect(res1.netChange).toBe(6); // Math.round(10 * 0.6) = 6
+      expect(spawnedMobsTotal).toBe(6);
+
+      // Пачка 2: хвост без Мага (или с еще одним Магом) — transmutedByMage уже true, спавн = 0
+      const res2 = simulateMysteryPass([
+        { id: 3, type: 'regular' },
+      ]);
+      expect(res2.isPositive).toBe(true);
+      expect(gateVisual.transmutedByMage).toBe(true);
+      expect(res2.netChange).toBe(0);
+      expect(spawnedMobsTotal).toBe(6); // спавн не задвоился
+    }
+  });
 });
 
 describe('Economy & Upgrades', () => {

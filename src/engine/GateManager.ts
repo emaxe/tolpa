@@ -320,10 +320,41 @@ export class GateManager {
         if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 25 : 6, 0xa855f7, netChange > 0 ? 5.0 : 2.0);
         isPositive = true;
       } else {
-        netChange = -crowd.divideMobsByStep(wing, val, 'gate', gateVisual.divideStep);
-        if (isFirstTrigger) soundEngine.playSound('gate_pass_negative');
-        if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 20, 0xef4444, 4.0);
-        if (isFirstTrigger) eventBus.emit('screenShake', { intensity: 0.3 });
+        // Штраф ÷N (≈40% Mystery). Хроно-Маг трансмутирует и его (BALANCE.md «маг
+        // трансмутирует −N/÷N»); иначе толпа делится по шагу. One-shot guard: результат
+        // кэширован в mysteryResult сверху, а флаг transmutedByMage не даёт хвостовым
+        // бойцам задваивать спавн (та же логика, что у divide).
+        const isNewTransmute = !gateVisual.transmutedByMage && wing.some((m) => m.type === 'mage');
+        if (gateVisual.transmutedByMage || isNewTransmute) {
+          gateVisual.transmutedByMage = true;
+          const transmuteVal = Math.max(1, Math.round(val * 0.6));
+          if (isNewTransmute) {
+            eventBus.emit('classAbility', {
+              type: 'mage',
+              ability: 'transmute',
+              x: gateX,
+              z: gateZ,
+              value: transmuteVal,
+            });
+          }
+          const shouldSpawn = isNewTransmute;
+          let base = 0;
+          if (shouldSpawn && isFirstTrigger) {
+            base = crowd.addMobsNear(transmuteVal, gateX, gateZ);
+          }
+          if (base > 0) {
+            const bonus = Math.floor(base * (comboFactor - 1));
+            netChange = bonus > 0 ? base + crowd.addMobsNear(bonus, gateX, gateZ) : base;
+            soundEngine.playSound('gate_pass_positive');
+            particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 25, 0x10b981, 5.0);
+          }
+          isPositive = true;
+        } else {
+          netChange = -crowd.divideMobsByStep(wing, val, 'gate', gateVisual.divideStep);
+          if (isFirstTrigger) soundEngine.playSound('gate_pass_negative');
+          if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 20, 0xef4444, 4.0);
+          if (isFirstTrigger) eventBus.emit('screenShake', { intensity: 0.3 });
+        }
       }
     } else if (op === 'divide') {
       // Хроно-Маг: если Маг прошёл ворота (в любом ряду), трансмутируем ÷N в прибавку.
