@@ -183,6 +183,12 @@ export class GameEngine {
   private lastCrowdMilestone: number = 0;
   private static readonly CROWD_MILESTONES = [50, 100, 150, 200];
 
+  // Параметры метеоритного дождя (честная телеграф-механика)
+  private static readonly METEOR_POOL_SIZE = 6;
+  private static readonly METEOR_IMPACT_RADIUS = 2.4;
+  private static readonly METEOR_TELEGRAPH_TIME = 0.75;
+  private static readonly METEOR_FALL_INTERVAL_BASE = 0.9;
+
   // Динамические события уровня (ambush/coin_train/emp_storm/meteor_rain/speed_boost).
   // Система была "мёртвой" — события генерировались в LevelGenerator, но не исполнялись.
   // Теперь они триггерятся по leaderZ в updateDynamicEvents().
@@ -191,6 +197,10 @@ export class GameEngine {
   private activeEvent: { event: LevelDynamicEvent; timer: number } | null = null;
   private eventSpeedMult: number = 1.0; // множитель скорости толпы от событий (boost>1, ambush<1)
   private meteorAccum: number = 0;
+  private meteorRings: THREE.Mesh[] = [];
+  private activeMeteorStrikes: { x: number; z: number; timer: number; totalDuration: number; mesh: THREE.Mesh }[] = [];
+  private meteorRingGeo: THREE.RingGeometry | null = null;
+  private meteorRingMat: THREE.MeshBasicMaterial | null = null;
   private eventFxAccum: number = 0;
 
   // Callbacks
@@ -305,6 +315,7 @@ export class GameEngine {
     // меньше нагрузка на CPU/GPU и проще балансировать бонусы/препятствия.
     this.particles = new ParticleSystem(this.scene, 200);
     this.crowd = new CrowdManager(this.scene, 200);
+    this.initMeteorPool();
     this.gates = new GateManager(this.scene);
     this.walls = new WallManager(this.scene);
     this.bonus = new BonusManager(this.scene);
@@ -704,6 +715,28 @@ export class GameEngine {
   public setInputEnabled(enabled: boolean): void {
     this.inputEnabled = enabled;
     if (!enabled) this.releaseInput();
+  }
+
+  /** Инициализирует пул мешей для телеграф-колец метеоритного дождя. */
+  private initMeteorPool(): void {
+    this.meteorRingGeo = new THREE.RingGeometry(0.2, GameEngine.METEOR_IMPACT_RADIUS, 32);
+    this.meteorRingMat = new THREE.MeshBasicMaterial({
+      color: 0xf97316,
+      transparent: true,
+      opacity: 0,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+
+    for (let i = 0; i < GameEngine.METEOR_POOL_SIZE; i++) {
+      const mesh = new THREE.Mesh(this.meteorRingGeo, this.meteorRingMat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.y = 0.04;
+      mesh.visible = false;
+      mesh.frustumCulled = false;
+      this.scene.add(mesh);
+      this.meteorRings.push(mesh);
+    }
   }
 
   private setupInputs(): void {
@@ -1969,6 +2002,10 @@ export class GameEngine {
     this.eventSpeedMult = 1.0;
     this.meteorAccum = 0;
     this.eventFxAccum = 0;
+    for (let i = 0; i < this.meteorRings.length; i++) {
+      this.meteorRings[i].visible = false;
+    }
+    this.activeMeteorStrikes.length = 0;
   }
 
   /**
@@ -2036,20 +2073,64 @@ export class GameEngine {
       const newTimer = timer - dt;
 
       if (event.type === 'meteor_rain') {
-        // Метеоритный дождь: периодические взрывы по краям трассы, малый шанс урона толпе.
+        // Метеоритный дождь: честная механика с предварительными телеграф-зонами
         this.meteorAccum += dt;
-        if (this.meteorAccum >= 0.8 / Math.max(0.5, event.intensity)) {
+        if (this.meteorAccum >= GameEngine.METEOR_FALL_INTERVAL_BASE / Math.max(0.5, event.intensity)) {
           this.meteorAccum = 0;
-          const half = trackWidth / 2 - 1;
-          const mx = (Math.random() - 0.5) * 2 * half;
-          const mz = this.crowd.leaderZ + Math.random() * 18;
-          this.particles.emitBurst(mx, 3.0, mz, 14, 0xf97316, 6.0);
-          if (Math.random() < 0.35) {
-            const killCount = Math.min(2 + Math.floor(event.intensity), Math.floor(this.crowd.getAliveCount() * 0.12));
-            if (killCount > 0) this.crowd.killMobs(killCount, 'obstacle');
-            soundEngine.playSound('boss_slam');
+          // Ищем свободное кольцо из пула
+          const freeMesh = this.meteorRings.find((m) => !m.visible);
+          if (freeMesh) {
+            const half = trackWidth / 2 - 1.2;
+            const mx = (Math.random() - 0.5) * 2 * half;
+            const mz = this.crowd.leaderZ + 14 + Math.random() * 16;
+            freeMesh.position.set(mx, 0.04, mz);
+            freeMesh.scale.setScalar(0.2);
+            freeMesh.visible = true;
+            this.activeMeteorStrikes.push({
+              x: mx,
+              z: mz,
+              timer: GameEngine.METEOR_TELEGRAPH_TIME,
+              totalDuration: GameEngine.METEOR_TELEGRAPH_TIME,
+              mesh: freeMesh,
+            });
           }
         }
+
+        // Обновляем активные телеграф-зоны и обрабатываем детонации
+        let writeIdx = 0;
+        const impactRadiusSq = GameEngine.METEOR_IMPACT_RADIUS * GameEngine.METEOR_IMPACT_RADIUS;
+
+        for (let i = 0; i < this.activeMeteorStrikes.length; i++) {
+          const strike = this.activeMeteorStrikes[i];
+          strike.timer -= dt;
+          const p = clamp(1.0 - strike.timer / strike.totalDuration, 0, 1);
+          strike.mesh.scale.setScalar(0.3 + 0.7 * p);
+          (strike.mesh.material as THREE.MeshBasicMaterial).opacity =
+            0.35 + 0.55 * Math.abs(Math.sin(p * Math.PI * 3));
+
+          if (strike.timer <= 0) {
+            // Детонация метеора
+            strike.mesh.visible = false;
+            soundEngine.playSound('boss_slam');
+            eventBus.emit('screenShake', { intensity: 0.25 });
+            this.particles.emitBurst(strike.x, 0.5, strike.z, 22, 0xf97316, 7.0);
+
+            // Честная коллизия: урон только мобам в радиусе падения по координатам XZ
+            const alive = this.crowd.getAliveMobs();
+            for (let m = 0; m < alive.length; m++) {
+              const mob = alive[m];
+              const dx = mob.x - strike.x;
+              const dz = mob.z - strike.z;
+              if (dx * dx + dz * dz <= impactRadiusSq) {
+                this.crowd.killMobById(mob.id);
+              }
+            }
+          } else {
+            // Сохраняем не завершившийся страйк (0-GC компакция)
+            this.activeMeteorStrikes[writeIdx++] = strike;
+          }
+        }
+        this.activeMeteorStrikes.length = writeIdx;
       } else if (event.type === 'ambush') {
         // Засада: периодические красные вспышки позади толпы (замедление уже применено).
         this.eventFxAccum += dt;
@@ -2131,6 +2212,10 @@ export class GameEngine {
   private cleanupEvent(evt: LevelDynamicEvent): void {
     this.meteorAccum = 0;
     this.eventFxAccum = 0;
+    for (let i = 0; i < this.meteorRings.length; i++) {
+      this.meteorRings[i].visible = false;
+    }
+    this.activeMeteorStrikes.length = 0;
     switch (evt.type) {
       case 'speed_boost':
       case 'ambush':
@@ -2720,6 +2805,8 @@ export class GameEngine {
     this.boss.clear();
     this.finishLine.clear();
     this.particles.dispose();
+    this.meteorRingGeo?.dispose();
+    this.meteorRingMat?.dispose();
     this.walls.clear();
     this.bonus.dispose();
     this.disposeTrackMeshes();
