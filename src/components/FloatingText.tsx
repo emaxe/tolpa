@@ -249,6 +249,22 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       }, 850);
     });
 
+    // Энергокупол босса: отражённый удар — циановый бейдж «ЩИТ БОССА» на куполе,
+    // пробитие Фалангой — янтарный «ПРОБИТИЕ!». Без текстового фидбека игрок не
+    // понимал, почему HP не падает (звук/искры «попадания» были ложными).
+    const unsubBossShieldBlocked = eventBus.on(
+      'bossShieldBlocked',
+      (data: { x?: number; z?: number }) => {
+        spawn(data?.x ?? 0, data?.z ?? 0, i18n.t('bossShieldBlocked'), 'text-cyan-300 font-extrabold text-xl drop-shadow-[0_0_8px_rgba(0,240,255,0.9)]');
+      }
+    );
+    const unsubBossShieldPierced = eventBus.on(
+      'bossShieldPierced',
+      (data: { x?: number; z?: number }) => {
+        spawn(data?.x ?? 0, data?.z ?? 0, i18n.t('bossShieldPierced'), 'text-amber-400 font-extrabold text-xl drop-shadow-[0_0_8px_rgba(245,158,11,0.9)]');
+      }
+    );
+
     // 3D-бейдж при смене боевого построения: название строя всплывает над толпой.
     // Событие formationChanged эмитится CrowdManager.setFormation, но FloatingText
     // раньше не потреблял его — игрок видел только звук + частицы, без текстовой
@@ -330,6 +346,8 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubUpgrade();
       unsubSkin();
       unsubBossDamaged();
+      unsubBossShieldBlocked();
+      unsubBossShieldPierced();
       unsubFormation();
       unsubFinishStep();
       unsubClassAbility();

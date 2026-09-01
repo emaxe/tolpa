@@ -80,6 +80,8 @@ export const translations = {
     ninjaDodge: 'УВОРОТ!',
     tankShield: 'ЩИТ!',
     mageTransmute: 'МАГИЯ!',
+    bossShieldBlocked: 'ЩИТ БОССА!',
+    bossShieldPierced: 'ПРОБИТИЕ!',
 
     // Dynamic Events
     eventAmbush: 'ВНИМАНИЕ: Вражеская засада впереди!',
@@ -374,6 +376,8 @@ export const translations = {
     ninjaDodge: 'DODGE!',
     tankShield: 'SHIELD!',
     mageTransmute: 'MAGIC!',
+    bossShieldBlocked: 'BOSS SHIELD!',
+    bossShieldPierced: 'PIERCED!',
 
     // Dynamic Events
     eventAmbush: 'WARNING: Enemy ambush ahead!',

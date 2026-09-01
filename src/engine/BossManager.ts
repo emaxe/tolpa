@@ -569,6 +569,32 @@ export class BossManager {
     }
     this.hitFxAccum = 10; // ~6 Гц при 60 FPS (60/10)
 
+    // Энергокупол босса: блокированный удар (Фаланга не пробила) получает ОТДЕЛЬНЫЙ
+    // акустический/визуальный фидбек «отражения» вместо ложного звука попадания по
+    // плоти + белых искр, из-за которого игрок думал «полоска HP забагована».
+    // Пробитие щита Фалангой (pierceShield, 20% урона) — комбинированные искры.
+    if (this.isShielded) {
+      soundEngine.playSound('hammer_impact', 1.5, 0.7);
+      if (this.bossMesh) {
+        const sparkColor = pierceShield ? 0xf59e0b : 0x00f0ff;
+        particles.emitBurst(
+          (Math.random() - 0.5) * 2,
+          2.5 + Math.random(),
+          this.bossArenaZ,
+          10,
+          sparkColor,
+          4.5
+        );
+      }
+      if (pierceShield) {
+        eventBus.emit('bossShieldPierced', { x: 0, z: this.bossArenaZ, amount: this.hitDamageAccum });
+      } else {
+        eventBus.emit('bossShieldBlocked', { x: 0, z: this.bossArenaZ });
+      }
+      this.hitDamageAccum = 0;
+      return;
+    }
+
     soundEngine.playSound('boss_hit');
 
     if (this.bossMesh) {
