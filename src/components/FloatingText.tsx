@@ -123,7 +123,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
 
     // Near-Miss (уворот в упор): всплывающая бирюзовая плашка за рискованный проход
     // вплотную к активной ловушке без касания. Серия уворотов эскалирует текст и цвет.
-    const unsubNearMiss = eventBus.on('nearMiss', (data: { x?: number; z?: number; streak?: number }) => {
+    const unsubNearMiss = eventBus.on('nearMiss', (data: { x?: number; z?: number; streak?: number; coins?: number }) => {
       if (!data) return;
       const streak = data.streak ?? 1;
       let text = i18n.t('nearMiss', 'В УПОР! +⚡');
@@ -137,6 +137,11 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       } else if (streak >= 2) {
         text = i18n.t('nearMissStreak2', 'СЕРИЯ x2! +⚡');
         colorClass = 'text-cyan-300 font-bold drop-shadow-[0_0_8px_rgba(56,189,248,0.9)]';
+      }
+      // Near-miss даёт монеты (8×mult), но раньше их количество не показывалось — добавим
+      // золотую цифру с иконкой монеты, чтобы риск был виден игроку.
+      if (typeof data.coins === 'number' && data.coins > 0) {
+        text += ` +${data.coins}🪙`;
       }
       spawn(data.x || 0, data.z || 0, text, colorClass);
     });
