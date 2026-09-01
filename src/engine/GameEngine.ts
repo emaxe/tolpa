@@ -223,6 +223,8 @@ export class GameEngine {
   private unsubLevelCompleted: (() => void) | null = null;
   private unsubFinishLine: (() => void) | null = null;
   private unsubBossDefeated: (() => void) | null = null;
+  private unsubBossShieldBlocked: (() => void) | null = null;
+  private unsubBossShieldPierced: (() => void) | null = null;
   private unsubComboBreak: (() => void) | null = null;
   private unsubCrowdMilestone: (() => void) | null = null;
   private unsubEndlessRecordBeaten: (() => void) | null = null;
@@ -577,6 +579,15 @@ export class GameEngine {
         const lvl = this.currentLevel;
         if (lvl) soundEngine.playMusic(this.getMusicThemeForLevel(lvl.levelNumber, lvl.biome));
       }
+    });
+
+    // Аудио-фидбек энергокупола босса: отражённый удар — глухой отскок,
+    // пробитие — яркий звенящий тон. Раньше был только текстовый бейдж.
+    this.unsubBossShieldBlocked = eventBus.on('bossShieldBlocked', () => {
+      soundEngine.playSound('boss_shield_blocked');
+    });
+    this.unsubBossShieldPierced = eventBus.on('bossShieldPierced', () => {
+      soundEngine.playSound('boss_shield_pierced');
     });
 
     // Аудиовизуальный фидбек классовых способностей (Уворот Ниндзя, Блок Щита Танка, Трансмутация Мага)
@@ -2795,6 +2806,8 @@ export class GameEngine {
     this.unsubLevelCompleted?.();
     this.unsubFinishLine?.();
     this.unsubBossDefeated?.();
+    this.unsubBossShieldBlocked?.();
+    this.unsubBossShieldPierced?.();
     this.unsubSettings?.();
     this.unsubFormation?.();
     this.unsubClassAbility?.();

@@ -447,6 +447,40 @@ export class SoundEngine {
         break;
       }
 
+      case 'boss_shield_blocked': {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(180 * pitchShift, t);
+        osc.frequency.exponentialRampToValueAtTime(60, t + 0.12);
+
+        gain.gain.setValueAtTime(0.3, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+
+        osc.connect(gain);
+        gain.connect(outGain);
+        osc.start(t);
+        osc.stop(t + 0.12);
+        break;
+      }
+
+      case 'boss_shield_pierced': {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(900 * pitchShift, t);
+        osc.frequency.exponentialRampToValueAtTime(200, t + 0.18);
+
+        gain.gain.setValueAtTime(0.35, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+
+        osc.connect(gain);
+        gain.connect(outGain);
+        osc.start(t);
+        osc.stop(t + 0.18);
+        break;
+      }
+
       case 'finish_wall_hit': {
         // Crunch impact
         const osc = this.ctx.createOscillator();
