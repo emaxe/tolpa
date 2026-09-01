@@ -133,6 +133,7 @@ export const translations = {
     endlessRunOver: 'ЗАБЕГ ЗАВЕРШЁН!',
     endlessDistance: 'Дистанция',
     endlessRecord: 'Рекорд',
+    endlessRecordBeaten: 'НОВЫЙ РЕКОРД! 🏆',
     newRecord: 'НОВЫЙ РЕКОРД!',
 
     // Upgrades
@@ -426,6 +427,7 @@ export const translations = {
     endlessRunOver: 'RUN OVER!',
     endlessDistance: 'Distance',
     endlessRecord: 'Record',
+    endlessRecordBeaten: 'NEW RECORD! 🏆',
     newRecord: 'NEW RECORD!',
 
     // Upgrades

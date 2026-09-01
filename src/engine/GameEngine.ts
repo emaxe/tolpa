@@ -215,6 +215,7 @@ export class GameEngine {
   private unsubBossDefeated: (() => void) | null = null;
   private unsubComboBreak: (() => void) | null = null;
   private unsubCrowdMilestone: (() => void) | null = null;
+  private unsubEndlessRecordBeaten: (() => void) | null = null;
   private unsubSettings: (() => void) | null = null;
   private unsubFormation: (() => void) | null = null;
   private unsubClassAbility: (() => void) | null = null;
@@ -433,6 +434,15 @@ export class GameEngine {
       soundEngine.playCrowdCheer(tier >= 3 ? 1.0 : tier >= 2 ? 0.8 : 0.6);
       eventBus.emit('screenShake', { intensity: tier >= 3 ? 0.3 : 0.2 });
       this.triggerHaptic([30, 40, 30, 40]);
+    });
+
+    // Рекорд бесконечного режима побит: золотой салют частиц, ликование толпы, тряска.
+    this.unsubEndlessRecordBeaten = eventBus.on('endlessRecordBeaten', () => {
+      const z = this.crowd.leaderZ;
+      this.particles.emitBurst(this.crowd.leaderX, 1.2, z, 20, 0xfacc15, 4.0);
+      soundEngine.playCrowdCheer(0.8);
+      eventBus.emit('screenShake', { intensity: 0.2 });
+      this.triggerHaptic([20, 30, 20]);
     });
 
     // Живое применение настроек графики: смена качества/теней в настройках сразу
@@ -1936,7 +1946,7 @@ export class GameEngine {
     const runStats: RunStats = stateManager.getRun() || {
       coins: 0, mobsSpawned: 0, gatesPassed: 0, obstaclesSmashed: 0,
       bossesDefeated: 0, bossCoins: 0, bossGems: 0, maxCombo: 0, maxCrowd: 0,
-      distance: 0, nearMisses: 0, nearMissStreak: 0, maxNearMissStreak: 0,
+      distance: 0, recordBeaten: false, nearMisses: 0, nearMissStreak: 0, maxNearMissStreak: 0,
     };
     // Откатываем активные эффекты событий (ЭМИ-шторм, множители скорости), чтобы они
     // не протекли в следующий забег.
@@ -2692,6 +2702,7 @@ export class GameEngine {
     this.unsubComboMilestone?.();
     this.unsubComboBreak?.();
     this.unsubCrowdMilestone?.();
+    this.unsubEndlessRecordBeaten?.();
     this.unsubAdrenaline?.();
     this.unsubAdrenalineEnded?.();
     this.unsubBonusCollected?.();

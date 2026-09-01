@@ -89,6 +89,7 @@ export const HUD: React.FC<HUDProps> = ({
     comboMilestone: { key: 'comboMilestone', cls: 'border-amber-500 text-amber-600' },
     achievementReady: { key: 'achievementReady', cls: 'border-amber-400 text-amber-600' },
     crowdMilestone: { key: 'crowdMilestone', cls: 'border-emerald-500 text-emerald-600' },
+    endlessRecordBeaten: { key: 'endlessRecordBeaten', cls: 'border-yellow-400 text-yellow-600' },
     finishLineCrossed: { key: 'finishLineCrossed', cls: 'border-cyan-400 text-cyan-600' },
     bossDefeated: { key: 'bossDefeated', cls: 'border-yellow-400 text-yellow-600' },
   };
@@ -141,6 +142,12 @@ export const HUD: React.FC<HUDProps> = ({
       window.setTimeout(() => setEventAlert(null), 3200);
     });
 
+    // Побитие личного рекорда в бесконечном режиме — центральный баннер-тост.
+    const unsubEndlessRecordBeaten = eventBus.on('endlessRecordBeaten', () => {
+      setEventAlert({ type: 'endlessRecordBeaten', key: Date.now() });
+      window.setTimeout(() => setEventAlert(null), 3200);
+    });
+
     // Финишная прямая пересечена — центральный баннер-тост.
     const unsubFinishLine = eventBus.on('finishLineCrossed', () => {
       setEventAlert({ type: 'finishLineCrossed', key: Date.now() });
@@ -156,6 +163,7 @@ export const HUD: React.FC<HUDProps> = ({
       unsubComboMilestone();
       unsubAchReady();
       unsubCrowdMilestone();
+      unsubEndlessRecordBeaten();
       unsubFinishLine();
     };
   }, []);

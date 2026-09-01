@@ -535,6 +535,8 @@ export interface RunStats {
   maxCrowd: number;
   /** Пройденная дистанция забега в метрах (актуально для Бесконечного режима). */
   distance: number;
+  /** Рекорд бесконечного режима побит в этом забеге (одноразовый juice). */
+  recordBeaten: boolean;
   /** Число «уворотов в упор» (Near-Miss) за текущий забег. */
   nearMisses: number;
   /** Текущая серия уворотов в упор подряд (без урона и промахов). */
@@ -555,6 +557,7 @@ function createEmptyRun(): RunStats {
     maxCombo: 0,
     maxCrowd: 0,
     distance: 0,
+    recordBeaten: false,
     nearMisses: 0,
     nearMissStreak: 0,
     maxNearMissStreak: 0,
@@ -726,7 +729,13 @@ export class StateManager {
 
   /** Обновляет пройденную дистанцию забега (метры) — для Бесконечного режима. */
   public runRecordDistance(meters: number): void {
-    if (this.run && meters > this.run.distance) this.run.distance = meters;
+    if (!this.run) return;
+    if (meters > this.run.distance) this.run.distance = meters;
+    // Одноразовый juice при побитии личного рекорда в Бесконечном режиме
+    if (!this.run.recordBeaten && this.state.endlessHighScore > 0 && meters > this.state.endlessHighScore) {
+      this.run.recordBeaten = true;
+      eventBus.emit('endlessRecordBeaten', { distance: meters });
+    }
   }
 
   public runRecordBossKill(coins: number, gems: number): void {
