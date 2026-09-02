@@ -86,6 +86,10 @@ export class ObstacleManager {
   private coinSpin: number[] = [];
   private coinGeo: THREE.CylinderGeometry;
   private coinMat: THREE.MeshStandardMaterial;
+  // Серия быстрых подборов обычных монет (для восходящего питча звука).
+  // Сбрасывается по таймеру, если игрок перестаёт собирать монеты.
+  private coinChainCount: number = 0;
+  private coinChainTimer: number = 0;
   private _vUp = new THREE.Vector3(0, 1, 0);
   private _vDir = new THREE.Vector3();
 
@@ -721,6 +725,12 @@ export class ObstacleManager {
       }
     }
 
+    // Сброс серии сбора обычных монет по таймеру (окно 0.55с), если игрок перестал собирать.
+    if (this.coinChainTimer > 0) {
+      this.coinChainTimer -= dt;
+      if (this.coinChainTimer <= 0) this.coinChainCount = 0;
+    }
+
     if (this.coinMesh && this.coinActiveCount > 0) {
       const mesh = this.coinMesh;
       const spinArr = this.coinSpin;
@@ -760,9 +770,19 @@ export class ObstacleManager {
           const coinVal = hasNinjas ? coin.value * 2 : coin.value;
 
           stateManager.runAddCoins(coinVal);
-          soundEngine.playSound('coin_pickup');
-          particles.emitBurst(coin.x, coin.y, coin.z, 8, 0xfacc15, 3.5);
-          eventBus.emit('coinCollected', { value: coinVal, x: coin.x, z: coin.z });
+          // Кристалл (value >= 20, вкл. ниндзя-удвоение 25→50): звон + циановый burst.
+          // Обычная монета: золотые искры, высота питча растёт с длиной серии подбора.
+          const gem = coinVal >= 20;
+          if (gem) {
+            soundEngine.playSound('gem_pickup');
+            particles.emitBurst(coin.x, coin.y, coin.z, 14, 0x22d3ee, 4.5);
+          } else {
+            this.coinChainCount = Math.min(12, this.coinChainCount + 1);
+            this.coinChainTimer = 0.55;
+            soundEngine.playSound('coin_pickup', 1.0 + this.coinChainCount * 0.055);
+            particles.emitBurst(coin.x, coin.y, coin.z, 8 + Math.min(6, this.coinChainCount), 0xfacc15, 3.5);
+          }
+          eventBus.emit('coinCollected', { value: coinVal, x: coin.x, z: coin.z, tier: gem ? 2 : 1 });
           dirty = true;
         } else {
           // Монета далеко от толпы — не обновляем матрицу (0-GC, экономия GPU-шины).

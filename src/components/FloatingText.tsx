@@ -94,9 +94,15 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       }
     );
 
-    const unsubCoin = eventBus.on('coinCollected', (data: { value?: number; x?: number; z?: number }) => {
+    const unsubCoin = eventBus.on('coinCollected', (data: { value?: number; x?: number; z?: number; tier?: number }) => {
       if (!data || !data.value) return;
-      spawn(data.x || 0, data.z || 0, `+${data.value}`, 'text-amber-400');
+      const tier = data.tier ?? 1;
+      spawn(
+        data.x || 0,
+        data.z || 0,
+        `+${data.value}`,
+        tier >= 2 ? 'text-cyan-300 drop-shadow-[0_0_6px_rgba(34,211,238,0.8)]' : 'text-amber-400',
+      );
     });
 
     // Серия ворот сбита: всплывающая надпись «СЕРИЯ СБИТА!» с указанием утраченной

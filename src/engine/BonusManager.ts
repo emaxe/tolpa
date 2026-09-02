@@ -250,8 +250,10 @@ export class BonusManager {
       }
       case 'coins': {
         stateManager.runAddCoins(b.value);
-        soundEngine.playSound('coin_pickup');
-        eventBus.emit('coinCollected', { value: b.value, x: b.x, z: b.z });
+        // Бонус-монеты всегда кристальные: звон + золотой burst.
+        soundEngine.playSound('gem_pickup');
+        particles.emitBurst(b.x, 1.0, b.z, 28, 0xf59e0b, 5.5);
+        eventBus.emit('coinCollected', { value: b.value, x: b.x, z: b.z, tier: 2 });
         break;
       }
     }
