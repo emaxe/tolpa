@@ -95,6 +95,9 @@ export const HUD: React.FC<HUDProps> = ({
     finishLineCrossed: { key: 'finishLineCrossed', cls: 'border-cyan-400 text-cyan-600' },
     bossDefeated: { key: 'bossDefeated', cls: 'border-yellow-400 text-yellow-600' },
     bossAppear: { key: 'bossAppear', cls: 'border-red-500 text-red-600' },
+    newClass_tank: { key: 'newClassAppearedTank', cls: 'border-amber-400 text-amber-600' },
+    newClass_ninja: { key: 'newClassAppearedNinja', cls: 'border-purple-400 text-purple-600' },
+    newClass_mage: { key: 'newClassAppearedMage', cls: 'border-emerald-400 text-emerald-600' },
   };
 
   useEffect(() => {
@@ -176,6 +179,14 @@ export const HUD: React.FC<HUDProps> = ({
       window.setTimeout(() => setEventAlert(null), 3200);
     });
 
+    // Новый класс бойца впервые появился в толпе — баннер-тост с именем класса.
+    const unsubNewClass = eventBus.on('newClassAppeared', (data: { type?: string }) => {
+      if (!data || !data.type) return;
+      soundEngine.playSound('level_win');
+      setEventAlert({ type: `newClass_${data.type}`, key: Date.now() });
+      window.setTimeout(() => setEventAlert(null), 3200);
+    });
+
     return () => {
       unsubBoss();
       unsubBossDefeat();
@@ -190,6 +201,7 @@ export const HUD: React.FC<HUDProps> = ({
       unsubAdrenalineReady();
       unsubEndlessRecordBeaten();
       unsubFinishLine();
+      unsubNewClass();
     };
   }, []);
 

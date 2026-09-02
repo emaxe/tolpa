@@ -83,6 +83,9 @@ export const translations = {
     mageShield: 'ЭНЕРГОЩИТ!',
     bossShieldBlocked: 'ЩИТ БОССА!',
     bossShieldPierced: 'ПРОБИТИЕ!',
+    newClassAppearedTank: 'ОТРЯД: ДЖАГГЕРНАУТ ПРИСОЕДИНИЛСЯ!',
+    newClassAppearedNinja: 'ОТРЯД: КИБЕР-НИНДЗЯ В СТРОЮ!',
+    newClassAppearedMage: 'ОТРЯД: ХРОНО-МАГ ПРИЗВАН!',
 
     // Dynamic Events
     eventAmbush: 'ВНИМАНИЕ: Вражеская засада впереди!',
@@ -382,6 +385,9 @@ export const translations = {
     mageShield: 'ENERGY SHIELD!',
     bossShieldBlocked: 'BOSS SHIELD!',
     bossShieldPierced: 'PIERCED!',
+    newClassAppearedTank: 'LEGION: JUGGERNAUT JOINED!',
+    newClassAppearedNinja: 'LEGION: CYBER NINJA ENLISTED!',
+    newClassAppearedMage: 'LEGION: CHRONO MAGE SUMMONED!',
 
     // Dynamic Events
     eventAmbush: 'WARNING: Enemy ambush ahead!',

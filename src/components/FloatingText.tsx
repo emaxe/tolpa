@@ -369,6 +369,23 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       }
     );
 
+    // Новый класс бойца впервые появился в толпе — всплывающий 3D-ярлык над точкой спавна.
+    const unsubNewClass = eventBus.on(
+      'newClassAppeared',
+      (data: { type?: string; x?: number; z?: number }) => {
+        if (!data?.type) return;
+        const x = data.x ?? 0;
+        const z = data.z ?? 0;
+        if (data.type === 'tank') {
+          spawn(x, z, i18n.t('tankName', 'ДЖАГГЕРНАУТ!'), 'text-amber-300 font-black text-xl drop-shadow-[0_0_12px_rgba(245,158,11,0.9)]');
+        } else if (data.type === 'ninja') {
+          spawn(x, z, i18n.t('ninjaName', 'НИНДЗЯ!'), 'text-purple-300 font-black text-xl drop-shadow-[0_0_12px_rgba(168,85,247,0.9)]');
+        } else if (data.type === 'mage') {
+          spawn(x, z, i18n.t('mageName', 'ХРОНО-МАГ!'), 'text-emerald-300 font-black text-xl drop-shadow-[0_0_12px_rgba(16,185,129,0.9)]');
+        }
+      }
+    );
+
     return () => {
       unsubGate();
       unsubMobsKilled();
@@ -391,6 +408,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubFormation();
       unsubFinishStep();
       unsubClassAbility();
+      unsubNewClass();
     };
   }, [engine]);
 

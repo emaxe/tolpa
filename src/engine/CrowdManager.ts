@@ -44,6 +44,9 @@ export class CrowdManager {
   // остаётся нетронутой — троттлится только частота фидбека.
   private lastClassAbilityEmitMs: number = 0;
   private static readonly CLASS_ABILITY_EMIT_INTERVAL_MS: number = 120;
+  // Множество классов мобов, уже появлявшихся в текущем забеге. Для каждого нового
+  // класса при ПЕРВОМ спавне эмитится newClassAppeared → HUD-баннер + звук + FloatingText.
+  private seenClasses: Set<Exclude<MobType, 'regular'>> = new Set();
 
   // Reusable 3D math objects to guarantee ZERO runtime GC allocations
   private dummy: THREE.Object3D = new THREE.Object3D();
@@ -205,6 +208,7 @@ export class CrowdManager {
     this.fallingCount = 0;
     this.dyingCount = 0;
     this.aliveSnapshotValid = false;
+    this.seenClasses.clear();
     for (let i = 0; i < this.maxCapacity; i++) {
       this.mobs[i].alive = false;
       // Сбрасываем и падение/смерть: иначе слот, застигнутый в полёте/смерти при рестарте,
@@ -416,6 +420,15 @@ export class CrowdManager {
         this.instancedMesh.setColorAt(i, this.colorDummy);
 
         stateManager.runRecordMobSpawn(1);
+
+        // Первое появление класса в забеге — эмитим событие для HUD-баннера, звука
+        // и FloatingText. Срабатывает один раз на класс (seenClasses), только для
+        // специализированных классов (не regular), в момент успешного спавна в слот.
+        if (mobType !== 'regular' && !this.seenClasses.has(mobType)) {
+          this.seenClasses.add(mobType);
+          eventBus.emit('newClassAppeared', { type: mobType, x: mob.x, z: mob.z });
+        }
+
         return mob;
       }
     }
