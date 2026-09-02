@@ -2532,13 +2532,17 @@ export class GameEngine {
     // Crowd size milestone: проверяем после всех subsystem updates, чтобы поймать
     // рост толпы от ворот/бонусов в одном месте. Эмитим событие при пересечении
     // порога 50/100/150/200 — VFX consumer ниже (частицы + cheer + shake), HUD баннер.
+    // BUGFIX: если толпа перескакивает несколько порогов за один кадр (например,
+    // ворота ×2 на большой толпе: 80 -> 160), БЕЗ continue срабатывал только первый
+    // порог (50), а 100/150 молча терялись. Теперь эмитим каждый заново пройденный
+    // порог: массив отсортирован по возрастанию, lastCrowdMilestone растёт монотонно,
+    // поэтому каждый порог празднуется ровно один раз.
     const crowdNow = this.crowd.getAliveCount();
     for (let i = 0; i < GameEngine.CROWD_MILESTONES.length; i++) {
       const m = GameEngine.CROWD_MILESTONES[i];
-      if (crowdNow >= m && this.lastCrowdMilestone < m) {
+      if (this.lastCrowdMilestone < m && crowdNow >= m) {
         this.lastCrowdMilestone = m;
         eventBus.emit('crowdMilestone', { count: m, x: this.crowd.leaderX, z: this.crowd.leaderZ });
-        break;
       }
     }
   }
