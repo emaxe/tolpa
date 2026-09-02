@@ -625,6 +625,58 @@ export class SoundEngine {
         break;
       }
 
+      case 'combo_break': {
+        // Потеря серии ворот — нисходящий диссонансный «вздох» (womp): два
+        // расстроенных осциллятора, резко падающих вниз. pitchShift кодирует
+        // серьёзность потери (1.0..1.3): на высоких сериях ниже и громче.
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220 * pitchShift, t);
+        osc.frequency.exponentialRampToValueAtTime(80 * pitchShift, t + 0.25);
+
+        gain.gain.setValueAtTime(0.2, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+
+        osc.connect(gain);
+        gain.connect(outGain);
+        osc.start(t);
+        osc.stop(t + 0.25);
+
+        // Второй расстроенный слой — диссонанс «потери».
+        const o2 = this.ctx.createOscillator();
+        const g2 = this.ctx.createGain();
+        o2.type = 'square';
+        o2.frequency.setValueAtTime(190 * pitchShift, t);
+        o2.frequency.exponentialRampToValueAtTime(70 * pitchShift, t + 0.25);
+        g2.gain.setValueAtTime(0.12, t);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+        o2.connect(g2);
+        g2.connect(outGain);
+        o2.start(t);
+        o2.stop(t + 0.25);
+        break;
+      }
+
+      case 'near_miss_break': {
+        // Срыв серии уворотов — короткий нисходящий «физз» (deflate), ярче и
+        // короче combo_break, чтобы отличаться от полной потери серии ворот.
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(300 * pitchShift, t);
+        osc.frequency.exponentialRampToValueAtTime(90 * pitchShift, t + 0.15);
+
+        gain.gain.setValueAtTime(0.16, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+
+        osc.connect(gain);
+        gain.connect(outGain);
+        osc.start(t);
+        osc.stop(t + 0.15);
+        break;
+      }
+
       case 'mage_shield': {
         // Мягкий резонансный всплеск энергощита мага (520 -> 260 Гц)
         const osc = this.ctx.createOscillator();

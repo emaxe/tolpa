@@ -32,7 +32,9 @@ export type SoundEffect =
   | 'button_click'
   | 'upgrade_buy'
   | 'combo_ding'
+  | 'combo_break'
   | 'near_miss'
+  | 'near_miss_break'
   | 'mage_shield'
   | 'crowd_cheer';
 

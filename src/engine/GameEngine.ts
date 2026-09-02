@@ -433,6 +433,8 @@ export class GameEngine {
       this.particles.emitBurst(sx, 1.4, sz, count, 0xf87171, 3.5);
       if (streak >= 5) eventBus.emit('screenShake', { intensity: streak >= 10 ? 0.25 : 0.15 });
       this.triggerHaptic([35, 25, 35]);
+      // Аудио-стинг срыва серии уворотов — нисходящий «физз», эскалация по серии.
+      soundEngine.playSound('near_miss_break', streak >= 10 ? 1.25 : streak >= 5 ? 1.1 : 1.0, streak >= 10 ? 0.85 : 0.7);
     });
 
     // Порог серии ворот (5/10/15...) — эскалирующий фидбек: крик толпы, золотистый
@@ -470,6 +472,8 @@ export class GameEngine {
       this.particles.emitBurst(sx, 1.5, sz, count, 0xef4444, 4.0);
       eventBus.emit('screenShake', { intensity: streak >= 10 ? 0.3 : 0.2 });
       this.triggerHaptic([40, 30, 40]);
+      // Аудио-стинг потери серии ворот — нисходящий «вздох», эскалация по серии.
+      soundEngine.playSound('combo_break', streak >= 15 ? 1.3 : streak >= 10 ? 1.15 : 1.0, streak >= 15 ? 0.9 : 0.7);
     });
 
     // Crowd size milestone: толпа достигла порога 50/100/150/200 бойцов —
