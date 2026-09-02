@@ -107,7 +107,40 @@ export class ObstacleManager {
     if (needed <= this.coinCapacity && this.coinMesh) return;
     let newCap = this.coinCapacity === 0 ? Math.max(needed, 256) : this.coinCapacity * 2;
     while (newCap < needed) newCap *= 2;
+    this.rebuildCoinMesh(newCap);
+  }
 
+  /**
+   * Минимальная ёмкость, до которой сжимается coin-InstancedMesh после endless-прюна.
+   * Ниже опускаться нельзя — иначе каждый новый сегмент будет пересоздавать mesh.
+   */
+  private static readonly COIN_MIN_CAPACITY = 256;
+
+  /**
+   * Сжимает coin-InstancedMesh, если после прюна активных монет стало заметно меньше
+   * выделенной ёмкости (гистерезис 2×). В долгом endless-забеге пул растёт только вверх
+   * (удвоение в ensureCoinCapacity), а прюн лишь меняет `count`, оставляя GPU-буфер
+   * instanceMatrix раздутым навечно. Сброс к активному окну + гистерезис возвращает память,
+   * не дрожа на границе сегментов.
+   */
+  private shrinkCoinMeshIfNeeded(): void {
+    if (!this.coinMesh || this.coinCapacity <= ObstacleManager.COIN_MIN_CAPACITY) return;
+    // Гистерезис 2×: сжимаем только когда активных вдвое меньше ёмкости.
+    if (this.coinActiveCount > this.coinCapacity / 2) return;
+    let newCap = Math.max(ObstacleManager.COIN_MIN_CAPACITY, this.coinActiveCount * 2);
+    // Округление до степени двойки — согласуется с поведением роста.
+    let cap = 1;
+    while (cap < newCap) cap *= 2;
+    newCap = Math.max(ObstacleManager.COIN_MIN_CAPACITY, cap);
+    if (newCap >= this.coinCapacity) return; // сжиматься не во что
+    this.rebuildCoinMesh(newCap);
+  }
+
+  /**
+   * Пересоздаёт coin-InstancedMesh с новой ёмкостью, перенося уже активные инстансы
+   * (матрицы 0..coinActiveCount-1) в новый буфер и утилизируя старый mesh.
+   */
+  private rebuildCoinMesh(newCap: number): void {
     const newMesh = new THREE.InstancedMesh(this.coinGeo, this.coinMat, newCap);
     newMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     newMesh.frustumCulled = false; // инстансы широко разбросаны — culling по boundingSphere лжёт
@@ -1257,6 +1290,10 @@ export class ObstacleManager {
       if (dirty) {
         this.coinMesh.instanceMatrix.needsUpdate = true;
       }
+      // После компакции активное окно могло сильно ужаться — сбрасываем раздувшийся
+      // GPU-буфер к рабочему диапазону (с гистерезисом), чтобы долгий endless-забег
+      // не держал в памяти навечно максимум однажды достигнутой ёмкости.
+      this.shrinkCoinMeshIfNeeded();
     }
   }
 
