@@ -216,6 +216,7 @@ export class GameEngine {
   private unsubNearMissMilestone: (() => void) | null = null;
   private unsubNearMissBreak: (() => void) | null = null;
   private unsubComboMilestone: (() => void) | null = null;
+  private unsubComboMax: (() => void) | null = null;
   private unsubAdrenaline: (() => void) | null = null;
   private unsubAdrenalineEnded: (() => void) | null = null;
   private unsubBonusCollected: (() => void) | null = null;
@@ -440,6 +441,19 @@ export class GameEngine {
       this.particles.emitBurst(data.x ?? this.crowd.leaderX, 1.6, data.z ?? this.crowd.leaderZ, count, color, 5.0);
       soundEngine.playCrowdCheer(tier >= 3 ? 1.0 : tier >= 2 ? 0.7 : 0.5);
       if (tier >= 2) eventBus.emit('screenShake', { intensity: tier >= 3 ? 0.25 : 0.15 });
+    });
+
+    // Потолок серии ворот достигнут (×1.8, серия ≥ 11) — праздничный фидбек: золотой
+    // салют частиц, ликование толпы, тряска экрана. Раньше HUD просто показывал «МАКС»
+    // без 3D-отклика — теперь игрок чувствует, что выжал максимум из серии.
+    this.unsubComboMax = eventBus.on('comboMax', (data: { x?: number; z?: number; streak?: number }) => {
+      const sx = data?.x ?? this.crowd.leaderX;
+      const sz = data?.z ?? this.crowd.leaderZ;
+      this.particles.emitBurst(sx, 1.8, sz, 50, 0xf59e0b, 6.0);
+      this.particles.emitShockwave(sx, sz, 0xf59e0b);
+      soundEngine.playCrowdCheer(1.0);
+      eventBus.emit('screenShake', { intensity: 0.3 });
+      this.triggerHaptic([40, 30, 40, 30]);
     });
 
     // Серия ворот сбита отрицательными воротами. Эмитится только при потере
@@ -2824,6 +2838,7 @@ export class GameEngine {
     this.unsubNearMissMilestone?.();
     this.unsubNearMissBreak?.();
     this.unsubComboMilestone?.();
+    this.unsubComboMax?.();
     this.unsubComboBreak?.();
     this.unsubCrowdMilestone?.();
     this.unsubEndlessRecordBeaten?.();

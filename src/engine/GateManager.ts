@@ -41,6 +41,8 @@ export class GateManager {
   private gates: GateVisual[] = [];
   private comboStreak: number = 0;
   private lastComboTier: number = 0;
+  // Флаг празднования достижения потолка серии ворот (×1.8). Сбрасывается в clear().
+  private comboMaxCelebrated: boolean = false;
   private throughScratch: MobInstance[] = [];
   private preEffectIds: Set<number> = new Set();
 
@@ -135,6 +137,7 @@ export class GateManager {
     this.clear();
     this.comboStreak = 0;
     this.lastComboTier = 0;
+    this.comboMaxCelebrated = false;
     this.ensureSharedGeometry();
     gatesData.forEach((gate) => this.gates.push(this.buildGateVisual(gate)));
   }
@@ -404,6 +407,14 @@ export class GateManager {
         if (tier > 0 && tier > this.lastComboTier) {
           this.lastComboTier = tier;
           eventBus.emit('comboMilestone', { streak: this.comboStreak, x: gateX, z: gateZ, tier });
+        }
+        // Множитель бонуса толпы достиг потолка ×1.8 (COMBO_BONUS_CAP, серия ≥ 11) —
+        // значимый момент: игрок выжал максимум из серии ворот. Отдельное праздничное
+        // событие (VFX + cheer + тряска + баннер), которого раньше не было — HUD просто
+        // показывал «МАКС» без 3D-отклика. Эмитим один раз при первом достижении капа.
+        if (this.comboStreak >= 11 && !this.comboMaxCelebrated) {
+          this.comboMaxCelebrated = true;
+          eventBus.emit('comboMax', { streak: this.comboStreak, x: gateX, z: gateZ });
         }
         stateManager.runRecordCombo(this.comboStreak);
       } else {
