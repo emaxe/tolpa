@@ -116,6 +116,16 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       );
     });
 
+    // Потолок серии ворот достигнут (×1.8, серия ≥ 11): центральный золотой баннер.
+    // Эмитится GateManager ровно один раз при первом достижении капа серии.
+    const unsubComboMax = eventBus.on('comboMax', () => {
+      spawnScreen(
+        i18n.t('comboMaxBanner', 'МАКСИМУМ СЕРИИ! ×1.8 🏆'),
+        'text-yellow-300 font-black text-2xl scale-125 drop-shadow-[0_0_16px_rgba(250,204,21,1)]',
+        -30
+      );
+    });
+
     // Разрушение препятствия (Hyper-режим / класс Tank): всплывающая подпись над местом слома.
     // Раньше событие obstacleSmashed эмитилось, но никем не потреблялось — игрок видел только
     // звук + частицы, без текстового фидбека. Цвет совпадает с взрывом частиц (0xf97316).
@@ -314,7 +324,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
         if (!data || typeof data.multiplier !== 'number') return;
         const mult = data.multiplier;
         const isMax = mult >= 10;
-        const text = isMax ? `×${mult.toFixed(1)} МАКС!` : `×${mult.toFixed(1)}!`;
+        const text = isMax ? `×${mult.toFixed(1)} ${i18n.t('comboMax', 'МАКС')}!` : `×${mult.toFixed(1)}!`;
         const colorClass = isMax
           ? 'text-yellow-300 font-black text-2xl scale-125 drop-shadow-[0_0_16px_rgba(250,204,21,1)]'
           : mult >= 4.0
@@ -352,6 +362,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubMobsKilled();
       unsubCoin();
       unsubComboBreak();
+      unsubComboMax();
       unsubObstacle();
       unsubNearMiss();
       unsubNearMissBreak();
