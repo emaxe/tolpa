@@ -372,6 +372,13 @@ export class GameEngine {
         this.particles.emitBurst(x, 1.0, z, 16, 0xef4444, 5.0);
         soundEngine.playSound('mob_death', 0.9);
         eventBus.emit('screenShake', { intensity: 0.15 });
+      } else if (data?.reason === 'boss') {
+        // Retaliation-удар босса (периодический, ~2% толпы): красный бурст + звук с низким
+        // питчем. Тряска экрана уже эмитится в BossManager перед killMobs — не дублируем.
+        const x = data?.x ?? this.crowd.leaderX;
+        const z = data?.z ?? this.crowd.leaderZ;
+        this.particles.emitBurst(x, 1.0, z, 16, 0xef4444, 5.0);
+        soundEngine.playSound('mob_death', 0.9);
       }
     });
 
