@@ -56,6 +56,10 @@ function createBonusTexture(color: number, label: string): THREE.CanvasTexture {
 
 export class BonusManager {
   private static readonly PRUNE_MARGIN = 40;
+  // Окно анимации бонусов: впереди толпы ~45м, позади ~30м (камера на leaderZ-16,
+  // видимое окно ~45м вперёд/30м назад). Бонусы вне окна не анимируем (0-GC).
+  private static readonly BONUS_ANIM_CULL_AHEAD = 45;
+  private static readonly BONUS_ANIM_CULL_BACK = 30;
   private scene: THREE.Scene;
   private bonuses: BonusVisual[] = [];
   private coreGeo: THREE.SphereGeometry;
@@ -155,10 +159,16 @@ export class BonusManager {
       const b = bv.data;
       if (b.collected) continue;
 
+      // Spatial culling: бонусы вне зоны видимости (далеко впереди/позади толпы)
+      // не анимируем — вращение/покачивание/пульсация и обновление матриц Three.js
+      // бесполезны для невидимых объектов. Коллекция и магнит работают только вблизи
+      // (dz < 2.2 / 16), поэтому пропуск далёких не влияет на геймплей.
+      const bdz = b.z - leaderZ;
+      if (bdz > BonusManager.BONUS_ANIM_CULL_AHEAD || bdz < -BonusManager.BONUS_ANIM_CULL_BACK) continue;
+
       // Магнитное притяжение бонусов к центру толпы при активном гипер-режиме
       if (crowd.isHyperMode) {
         const bdx = b.x - leaderX;
-        const bdz = b.z - leaderZ;
         if (Math.abs(bdz) < 16 && Math.abs(bdx) < 9) {
           const t = Math.min(1.0, 10.0 * dt);
           b.x = lerp(b.x, leaderX, t);

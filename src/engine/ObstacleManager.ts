@@ -716,15 +716,6 @@ export class ObstacleManager {
     const crowdLeaderZ = crowd.leaderZ;
     const isHyper = crowd.isHyperMode;
 
-    // Вычисляем наличие ниндзя один раз перед циклом монет (0-GC) без повторного вызова getAliveMobs()
-    let hasNinjas = false;
-    for (let i = 0; i < aliveMobs.length; i++) {
-      if (aliveMobs[i].type === 'ninja') {
-        hasNinjas = true;
-        break;
-      }
-    }
-
     // Сброс серии сбора обычных монет по таймеру (окно 0.55с), если игрок перестал собирать.
     if (this.coinChainTimer > 0) {
       this.coinChainTimer -= dt;
@@ -732,6 +723,17 @@ export class ObstacleManager {
     }
 
     if (this.coinMesh && this.coinActiveCount > 0) {
+      // Вычисляем наличие ниндзя ТОЛЬКО при наличии активных монет (0-GC lazy guard):
+      // скан живых мобов O(N) нужен лишь для магнитного притяжения и удвоения монет,
+      // поэтому при coinActiveCount == 0 (нет монет на трассе) не тратим итерации вхолостую.
+      let hasNinjas = false;
+      for (let i = 0; i < aliveMobs.length; i++) {
+        if (aliveMobs[i].type === 'ninja') {
+          hasNinjas = true;
+          break;
+        }
+      }
+
       const mesh = this.coinMesh;
       const spinArr = this.coinSpin;
       let dirty = false;
