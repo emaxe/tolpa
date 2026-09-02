@@ -924,7 +924,7 @@ export class ObstacleManager {
     // мертва, поэтому лишний O(N) перебор по 200 мобам на каждое препятствие
     // в кадре убираем.
     let hasTanks = false;
-    if (obs.destructible && !isHyper && !crowd.canRamObstacles()) {
+    if (obs.destructible && !isHyper) {
       for (let i = 0; i < aliveMobs.length; i++) {
         if (aliveMobs[i].type === 'tank') {
           hasTanks = true;
