@@ -227,6 +227,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
     // Покупка апгрейда: всплывающая плашка в центре экрана.
     // Событие upgradePurchased эмитится StateManager, но раньше никем не потреблялось.
     const unsubUpgrade = eventBus.on('upgradePurchased', (data: { upgradeKey?: string; level?: number }) => {
+      soundEngine.playSound('upgrade_buy');
       spawnScreen(i18n.t('upgradePurchased', 'УЛУЧШЕНО!') + ' Lv.' + (data?.level ?? 1), 'text-emerald-300 font-bold drop-shadow-[0_0_8px_rgba(110,231,183,0.8)]');
     });
 
