@@ -52,8 +52,12 @@ export const App: React.FC = () => {
     setEndResult(null);
     setRunId((id) => id + 1);
 
-    // Story Dialogues on key milestones
-    if (levelNum === 1 && stateManager.getState().storyProgress === 0) {
+    // Story Dialogues on key milestones. storyProgress хранит последнюю пройденную
+    // сюжетную веху: диалог показываем только если уровень ещё не проходил сюжет
+    // (storyProgress < levelNum), иначе повторные попытки/ретраи босс-уровней НЕ
+    // раздражают игрока повторным всплытием модалки.
+    const storyProgress = stateManager.getState().storyProgress;
+    if (levelNum === 1 && storyProgress === 0) {
       setDialogueQueue([
         {
           speaker: 'commander',
@@ -64,7 +68,7 @@ export const App: React.FC = () => {
         },
       ]);
       setPhase('story_dialogue');
-    } else if (levelNum === 10) {
+    } else if (levelNum === 10 && storyProgress < 10) {
       setDialogueQueue([
         {
           speaker: 'professor',
@@ -75,7 +79,7 @@ export const App: React.FC = () => {
         },
       ]);
       setPhase('story_dialogue');
-    } else if (levelNum === 20) {
+    } else if (levelNum === 20 && storyProgress < 20) {
       setDialogueQueue([
         {
           speaker: 'echo',
@@ -86,7 +90,7 @@ export const App: React.FC = () => {
         },
       ]);
       setPhase('story_dialogue');
-    } else if (levelNum === 50) {
+    } else if (levelNum === 50 && storyProgress < 50) {
       setDialogueQueue([
         {
           speaker: 'boss',
@@ -97,7 +101,7 @@ export const App: React.FC = () => {
         },
       ]);
       setPhase('story_dialogue');
-    } else if (levelNum === 30) {
+    } else if (levelNum === 30 && storyProgress < 30) {
       setDialogueQueue([
         {
           speaker: 'professor',
@@ -108,7 +112,7 @@ export const App: React.FC = () => {
         },
       ]);
       setPhase('story_dialogue');
-    } else if (levelNum === 40) {
+    } else if (levelNum === 40 && storyProgress < 40) {
       setDialogueQueue([
         {
           speaker: 'commander',
@@ -269,8 +273,10 @@ export const App: React.FC = () => {
         <DialogueModal
           dialogues={dialogueQueue}
           onComplete={() => {
-            // Фиксируем прогресс сюжета, чтобы пролог 1-го уровня не повторялся.
-            if (activeLevel === 1) stateManager.setStoryProgress(1);
+            // Фиксируем прогресс сюжета до уровня, который игрок только что прошёл
+            // (уровень 1 => 1, босс L10 => 10 и т.д.). setStoryProgress хранит только
+            // монотонное возрастание, поэтому ранние уровни не откатывают прогресс.
+            stateManager.setStoryProgress(activeLevel);
             setDialogueQueue([]);
             setPhase('running');
           }}
