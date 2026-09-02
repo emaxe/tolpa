@@ -339,7 +339,7 @@ export class GateManager {
           }
           const shouldSpawn = isNewTransmute;
           let base = 0;
-          if (shouldSpawn && isFirstTrigger) {
+          if (shouldSpawn) {
             base = crowd.addMobsNear(transmuteVal, gateX, gateZ);
           }
           if (base > 0) {

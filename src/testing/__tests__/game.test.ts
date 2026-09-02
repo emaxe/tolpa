@@ -239,7 +239,7 @@ describe('Gate & Math Operations', () => {
           const transmuteVal = Math.max(1, Math.round(val * 0.6));
           const shouldSpawn = isNewTransmute;
           let base = 0;
-          if (shouldSpawn && isFirstTrigger) {
+          if (shouldSpawn) {
             base = transmuteVal;
             spawnedMobsTotal += base;
           }
@@ -274,6 +274,62 @@ describe('Gate & Math Operations', () => {
       expect(gateVisual.transmutedByMage).toBe(true);
       expect(res2.netChange).toBe(0);
       expect(spawnedMobsTotal).toBe(6); // спавн не задвоился
+    }
+
+    // 3) Маг во ВТОРОМ ряду: первый ряд (без Мага) триггерит ворота (isFirstTrigger=true),
+    // Маг приходит на 1-2 кадра позже (isFirstTrigger=false). Трансмутация должна
+    // сработать и заспавнить мобов, НЕ завися от isFirstTrigger (фикс silent-bug).
+    {
+      const gateVisual = {
+        mysteryResult: false,
+        transmutedByMage: false,
+        triggered: false,
+      };
+      let spawnedMobsTotal = 0;
+
+      const simulateMysteryPass = (wing: { id: number; type: string }[]) => {
+        const isFirstTrigger = !gateVisual.triggered;
+        const isNewTransmute = !gateVisual.transmutedByMage && wing.some((m) => m.type === 'mage');
+        let isPositive = false;
+        let netChange = 0;
+
+        if (gateVisual.transmutedByMage || isNewTransmute) {
+          gateVisual.transmutedByMage = true;
+          const transmuteVal = Math.max(1, Math.round(val * 0.6));
+          const shouldSpawn = isNewTransmute;
+          let base = 0;
+          if (shouldSpawn) {
+            base = transmuteVal;
+            spawnedMobsTotal += base;
+          }
+          if (base > 0) {
+            const bonus = Math.floor(base * (comboFactor - 1));
+            netChange = bonus > 0 ? base + bonus : base;
+          }
+          isPositive = true;
+        } else {
+          const killed = Math.floor(wing.length / 2);
+          netChange = -killed;
+        }
+        gateVisual.triggered = true;
+        return { isPositive, netChange };
+      };
+
+      // Пачка 1: первый ряд БЕЗ Мага — ворота срабатывают как штраф (isFirstTrigger=true)
+      const res1 = simulateMysteryPass([
+        { id: 1, type: 'regular' },
+        { id: 2, type: 'regular' },
+      ]);
+      expect(res1.isPositive).toBe(false);
+      expect(gateVisual.transmutedByMage).toBe(false);
+      expect(res1.netChange).toBe(-1);
+
+      // Пачка 2: Маг во втором ряду (isFirstTrigger=false) — трансмутация ДОЛЖНА заспавнить
+      const res2 = simulateMysteryPass([{ id: 3, type: 'mage' }]);
+      expect(res2.isPositive).toBe(true);
+      expect(gateVisual.transmutedByMage).toBe(true);
+      expect(res2.netChange).toBe(6); // Math.round(10 * 0.6) = 6
+      expect(spawnedMobsTotal).toBe(6); // спавн сработал несмотря на isFirstTrigger=false
     }
   });
 });
@@ -837,6 +893,14 @@ describe('Kinetic Wall Impact & Damage Accounting', () => {
     expect(res.damageDealt).toBe(1);
     expect(res.killed).toBe(false);
     expect(ninja.alive).toBe(true);
+  });
+
+  it('Хроно-Маг наносит 2 урона стене (синхронно с getMobWallDamage)', () => {
+    const mage = { type: 'mage', shieldHp: 0, hp: 1, alive: true };
+    const res = computeWallImpact(mage, 'oval');
+    expect(res.damageDealt).toBe(2);
+    expect(res.killed).toBe(true);
+    expect(mage.alive).toBe(false);
   });
 
   it('Моб с hp > 1 без щита наносит урон и теряет 1 hp', () => {
