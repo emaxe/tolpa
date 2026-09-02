@@ -90,6 +90,7 @@ export const HUD: React.FC<HUDProps> = ({
     comboMax: { key: 'comboMaxBanner', cls: 'border-yellow-400 text-yellow-600' },
     achievementReady: { key: 'achievementReady', cls: 'border-amber-400 text-amber-600' },
     crowdMilestone: { key: 'crowdMilestone', cls: 'border-emerald-500 text-emerald-600' },
+    adrenalineReady: { key: 'hyperModeReady', cls: 'border-amber-400 text-amber-600' },
     endlessRecordBeaten: { key: 'endlessRecordBeaten', cls: 'border-yellow-400 text-yellow-600' },
     finishLineCrossed: { key: 'finishLineCrossed', cls: 'border-cyan-400 text-cyan-600' },
     bossDefeated: { key: 'bossDefeated', cls: 'border-yellow-400 text-yellow-600' },
@@ -156,6 +157,13 @@ export const HUD: React.FC<HUDProps> = ({
       window.setTimeout(() => setEventAlert(null), 3200);
     });
 
+    // Адреналин заряжен до 100% — гипер-режим доступен. Центральный баннер-тост,
+    // чтобы игрок не упустил момент, когда можно безопасно протаранить препятствия.
+    const unsubAdrenalineReady = eventBus.on('adrenalineReady', () => {
+      setEventAlert({ type: 'adrenalineReady', key: Date.now() });
+      window.setTimeout(() => setEventAlert(null), 2400);
+    });
+
     // Побитие личного рекорда в бесконечном режиме — центральный баннер-тост.
     const unsubEndlessRecordBeaten = eventBus.on('endlessRecordBeaten', () => {
       setEventAlert({ type: 'endlessRecordBeaten', key: Date.now() });
@@ -179,6 +187,7 @@ export const HUD: React.FC<HUDProps> = ({
       unsubComboMax();
       unsubAchReady();
       unsubCrowdMilestone();
+      unsubAdrenalineReady();
       unsubEndlessRecordBeaten();
       unsubFinishLine();
     };

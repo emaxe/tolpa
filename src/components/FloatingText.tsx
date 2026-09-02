@@ -220,6 +220,18 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       );
     });
 
+    // Адреналин заряжен до 100% — гипер-режим доступен. Раньше переход был «немым»,
+    // игрок упускал момент, когда можно безопасно протаранить препятствия.
+    // Событие adrenalineReady эмитится GameEngine при пересечении порога зарядки.
+    const unsubAdrenalineReady = eventBus.on('adrenalineReady', (data: { x?: number; z?: number }) => {
+      spawn(
+        data.x ?? 0,
+        data.z ?? 0,
+        `⚡ ${i18n.t('hyperModeReady', 'ГИПЕР ГОТОВ!')} ⚡`,
+        'text-amber-300 font-black text-xl tracking-wider drop-shadow-[0_0_12px_rgba(250,204,21,0.9)]'
+      );
+    });
+
     // Финишная прямая: центральный всплывающий баннер при пересечении линии.
     // Событие finishLineCrossed эмитится FinishLineManager, но раньше никем не потреблялось.
     const unsubFinishLine = eventBus.on('finishLineCrossed', () => {
@@ -368,6 +380,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubNearMissBreak();
       unsubBonus();
       unsubAdrenalineTriggered();
+      unsubAdrenalineReady();
       unsubFinishLine();
       unsubCrowdMilestone();
       unsubUpgrade();

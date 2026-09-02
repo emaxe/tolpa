@@ -170,6 +170,9 @@ export class GameEngine {
   // Adrenaline (перенесено сюда из HUD-таймера — заряд должен стоять на паузе
   // и не быть отвязан от реальной игры)
   public adrenalineCharge: number = 0;
+  // Флаг фронта зарядки адреналина до 100%: срабатывает ровно один раз при
+  // переходе 0..99% -> 100%, чтобы эмитить adrenalineReady (VFX/баннер/звук).
+  private wasAdrenalineReady: boolean = false;
   // Текущий FOV камеры — плавно интерполируется к целевому при ускорении.
   private currentFov: number = GameEngine.FOV_BASE;
 
@@ -933,6 +936,7 @@ export class GameEngine {
     this.runEnded = false;
     this.deathGrace = 0;
     this.adrenalineCharge = 0;
+    this.wasAdrenalineReady = false;
     this.currentFov = GameEngine.FOV_BASE;
     this.camera.fov = GameEngine.FOV_BASE;
     this.camera.updateProjectionMatrix();
@@ -1007,6 +1011,7 @@ export class GameEngine {
     this.runEnded = false;
     this.deathGrace = 0;
     this.adrenalineCharge = 0;
+    this.wasAdrenalineReady = false;
     this.currentFov = GameEngine.FOV_BASE;
     this.camera.fov = GameEngine.FOV_BASE;
     this.camera.updateProjectionMatrix();
@@ -1995,6 +2000,7 @@ export class GameEngine {
     if (this.crowd.isHyperMode) return false;
     if (this.adrenalineCharge < 100) return false;
     this.adrenalineCharge = 0;
+    this.wasAdrenalineReady = false;
     this.crowd.activateHyperMode();
     return true;
   }
@@ -2503,6 +2509,25 @@ export class GameEngine {
 
     // Адреналин заряжается сам собой (плюс бонусы за ворота из подписки в конструкторе)
     this.adrenalineCharge = Math.min(100, this.adrenalineCharge + 8 * this.crowd.getAdrenalineMultiplier() * dt);
+
+    // Фронт зарядки адреналина до 100%: момент, когда гипер-режим становится доступен.
+    // Раньше переход 0..99% -> 100% был «немым» (значение просто клампилось) — игрок
+    // упускал момент, когда можно безопасно протаранить препятствия. Эмитим
+    // adrenalineReady ровно один раз при пересечении порога (флаг wasAdrenalineReady),
+    // VFX/баннер/звук потребляются ниже. 0-GC: только скалярные координаты лидера.
+    const adrenalineReadyNow = this.adrenalineCharge >= 100 && !this.crowd.isHyperMode;
+    if (adrenalineReadyNow && !this.wasAdrenalineReady) {
+      this.wasAdrenalineReady = true;
+      const lx = this.crowd.leaderX;
+      const lz = this.crowd.leaderZ;
+      this.particles.emitShockwave(lx, lz, 0xfde047);
+      this.particles.emitBurst(lx, 1.4, lz, 16, 0xfacc15, 3.5);
+      soundEngine.playSound('combo_ding', 1.6, 0.75);
+      this.triggerHaptic([25, 20, 50]);
+      eventBus.emit('adrenalineReady', { x: lx, z: lz });
+    } else if (!adrenalineReadyNow && this.adrenalineCharge < 100) {
+      this.wasAdrenalineReady = false;
+    }
 
     // Crowd size milestone: проверяем после всех subsystem updates, чтобы поймать
     // рост толпы от ворот/бонусов в одном месте. Эмитим событие при пересечении
