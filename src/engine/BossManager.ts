@@ -236,6 +236,9 @@ export class BossManager {
       this.particles.emitBurst(0, 2.0, this.bossArenaZ, 30, 0xef4444, 7.0);
       soundEngine.playSound('boss_roar');
       eventBus.emit('screenShake', { intensity: 0.5 });
+      // Центральный баннер-тост "БОСС ПРОСНУЛСЯ" — раньше появление босса было
+      // заметно только по VFX/звуку, без текстового объявления в HUD.
+      eventBus.emit('bossAppear', { x: 0, z: this.bossArenaZ });
     }
 
     // 1. Attack cycle (с паузой между атаками, масштабируемой по уровню босса).

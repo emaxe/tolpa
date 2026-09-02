@@ -92,6 +92,7 @@ export const HUD: React.FC<HUDProps> = ({
     endlessRecordBeaten: { key: 'endlessRecordBeaten', cls: 'border-yellow-400 text-yellow-600' },
     finishLineCrossed: { key: 'finishLineCrossed', cls: 'border-cyan-400 text-cyan-600' },
     bossDefeated: { key: 'bossDefeated', cls: 'border-yellow-400 text-yellow-600' },
+    bossAppear: { key: 'bossAppear', cls: 'border-red-500 text-red-600' },
   };
 
   useEffect(() => {
@@ -102,6 +103,12 @@ export const HUD: React.FC<HUDProps> = ({
     const unsubBossDefeat = eventBus.on('bossDefeated', () => {
       setBossInfo(null);
       setEventAlert({ type: 'bossDefeated', key: Date.now() });
+    });
+
+    // Босс проснулся (первый вход толпы в арену) — центральный баннер-тост.
+    const unsubBossAppear = eventBus.on('bossAppear', () => {
+      setEventAlert({ type: 'bossAppear', key: Date.now() });
+      window.setTimeout(() => setEventAlert(null), 3200);
     });
 
     const unsubMobsKilled = eventBus.on('mobsKilled', () => {
@@ -157,6 +164,7 @@ export const HUD: React.FC<HUDProps> = ({
     return () => {
       unsubBoss();
       unsubBossDefeat();
+      unsubBossAppear();
       unsubMobsKilled();
       unsubEvent();
       unsubNearMissMilestone();
