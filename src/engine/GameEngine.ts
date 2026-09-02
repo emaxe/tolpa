@@ -2766,9 +2766,12 @@ export class GameEngine {
         this.boss.clear();
       }
 
-      // Циклический сдвиг полотна трассы вперёд, чтобы толпа не бежала по пустоте
+      // Циклический сдвиг полотна трассы вперёд, чтобы толпа не бежала по пустоте.
+      // Привязываем offset к позиции лидера (а не сдвигаем на seg.length), иначе при
+      // сдвиге на полный сегмент новый трек начинается ПОЗАДИ лидера и толпа на
+      // [leaderZ, leaderZ+seg.length-150] бежит без пола (~130м пустоты).
       if (this.crowd.leaderZ > this.trackOffsetZ + this.endlessTrackLength - 150) {
-        this.trackOffsetZ += seg.length;
+        this.trackOffsetZ = this.crowd.leaderZ - 120;
         this.buildTrack(this.endlessTrackLength, this.endlessTrackWidth, this.endlessBiome);
       } else if (biomeChanged) {
         this.buildTrack(this.endlessTrackLength, this.endlessTrackWidth, this.endlessBiome);
