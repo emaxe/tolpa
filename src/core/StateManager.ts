@@ -1019,6 +1019,9 @@ export class StateManager {
     if (paid) {
       this.state.unlockedSkins.push(skinId);
       this.notify();
+      // Событие skinUnlocked (покупка) — паритет с unlockSkinFree, чтобы уведомление в UI
+      // срабатывало и при платной разблокировке скина, а не только при бесплатной.
+      eventBus.emit('skinUnlocked', { skinId });
       return true;
     }
     return false;

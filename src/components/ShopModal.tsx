@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import confetti from 'canvas-confetti';
 import { PlayerUpgrades } from '../types/game';
 import { stateManager, INITIAL_SKINS } from '../core/StateManager';
 import { i18n } from '../core/Localization';
@@ -86,7 +87,16 @@ export const ShopModal: React.FC<ShopModalProps> = ({ onClose }) => {
       const unlocked = stateManager.unlockSkin(skinId, cost, currency);
       if (unlocked) {
         stateManager.equipSkin(skinId);
-        soundEngine.playSound('upgrade_buy');
+        // Праздничный джус при покупке нового скина: залп конфетти + звук кристаллов.
+        const isGems = currency === 'gems';
+        soundEngine.playSound(isGems ? 'gem_pickup' : 'upgrade_buy');
+        confetti({
+          particleCount: 90,
+          spread: 75,
+          startVelocity: 42,
+          origin: { y: 0.6 },
+          colors: isGems ? ['#f43f5e', '#facc15', '#ffffff'] : ['#facc15', '#f59e0b', '#ffffff'],
+        });
       }
     }
   };

@@ -1,4 +1,5 @@
 import React from 'react';
+import confetti from 'canvas-confetti';
 import { INITIAL_ACHIEVEMENTS, stateManager } from '../core/StateManager';
 import { i18n } from '../core/Localization';
 import { soundEngine } from '../audio/SoundEngine';
@@ -44,7 +45,20 @@ export const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose })
   const handleClaim = (id: string) => {
     const success = stateManager.claimAchievement(id);
     if (success) {
-      soundEngine.playSound('upgrade_buy');
+      const ach = INITIAL_ACHIEVEMENTS.find((a) => a.id === id);
+      // Праздничный отклик при клейме награды: звук кристаллов (если есть) + лёгкий салют.
+      if (ach && (ach.rewardGems ?? 0) > 0) {
+        soundEngine.playSound('gem_pickup');
+      } else {
+        soundEngine.playSound('upgrade_buy');
+      }
+      confetti({
+        particleCount: 55,
+        spread: 65,
+        startVelocity: 40,
+        origin: { y: 0.6 },
+        colors: ['#f43f5e', '#facc15', '#22c55e', '#ffffff'],
+      });
     }
   };
 
