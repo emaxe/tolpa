@@ -219,7 +219,7 @@ export class LevelGenerator {
     for (let w = 0; w < wallCount; w++) {
       const wallZ = 80 + w * ((trackLength - 160) / Math.max(1, wallCount)) + (rng() * 8 - 4);
       // Не ставим стену вплотную к воротам и к босс-арене.
-      if (Math.abs(wallZ - currentGateZ) < 8) continue;
+      if (rawGates.some((g) => Math.abs(wallZ - g.z) < 8)) continue;
       if (wallZ > trackLength - 60) continue;
       const wallWidth = Math.min(trackWidth - 2.4, 3.5 + rng() * 3.5);
       let wallX = (Math.floor(rng() * 3) - 1) * laneOffset;
