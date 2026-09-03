@@ -247,7 +247,8 @@ export class BonusManager {
       case 'heal': {
         const healed = crowd.healAll(b.value);
         if (healed > 0) {
-          soundEngine.playSound('heal');
+          // Звук 'heal' уже играет healAll() (CrowdManager) — здесь только событие,
+          // иначе подбор лечащего бонуса даёт сдвоенный клип.
           eventBus.emit('bonusCollected', { type: b.type, value: healed, x: b.x, z: b.z });
         }
         break;
