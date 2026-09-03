@@ -2260,6 +2260,23 @@ export class GameEngine {
             3.5
           );
         }
+      } else if (event.type === 'emp_storm') {
+        // EMP-шторм: периодические фиолетовые разряды вокруг толпы, пока шторм активен.
+        // Раньше у emp_storm был только одноразовый бурст при старте + перекраска ворот —
+        // во время 5-секундной длительности игрок не получал сигнала, что шторм ещё идёт
+        // (все ворота искажены в ÷2). Теперь — пульсирующие разряды, как у ambush.
+        this.eventFxAccum += dt;
+        if (this.eventFxAccum >= 0.45) {
+          this.eventFxAccum = 0;
+          this.particles.emitBurst(
+            this.crowd.leaderX + (Math.random() - 0.5) * 4,
+            1.2,
+            this.crowd.leaderZ + 2 + (Math.random() - 0.5) * 4,
+            8,
+            0xa855f7,
+            3.5
+          );
+        }
       }
 
       if (newTimer <= 0) {
