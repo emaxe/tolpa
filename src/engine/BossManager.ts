@@ -500,6 +500,10 @@ export class BossManager {
   /** Включает/выключает энергетический щит босса (атака "shield"). */
   private setShielded(on: boolean): void {
     this.isShielded = on;
+    // HUD-индикатор щита: дискретный эмит в момент включения/снятия купола.
+    // bossDamaged эмитится только при уроне, поэтому отдельное событие нужно,
+    // чтобы HUD узнавал о щите даже когда игрок не бьёт босса.
+    eventBus.emit('bossShieldChanged', { shielded: on });
     if (on) {
       if (!this.shieldMesh && this.bossMesh) {
         const shieldGeo = new THREE.SphereGeometry(3.2, 24, 16);

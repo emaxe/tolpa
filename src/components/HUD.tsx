@@ -73,6 +73,7 @@ export const HUD: React.FC<HUDProps> = ({
   nearMissMultiplier,
 }) => {
   const [bossInfo, setBossInfo] = useState<{ hp: number; maxHp: number; nameKey: string } | null>(null);
+  const [isBossShielded, setIsBossShielded] = useState<boolean>(false);
   const [damageFlashKey, setDamageFlashKey] = useState<number>(0);
   // Баннер динамического события уровня (ambush/coin_train/emp_storm/meteor_rain/speed_boost)
   const [eventAlert, setEventAlert] = useState<{ type: string; key: number } | null>(null);
@@ -105,8 +106,15 @@ export const HUD: React.FC<HUDProps> = ({
       setBossInfo(data);
     });
 
+    // Индикатор энергощита босса: отдельное событие, т.к. bossDamaged эмитится
+    // только при уроне, а щит может быть активен без урона (игрок не бьёт).
+    const unsubBossShield = eventBus.on('bossShieldChanged', (data: { shielded?: boolean }) => {
+      setIsBossShielded(!!data?.shielded);
+    });
+
     const unsubBossDefeat = eventBus.on('bossDefeated', () => {
       setBossInfo(null);
+      setIsBossShielded(false);
       setEventAlert({ type: 'bossDefeated', key: Date.now() });
     });
 
@@ -193,6 +201,7 @@ export const HUD: React.FC<HUDProps> = ({
 
     return () => {
       unsubBoss();
+      unsubBossShield();
       unsubBossDefeat();
       unsubBossAppear();
       unsubBossEnraged();
@@ -412,11 +421,17 @@ export const HUD: React.FC<HUDProps> = ({
         const hpPct = bossInfo.maxHp > 0 ? bossInfo.hp / bossInfo.maxHp : 0;
         const critical = hpPct > 0 && hpPct < 0.25;
         return (
-        <div className={`w-full max-w-md mx-auto bg-white/90 border-2 ${critical ? 'border-red-600 animate-[pulse_0.4s_ease-in-out_infinite]' : 'border-red-500/80 animate-pulse'} rounded-xl p-3 shadow-2xl shadow-red-950/80 pointer-events-auto`}>
+        <div className={`w-full max-w-md mx-auto bg-white/90 border-2 ${critical ? 'border-red-600 animate-[pulse_0.4s_ease-in-out_infinite]' : isBossShielded ? 'border-cyan-400 shadow-cyan-500/50' : 'border-red-500/80 animate-pulse'} rounded-xl p-3 shadow-2xl shadow-red-950/80 pointer-events-auto`}>
           <div className="flex justify-between items-center mb-1 font-orbitron text-xs">
-            <span className={`font-bold tracking-wider flex items-center gap-1 ${critical ? 'text-red-600' : 'text-red-400'}`}>
+            <span className={`font-bold tracking-wider flex items-center gap-1 ${critical ? 'text-red-600' : isBossShielded ? 'text-cyan-600' : 'text-red-400'}`}>
               <Skull className="w-3.5 h-3.5" />
               {i18n.t(bossInfo.nameKey, 'BOSS')}
+              {isBossShielded && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-500/20 border border-cyan-400 text-cyan-700 text-[10px] font-extrabold uppercase animate-pulse">
+                  <Shield className="w-3 h-3 text-cyan-500" />
+                  {i18n.t('bossShield', 'ЩИТ')}
+                </span>
+              )}
             </span>
             <span className="text-slate-700">
               {Math.max(0, Math.round(bossInfo.hp))} / {bossInfo.maxHp} HP
@@ -424,7 +439,7 @@ export const HUD: React.FC<HUDProps> = ({
           </div>
           <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-red-900">
             <div
-              className={`h-full ${critical ? 'bg-gradient-to-r from-red-700 via-red-500 to-red-400' : 'bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400'} transition-all duration-150`}
+              className={`h-full ${critical ? 'bg-gradient-to-r from-red-700 via-red-500 to-red-400' : isBossShielded ? 'bg-gradient-to-r from-cyan-600 via-cyan-400 to-sky-300' : 'bg-gradient-to-r from-red-600 via-orange-500 to-yellow-400'} transition-all duration-150`}
               style={{ width: `${Math.max(0, hpPct * 100)}%` }}
             />
           </div>
