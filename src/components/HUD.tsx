@@ -95,6 +95,7 @@ export const HUD: React.FC<HUDProps> = ({
     finishLineCrossed: { key: 'finishLineCrossed', cls: 'border-cyan-400 text-cyan-600' },
     bossDefeated: { key: 'bossDefeated', cls: 'border-yellow-400 text-yellow-600' },
     bossAppear: { key: 'bossAppear', cls: 'border-red-500 text-red-600' },
+    bossEnraged: { key: 'bossEnraged', cls: 'border-rose-600 text-rose-700' },
     newClass_tank: { key: 'newClassAppearedTank', cls: 'border-amber-400 text-amber-600' },
     newClass_ninja: { key: 'newClassAppearedNinja', cls: 'border-purple-400 text-purple-600' },
     newClass_mage: { key: 'newClassAppearedMage', cls: 'border-emerald-400 text-emerald-600' },
@@ -113,6 +114,13 @@ export const HUD: React.FC<HUDProps> = ({
     // Босс проснулся (первый вход толпы в арену) — центральный баннер-тост.
     const unsubBossAppear = eventBus.on('bossAppear', () => {
       setEventAlert({ type: 'bossAppear', key: Date.now() });
+      window.setTimeout(() => setEventAlert(null), 3200);
+    });
+
+    // Босс впал в ярость (HP <= 45%) — красный баннер-тост предупреждения.
+    const unsubBossEnraged = eventBus.on('bossEnraged', () => {
+      soundEngine.playSound('boss_roar');
+      setEventAlert({ type: 'bossEnraged', key: Date.now() });
       window.setTimeout(() => setEventAlert(null), 3200);
     });
 
@@ -191,6 +199,7 @@ export const HUD: React.FC<HUDProps> = ({
       unsubBoss();
       unsubBossDefeat();
       unsubBossAppear();
+      unsubBossEnraged();
       unsubMobsKilled();
       unsubEvent();
       unsubNearMissMilestone();

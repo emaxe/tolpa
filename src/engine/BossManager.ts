@@ -73,6 +73,17 @@ export class BossManager {
   // за полминуты до контакта, а в момент сближения не было никакого визуального события.
   // Теперь: ударная волна + световой столб + тряска + рев — однократный "boss appear" VFX.
   private arenaEntered: boolean = false;
+  // Фаза ярости (Enrage): при HP <= 45% босс ускоряет цикл атак, сокращает окно
+  // телеграфа и активирует красную ауру возмездия — тактический перелом в бою.
+  private isEnraged: boolean = false;
+  // Гейтит однократный эмит VFX/события при первом пересечении порога ярости.
+  private enrageTelegraphed: boolean = false;
+  // Порог HP (доля от maxHp), при котором босс впадает в ярость.
+  private static readonly ENRAGE_HP_THRESHOLD = 0.45;
+  // Множитель ускорения перезарядки атак в фазе ярости (0.62 = на 38% быстрее).
+  private static readonly ENRAGE_ATTACK_MULT = 0.62;
+  // Множитель сокращения окна телеграфа в фазе ярости (0.75 = на 25% короче).
+  private static readonly ENRAGE_TELEGRAPH_MULT = 0.75;
 
   constructor(scene: THREE.Scene, particles: ParticleSystem) {
     this.scene = scene;
@@ -93,6 +104,8 @@ export class BossManager {
     this.lastAttackIndex = -1;
     this.retaliationTimer = 1.0;
     this.retaliationTelegraphed = false;
+    this.isEnraged = false;
+    this.enrageTelegraphed = false;
     this.bossLevel = level;
     this.attackInterval = this.computeAttackInterval(level);
     // Грейс-пауза перед первой атакой: даёт игроку время перестроить толпу
@@ -268,8 +281,12 @@ export class BossManager {
       const currentAttack = attacks[this.currentAttackIndex];
 
       if (!this.isAttacking) {
-        // Telegraph phase
-        const prog = Math.min(1.0, this.attackTimer / currentAttack.telegraphTime);
+        // Telegraph phase. В фазе ярости окно телеграфа сокращается на 25% —
+        // игроку остаётся меньше времени на перестроение толпы.
+        const telegraphTime = this.isEnraged
+          ? currentAttack.telegraphTime * BossManager.ENRAGE_TELEGRAPH_MULT
+          : currentAttack.telegraphTime;
+        const prog = Math.min(1.0, this.attackTimer / telegraphTime);
         if (currentAttack.type === 'laser') {
           if (this.telegraphMesh) {
             this.telegraphMesh.visible = false;
@@ -295,7 +312,7 @@ export class BossManager {
           }
         }
 
-        if (this.attackTimer >= currentAttack.telegraphTime) {
+        if (this.attackTimer >= telegraphTime) {
           this.isAttacking = true;
           this.attackTimer = 0;
           if (this.telegraphMesh) {
@@ -548,6 +565,12 @@ export class BossManager {
     this.bossData.hp = Math.max(0, this.bossData.hp - amount);
     this.hitDamageAccum += amount;
 
+    // Фаза ярости: при первом пересечении порога HP <= 45% босс впадает в ярость
+    // (ускорение атак + красная аура + баннер-тост). Однократно за бой.
+    if (!this.isEnraged && this.bossData.hp <= this.bossData.maxHp * BossManager.ENRAGE_HP_THRESHOLD) {
+      this.triggerEnrage();
+    }
+
     // Фидбек-фикции гейтим ~6 Гц: меле-урон толпы приходит каждый кадр (60 Гц),
     // спам звука/частиц/событий форсировал бы тяжёлый ре-рендер HUD на 60 Гц.
     // HP при этом списывается непрерывно — тормозим только аудио/визуал/эмит.
@@ -624,6 +647,29 @@ export class BossManager {
     if (this.bossData.hp <= 0 && !this.isDefeatCollapsing && !this.isDefeated) {
       this.defeatBoss(particles);
     }
+  }
+
+  /** Включает фазу ярости босса (однократно при HP <= 45%): ускоряет перезарядку
+   *  атак, сокращает окно телеграфа и даёт красную ауру возмездия + баннер-тост. */
+  private triggerEnrage(): void {
+    if (this.isEnraged || this.enrageTelegraphed) return;
+    this.isEnraged = true;
+    this.enrageTelegraphed = true;
+    // Ускорение перезарядки атак на 38% (0.62x от текущего интервала).
+    this.attackInterval = Math.max(
+      BOSS_MIN_ATTACK_COOLDOWN,
+      this.attackInterval * BossManager.ENRAGE_ATTACK_MULT
+    );
+    // Красная ударная волна + вспышка корпуса + тряска + рев.
+    this.particles.emitShockwave(0, this.bossArenaZ, 0xff0055);
+    this.particles.emitBurst(0, 2.0, this.bossArenaZ, 30, 0xff0055, 7.0);
+    for (let i = 0; i < this.cachedMaterials.length; i++) {
+      const item = this.cachedMaterials[i];
+      item.mat.emissiveIntensity = item.baseEmissive + 0.6;
+    }
+    soundEngine.playSound('boss_roar', 1.25);
+    eventBus.emit('screenShake', { intensity: 0.65 });
+    eventBus.emit('bossEnraged', { boss: this.bossData });
   }
 
   private defeatBoss(particles: ParticleSystem): void {
@@ -704,6 +750,8 @@ export class BossManager {
     this.hitFxAccum = 0;
     this.hitDamageAccum = 0;
     this.arenaEntered = false;
+    this.isEnraged = false;
+    this.enrageTelegraphed = false;
   }
 
   public dispose(): void {
