@@ -266,6 +266,12 @@ export class GateManager {
   ): void {
     let isPositive = false;
     let netChange = 0;
+    // Флаг: на этом кадре маг трансмутировал отрицательные ворота (÷N / мистика-штраф)
+    // в позитивную прибавку, а ворота уже сработали on-first-trigger ранее (авангард прошёл
+    // до мага). В этом случае isFirstTrigger == false, но фактический исход — позитивный
+    // прирост толпы, который обязан дойти до комбо/UI/StateManager (иначе серия и +N
+    // молча теряются для хвостового эшелона). См. блок эмита ниже по коду.
+    let isMageTransmuteSpawn = false;
     // Фактор бонуса за серию позитивных ворот: 1.0 при серии ≤ 1 (старое поведение),
     // растёт до 1.8 при длинной серии. Награждает удержание серии правильных крыльев.
     const comboFactor = this.comboStreak > 1
@@ -352,6 +358,7 @@ export class GateManager {
             particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 25, 0x10b981, 5.0);
           }
           isPositive = true;
+          if (isNewTransmute && base > 0) isMageTransmuteSpawn = true;
         } else {
           netChange = -crowd.divideMobsByStep(wing, val, 'gate', gateVisual.divideStep);
           if (isFirstTrigger) soundEngine.playSound('gate_pass_negative');
@@ -388,6 +395,7 @@ export class GateManager {
           particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 25, 0x10b981, 5.0);
         }
         isPositive = true;
+        if (base > 0) isMageTransmuteSpawn = true;
       } else {
         // ÷N: пропускает каждого N-го по очереди, остальных убирает для каждого нового моба/группы
         netChange = -crowd.divideMobsByStep(wing, val, 'gate', gateVisual.divideStep);
@@ -397,7 +405,11 @@ export class GateManager {
       }
     }
 
-    if (isFirstTrigger) {
+    // Эмитим исход ворот в двух случаях: (1) стандартный first-trigger (авангард формации),
+    // (2) поздний позитивный трансмут мага (÷N → +N / мистика-штраф → +N), когда ворота уже
+    // прошёл авангард и isFirstTrigger == false. Без ветки (2) хвостовой маг молча терял
+    // прирост толпы, комбо-серию и UI/VFX/StateManager фидбек (тихий баг).
+    if (isFirstTrigger || isMageTransmuteSpawn) {
       if (isPositive) {
         this.comboStreak++;
         if (this.comboStreak > 1) {
