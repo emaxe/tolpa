@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { BiomeType, FormationType, LevelConfig, LevelDynamicEvent, CoinData } from '../types/game';
+import { BiomeType, FormationType, LevelConfig, LevelDynamicEvent, CoinData, ObstacleData } from '../types/game';
 import { CrowdManager } from './CrowdManager';
 import { GateManager } from './GateManager';
 import { BonusManager } from './BonusManager';
@@ -205,6 +205,10 @@ export class GameEngine {
   private meteorRingGeo: THREE.RingGeometry | null = null;
   private meteorRingMat: THREE.MeshBasicMaterial | null = null;
   private eventFxAccum: number = 0;
+  // Засада (ambush): флаг однократного спавна препятствий-засадников за событие.
+  // Сбрасывается в triggerEvent при каждом новом ambush; в cleanupEvent НЕ трогается,
+  // чтобы препятствия оставались на трассе и проезжались (как монеты coin_train).
+  private ambushObstaclesSpawned: boolean = false;
 
   // Callbacks
   private onLevelWinCb?: (score: number, mult: number, mobs: number, sacrificed: number, runStats: RunStats) => void;
@@ -2277,6 +2281,14 @@ export class GameEngine {
         soundEngine.playSound('boss_roar');
         eventBus.emit('screenShake', { intensity: 0.25 });
         this.particles.emitBurst(this.crowd.leaderX, 1.0, this.crowd.leaderZ, 20, 0xef4444, 5.0);
+        // Оживляем засаду: спавним реальные препятствия-засадники впереди по трассе.
+        // Раньше ambush был «мёртвым» — только замедление и красные вспышки, без угрозы.
+        // Теперь при замедлении (0.55×) впереди появляются ловушки, давая игроку время
+        // среагировать и сманеврировать (bullet-time). Однократно за событие.
+        if (!this.ambushObstaclesSpawned) {
+          this.ambushObstaclesSpawned = true;
+          this.spawnAmbushObstacles(evt, trackWidth);
+        }
         break;
       case 'coin_train': {
         // Золотой караван: кластер монет дугой впереди по текущей полосе.
@@ -2311,6 +2323,59 @@ export class GameEngine {
 
     // Алерт в HUD.
     eventBus.emit('levelEvent', { type: evt.type });
+  }
+
+  /**
+   * Спавнит препятствия-засадники для события ambush. Раньше засада была «мёртвой»
+   * (только замедление 0.55× и красные вспышки). Теперь при замедлении впереди по
+   * трассе появляются реальные ловушки — игрок в bullet-time успевает сманеврировать.
+   * Препятствия остаются на трассе и утилизируются стандартным циклом prune(leaderZ).
+   */
+  private spawnAmbushObstacles(evt: LevelDynamicEvent, trackWidth: number): void {
+    // Не спавнить вблизи арены босса — иначе засада накладывается на бой.
+    const bossArenaZ = this.isEndless
+      ? (this.boss.isActive() ? this.boss.getArenaZ() : Infinity)
+      : (this.currentLevel?.boss ? (this.currentLevel.trackLength - 20) : Infinity);
+    if (bossArenaZ - this.crowd.leaderZ < 50) return;
+
+    const playableHalf = trackWidth / 2 - 1.2; // TRACK_RAIL_MARGIN
+    const levelNum = this.currentLevel?.levelNumber ?? 1;
+    const count = Math.min(4, 2 + Math.floor(evt.intensity));
+    const obsData: ObstacleData[] = [];
+    const startZ = this.crowd.leaderZ + 20;
+    const step = 7.0;
+
+    for (let i = 0; i < count; i++) {
+      const z = startZ + i * step;
+      if (z > bossArenaZ - 20) break;
+      // Чередуем стороны, чтобы всегда оставался коридор уклонения по центру/сбоку.
+      const side = i % 2 === 0 ? -1 : 1;
+      const laneX = side * (playableHalf * (0.4 + (i % 3) * 0.15));
+      const type: ObstacleData['type'] =
+        i % 3 === 0 ? 'barrier_gate' : i % 3 === 1 ? 'spike_trap' : 'swinging_hammer';
+      const isHammer = type === 'swinging_hammer';
+      obsData.push({
+        id: `evt_ambush_${this.nextEventIndex}_${i}`,
+        type,
+        x: laneX,
+        y: 0,
+        z,
+        width: type === 'barrier_gate' ? 3.3 : type === 'swinging_hammer' ? 3.2 : 2.0,
+        height: 2,
+        depth: 2,
+        speed: isHammer ? 1.8 + Math.random() * 0.8 : 0,
+        range: 0,
+        damage: type === 'barrier_gate' ? Math.round(12 + levelNum * 0.16) : type === 'swinging_hammer' ? Math.round(20 + levelNum * 0.16) : Math.round(6 + levelNum * 0.16),
+        destructible: isHammer,
+        hp: isHammer ? 15 : undefined,
+        maxHp: isHammer ? 15 : undefined,
+        initialOffset: Math.random() * Math.PI * 2,
+      });
+    }
+
+    if (obsData.length > 0) {
+      this.obstacles.appendObstacles(obsData, []);
+    }
   }
 
   /** Откатывает эффекты события по его окончании. */
