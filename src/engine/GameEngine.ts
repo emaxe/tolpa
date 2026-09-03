@@ -235,6 +235,7 @@ export class GameEngine {
   private unsubBossShieldPierced: (() => void) | null = null;
   private unsubBossShieldChanged: (() => void) | null = null;
   private unsubComboBreak: (() => void) | null = null;
+  private unsubFinishStep: (() => void) | null = null;
   private unsubCrowdMilestone: (() => void) | null = null;
   private unsubEndlessRecordBeaten: (() => void) | null = null;
   private unsubSettings: (() => void) | null = null;
@@ -442,6 +443,22 @@ export class GameEngine {
       this.triggerHaptic([35, 25, 35]);
       // Аудио-стинг срыва серии уворотов — нисходящий «физз», эскалация по серии.
       soundEngine.playSound('near_miss_break', streak >= 10 ? 1.25 : streak >= 5 ? 1.1 : 1.0, streak >= 10 ? 0.85 : 0.7);
+    });
+
+    // Прорыв ступени финишной стены множителя (×1.2..×10.0) — эскалирующий 3D-фидбек.
+    // Раньше событие потреблял только FloatingText (всплывающий текст) без 3D/звука/
+    // хаптика — кульминация забега на финише ощущалась сухой. Теперь: ударная волна,
+    // световой столб и ликование стадиона на апексе (×10.0), тактильный отклик.
+    this.unsubFinishStep = eventBus.on('finishStepSmashed', (data: { multiplier?: number; x?: number; z?: number }) => {
+      const mult = data?.multiplier ?? 1.0;
+      const x = data?.x ?? 0;
+      const z = data?.z ?? this.crowd.leaderZ;
+      const isApex = mult >= 10.0;
+      const color = isApex ? 0xfacc15 : mult >= 4.0 ? 0xf59e0b : 0x00f0ff;
+      if (isApex) this.particles.emitLightPillar(x, z, 45, 0xfacc15);
+      this.particles.emitShockwave(x, z, color);
+      soundEngine.playCrowdCheer(isApex ? 1.2 : mult >= 4.0 ? 0.8 : 0.45);
+      this.triggerHaptic(isApex ? [40, 30, 60] : mult >= 4.0 ? [25, 20] : 15);
     });
 
     // Порог серии ворот (5/10/15...) — эскалирующий фидбек: крик толпы, золотистый
@@ -3011,6 +3028,7 @@ export class GameEngine {
     this.unsubComboMilestone?.();
     this.unsubComboMax?.();
     this.unsubComboBreak?.();
+    this.unsubFinishStep?.();
     this.unsubCrowdMilestone?.();
     this.unsubEndlessRecordBeaten?.();
     this.unsubAdrenaline?.();
