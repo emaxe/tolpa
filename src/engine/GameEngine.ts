@@ -233,6 +233,7 @@ export class GameEngine {
   private unsubBossDefeated: (() => void) | null = null;
   private unsubBossShieldBlocked: (() => void) | null = null;
   private unsubBossShieldPierced: (() => void) | null = null;
+  private unsubBossShieldChanged: (() => void) | null = null;
   private unsubComboBreak: (() => void) | null = null;
   private unsubCrowdMilestone: (() => void) | null = null;
   private unsubEndlessRecordBeaten: (() => void) | null = null;
@@ -642,6 +643,15 @@ export class GameEngine {
       const bz = data?.z ?? this.boss.getArenaZ();
       this.particles.emitBurst(bx, 1.2, bz, 20, 0xf59e0b, 6.0);
       this.particles.emitShockwave(bx, bz, 0xf59e0b);
+    });
+    // Снятие энергокупола босса: раньше купол просто исчезал без звука/VFX.
+    // Теперь при спаде щита — циановый бурст + ударная волна + глухой отскок.
+    this.unsubBossShieldChanged = eventBus.on('bossShieldChanged', (data: { shielded?: boolean }) => {
+      if (data?.shielded) return; // только снятие купола
+      const bz = this.boss.getArenaZ();
+      this.particles.emitBurst(0, 1.2, bz, 18, 0x22d3ee, 5.0);
+      this.particles.emitShockwave(0, bz, 0x22d3ee);
+      soundEngine.playSound('boss_shield_blocked');
     });
 
     // Аудиовизуальный фидбек классовых способностей (Уворот Ниндзя, Блок Щита Танка, Трансмутация Мага)
@@ -3012,6 +3022,7 @@ export class GameEngine {
     this.unsubBossDefeated?.();
     this.unsubBossShieldBlocked?.();
     this.unsubBossShieldPierced?.();
+    this.unsubBossShieldChanged?.();
     this.unsubSettings?.();
     this.unsubFormation?.();
     this.unsubClassAbility?.();
