@@ -600,18 +600,12 @@ export class BossManager {
     // плоти + белых искр, из-за которого игрок думал «полоска HP забагована».
     // Пробитие щита Фалангой (pierceShield, 20% урона) — комбинированные искры.
     if (this.isShielded) {
-      soundEngine.playSound('hammer_impact', 1.5, 0.7);
-      if (this.bossMesh) {
-        const sparkColor = pierceShield ? 0xf59e0b : 0x00f0ff;
-        particles.emitBurst(
-          (Math.random() - 0.5) * 2,
-          2.5 + Math.random(),
-          this.bossArenaZ,
-          10,
-          sparkColor,
-          4.5
-        );
-      }
+      // Пробитие щита Фалангой (pierceShield, 20% урона) — комбинированные искры.
+      // ВАЖНО: звук и частицы отскока НЕ дублируем здесь — GameEngine уже
+      // централизованно обрабатывает события bossShieldBlocked/bossShieldPierced
+      // (звуки boss_shield_blocked/boss_shield_pierced + бурст частиц + ударная
+      // волна). Локальный hammer_impact + emitBurst здесь давали двойной звук и
+      // двойные всплески частиц на каждый тик урона (~6 Гц) по энергокуполу.
       if (pierceShield) {
         eventBus.emit('bossShieldPierced', { x: 0, z: this.bossArenaZ, amount: this.hitDamageAccum });
       } else {
