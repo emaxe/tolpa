@@ -610,15 +610,14 @@ export class GameEngine {
 
     // Победа над боссом: праздничный VFX-салют. Событие bossDefeated эмитится
     // BossManager, но в GameEngine не имело VFX-подписки — только HUD убирал бар.
-    this.unsubBossDefeated = eventBus.on('bossDefeated', (data: { boss?: { x?: number; z?: number } }) => {
-      const bx = data?.boss?.x ?? this.crowd.leaderX;
-      const bz = data?.boss?.z ?? this.crowd.leaderZ;
+    this.unsubBossDefeated = eventBus.on('bossDefeated', (data: { boss?: { x?: number; z?: number }; x?: number; z?: number }) => {
+      const bx = data?.x ?? 0;
+      const bz = data?.z ?? this.crowd.leaderZ;
       this.particles.emitLightPillar(bx, bz, 50, 0xff4444);
       this.particles.emitShockwave(bx, bz, 0xff6600);
       this.particles.emitConfetti(bx, 2.5, bz, 40);
-      soundEngine.playSound('boss_defeat');
+      // Звук boss_defeat и тряска уже проигрываются в BossManager.defeatBoss() — не дублируем.
       soundEngine.playCrowdCheer(1.2);
-      eventBus.emit('screenShake', { intensity: 0.5 });
       this.triggerHaptic([50, 30, 50]);
       // Возврат фоновой музыки биома после босс-трек
       if (this.isEndless) {
@@ -2480,12 +2479,8 @@ export class GameEngine {
 
     if (!this.isEndless) {
       this.finishLine.update(dt, this.crowd, this.particles, (finalScore, finalMult, remainingMobs) => {
-        // Ударная волна и праздничное конфетти над финишной чертой при победе.
-        this.particles.emitShockwave(this.crowd.leaderX, this.crowd.leaderZ, 0xffd700);
-        this.particles.emitConfetti(this.crowd.leaderX, 2.0, this.crowd.leaderZ, 60);
-        this.particles.emitLightPillar(this.crowd.leaderX, this.crowd.leaderZ, 40, 0xfacc15);
-        // Трибуны ликуют на финише.
-        soundEngine.playCrowdCheer(1.0);
+        // Праздничный VFX (световой столб, волна, конфетти, cheer) централизованно
+        // эмитится в обработчике levelCompleted (см. unsubLevelCompleted) — не дублируем здесь.
         this.endRun(true, finalScore, finalMult, remainingMobs);
       });
     } else {

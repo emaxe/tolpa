@@ -212,7 +212,7 @@ export class BossManager {
         if (this.laserTelegraphMesh) this.scene.remove(this.laserTelegraphMesh);
         if (this.laserBeamMesh) this.scene.remove(this.laserBeamMesh);
         stateManager.runRecordBossKill(500, 15);
-        eventBus.emit('bossDefeated', { boss: this.bossData });
+        eventBus.emit('bossDefeated', { boss: this.bossData, x: 0, z: this.bossArenaZ });
       }
       return;
     }
