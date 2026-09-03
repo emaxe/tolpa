@@ -2141,6 +2141,8 @@ export class GameEngine {
       this.meteorRings[i].visible = false;
     }
     this.activeMeteorStrikes.length = 0;
+    // Сбрасываем one-shot guard засады, иначе ловушки ambush спавнятся лишь раз за сессию.
+    this.ambushObstaclesSpawned = false;
   }
 
   /**
