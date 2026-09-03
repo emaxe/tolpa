@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { GameEngine } from '../engine/GameEngine';
 import { eventBus } from '../core/EventBus';
 import { i18n } from '../core/Localization';
-import { soundEngine } from '../audio/SoundEngine';
 
 interface FloatingItem {
   id: number;
@@ -255,14 +254,12 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
     // Покупка апгрейда: всплывающая плашка в центре экрана.
     // Событие upgradePurchased эмитится StateManager, но раньше никем не потреблялось.
     const unsubUpgrade = eventBus.on('upgradePurchased', (data: { upgradeKey?: string; level?: number }) => {
-      soundEngine.playSound('upgrade_buy');
       spawnScreen(i18n.t('upgradePurchased', 'УЛУЧШЕНО!') + ' Lv.' + (data?.level ?? 1), 'text-emerald-300 font-bold drop-shadow-[0_0_8px_rgba(110,231,183,0.8)]');
     });
 
     // Разблокировка скина: всплывающая плашка.
     // Событие skinUnlocked эмитится StateManager, но раньше никем не потреблялось.
     const unsubSkin = eventBus.on('skinUnlocked', () => {
-      soundEngine.playSound('upgrade_buy');
       spawnScreen(i18n.t('skinUnlocked', 'НОВЫЙ СКИН!'), 'text-fuchsia-300 font-extrabold text-xl drop-shadow-[0_0_10px_rgba(232,121,249,0.9)]');
     });
 

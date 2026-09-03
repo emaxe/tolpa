@@ -3,7 +3,6 @@ import { FormationType } from '../types/game';
 import { i18n } from '../core/Localization';
 import { stateManager } from '../core/StateManager';
 import { eventBus } from '../core/EventBus';
-import { soundEngine } from '../audio/SoundEngine';
 import { Zap, Users, Coins, Shield, ArrowUp, MoveHorizontal, CircleDot, Pause, Skull, TriangleAlert, Route, Trophy, Focus, Diamond } from 'lucide-react';
 
 interface HUDProps {
@@ -119,7 +118,6 @@ export const HUD: React.FC<HUDProps> = ({
 
     // Босс впал в ярость (HP <= 45%) — красный баннер-тост предупреждения.
     const unsubBossEnraged = eventBus.on('bossEnraged', () => {
-      soundEngine.playSound('boss_roar');
       setEventAlert({ type: 'bossEnraged', key: Date.now() });
       window.setTimeout(() => setEventAlert(null), 3200);
     });
@@ -157,7 +155,6 @@ export const HUD: React.FC<HUDProps> = ({
 
     // Достижение готово к получению — центральный баннер-тост.
     const unsubAchReady = eventBus.on('achievementReady', () => {
-      soundEngine.playSound('level_win');
       setEventAlert({ type: 'achievementReady', key: Date.now() });
       window.setTimeout(() => setEventAlert(null), 3200);
     });
@@ -190,7 +187,6 @@ export const HUD: React.FC<HUDProps> = ({
     // Новый класс бойца впервые появился в толпе — баннер-тост с именем класса.
     const unsubNewClass = eventBus.on('newClassAppeared', (data: { type?: string }) => {
       if (!data || !data.type) return;
-      soundEngine.playSound('level_win');
       setEventAlert({ type: `newClass_${data.type}`, key: Date.now() });
       window.setTimeout(() => setEventAlert(null), 3200);
     });
