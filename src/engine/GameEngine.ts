@@ -625,11 +625,18 @@ export class GameEngine {
 
     // Аудио-фидбек энергокупола босса: отражённый удар — глухой отскок,
     // пробитие — яркий звенящий тон. Раньше был только текстовый бейдж.
-    this.unsubBossShieldBlocked = eventBus.on('bossShieldBlocked', () => {
+    this.unsubBossShieldBlocked = eventBus.on('bossShieldBlocked', (data: { x?: number; z?: number }) => {
       soundEngine.playSound('boss_shield_blocked');
+      // Визуальный отскок: циановый бурст у купола босса (раньше был только текст+звук).
+      this.particles.emitBurst(data?.x ?? 0, 1.2, data?.z ?? this.boss.getArenaZ(), 12, 0x22d3ee, 3.5);
     });
-    this.unsubBossShieldPierced = eventBus.on('bossShieldPierced', () => {
+    this.unsubBossShieldPierced = eventBus.on('bossShieldPierced', (data: { x?: number; z?: number }) => {
       soundEngine.playSound('boss_shield_pierced');
+      // Пробитие: яркий янтарный бурст + ударная волна по куполу.
+      const bx = data?.x ?? 0;
+      const bz = data?.z ?? this.boss.getArenaZ();
+      this.particles.emitBurst(bx, 1.2, bz, 20, 0xf59e0b, 6.0);
+      this.particles.emitShockwave(bx, bz, 0xf59e0b);
     });
 
     // Аудиовизуальный фидбек классовых способностей (Уворот Ниндзя, Блок Щита Танка, Трансмутация Мага)
