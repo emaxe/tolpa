@@ -236,6 +236,7 @@ export class GameEngine {
   private unsubFormation: (() => void) | null = null;
   private unsubClassAbility: (() => void) | null = null;
   private unsubNewClass: (() => void) | null = null;
+  private unsubAchievementReady: (() => void) | null = null;
   // Haptic: троттлинг частых событий (coinCollected, bossDamaged) — не чаще 40мс.
   private lastHapticMs: number = 0;
 
@@ -691,6 +692,20 @@ export class GameEngine {
         this.triggerHaptic([30, 20, 50]);
       }
     );
+
+    // 3D-фидбек готового достижения (achievementReady): световой столб, ударная
+    // волна, бурст частиц, акцентный звук и хаптика у позиции лидера толпы.
+    // Событие эмитится StateManager ровно один раз при первом пересечении порога
+    // (wasBelow && progressValue >= goal && !claimed), поэтому спама нет.
+    this.unsubAchievementReady = eventBus.on('achievementReady', () => {
+      const x = this.crowd.leaderX;
+      const z = this.crowd.leaderZ;
+      this.particles.emitLightPillar(x, z, 32, 0xfbbf24);
+      this.particles.emitShockwave(x, z, 0xfbbf24);
+      this.particles.emitBurst(x, 1.4, z, 20, 0xfde047, 4.5);
+      soundEngine.playSound('finish_chest_open', 1.1, 0.9);
+      this.triggerHaptic([30, 20, 40]);
+    });
 
     this.animate = this.animate.bind(this);
   }
@@ -2918,6 +2933,7 @@ export class GameEngine {
     this.unsubFormation?.();
     this.unsubClassAbility?.();
     this.unsubNewClass?.();
+    this.unsubAchievementReady?.();
 
     this.crowd.dispose();
     this.gates.clear();
