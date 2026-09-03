@@ -2226,13 +2226,19 @@ export class GameEngine {
 
             // Честная коллизия: урон только мобам в радиусе падения по координатам XZ
             const alive = this.crowd.getAliveMobs();
+            let meteorKilled = 0;
             for (let m = 0; m < alive.length; m++) {
               const mob = alive[m];
               const dx = mob.x - strike.x;
               const dz = mob.z - strike.z;
               if (dx * dx + dz * dz <= impactRadiusSq) {
                 this.crowd.killMobById(mob.id);
+                meteorKilled++;
               }
+            }
+            // Фидбек потерь (виньетка + "-N") — метеорит не эмитил mobsKilled.
+            if (meteorKilled > 0) {
+              eventBus.emit('mobsKilled', { count: meteorKilled, reason: 'meteor_rain', x: strike.x, z: strike.z });
             }
           } else {
             // Сохраняем не завершившийся страйк (0-GC компакция)

@@ -934,6 +934,7 @@ export class ObstacleManager {
     }
 
     let anyHit = false;
+    let hitCount = 0;
     for (let mob of aliveMobs) {
       if (!mob.alive) continue;
 
@@ -978,6 +979,7 @@ export class ObstacleManager {
           crowd.killMobById(mob.id);
           this.playDeathEffect(obs, mob.x, 0.8, mob.z, particles);
           anyHit = true;
+          hitCount++;
         }
       }
     }
@@ -992,6 +994,10 @@ export class ObstacleManager {
         if (vol > 0) soundEngine.playSound('obstacle_hit', 1, vol);
         if (vol > 0) soundEngine.playSound('mob_death', 1, vol);
         eventBus.emit('screenShake', { intensity: 0.3 });
+        // Виньетка урона + всплывающие "-N" (HUD/FloatingText) подписаны на mobsKilled,
+        // но ловушки его не эмитили — фидбек потерь на трассе отсутствовал. Батчим
+        // суммарный счёт за кадр (rate-limited вместе со звуком/тряской).
+        eventBus.emit('mobsKilled', { count: hitCount, reason: obs.type, x: obsVis.hazardX, z: obsVis.hazardZ });
       }
       // Толпа понесла урон от ловушки — серия уворотов сбрасывается (без rate-limit,
       // чтобы стрик сбрасывался корректно в момент удара).
@@ -1146,6 +1152,7 @@ export class ObstacleManager {
     particles.emitBurst(obs.x, 1.0, obs.z, 50, 0xff4400, 8.5, 3.0);
     eventBus.emit('screenShake', { intensity: 0.7 });
 
+    let bombKilled = 0;
     for (const m of aliveMobs) {
       if (!m.alive) continue;
       const dx = m.x - obs.x;
@@ -1153,10 +1160,15 @@ export class ObstacleManager {
       if (dx * dx + dz * dz <= rSq) {
         crowd.killMobById(m.id);
         this.playDeathEffect(obs, m.x, 0.8, m.z, particles);
+        bombKilled++;
       }
     }
     // Взрыв мины убил мобов — серия уворотов сбрасывается.
     this.breakNearMissStreak(obs.x, obs.z);
+    // Фидбек потерь (виньетка + "-N") — бомба не эмитила mobsKilled.
+    if (bombKilled > 0) {
+      eventBus.emit('mobsKilled', { count: bombKilled, reason: 'bomb', x: obs.x, z: obs.z });
+    }
   }
 
   private resolveDog(
@@ -1241,6 +1253,8 @@ export class ObstacleManager {
     eventBus.emit('screenShake', { intensity: 0.25 });
     // Собака укусила моба — серия уворотов сбрасывается.
     this.breakNearMissStreak(obs.x, obs.z);
+    // Фидбек потерь (виньетка + "-N") — собака не эмитила mobsKilled.
+    eventBus.emit('mobsKilled', { count: 1, reason: 'guard_dog', x: nearest.x, z: nearest.z });
   }
 
   private disposeMeshTree(root: THREE.Object3D): void {
