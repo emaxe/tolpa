@@ -235,6 +235,7 @@ export class GameEngine {
   private unsubSettings: (() => void) | null = null;
   private unsubFormation: (() => void) | null = null;
   private unsubClassAbility: (() => void) | null = null;
+  private unsubNewClass: (() => void) | null = null;
   // Haptic: троттлинг частых событий (coinCollected, bossDamaged) — не чаще 40мс.
   private lastHapticMs: number = 0;
 
@@ -669,6 +670,25 @@ export class GameEngine {
             this.triggerHaptic(20);
           }
         }
+      }
+    );
+
+    // 3D-фидбек первого появления спецкласса (tank/ninja/mage): световой столб,
+    // ударная волна, бурст частиц, акцентный звук и хаптика. Событие эмитится
+    // один раз на класс (CrowdManager.seenClasses), поэтому спама нет.
+    this.unsubNewClass = eventBus.on(
+      'newClassAppeared',
+      (data: { type?: string; x?: number; z?: number }) => {
+        if (!data?.type) return;
+        const x = data.x ?? this.crowd.leaderX;
+        const z = data.z ?? this.crowd.leaderZ;
+        const color =
+          data.type === 'tank' ? 0xf59e0b : data.type === 'ninja' ? 0xa855f7 : data.type === 'mage' ? 0x10b981 : 0x00f0ff;
+        this.particles.emitLightPillar(x, z, 32, color);
+        this.particles.emitShockwave(x, z, color);
+        this.particles.emitBurst(x, 1.2, z, 18, color, 4.0);
+        soundEngine.playSound('formation_change', 1.2, 0.9);
+        this.triggerHaptic([30, 20, 50]);
       }
     );
 
@@ -2897,6 +2917,7 @@ export class GameEngine {
     this.unsubSettings?.();
     this.unsubFormation?.();
     this.unsubClassAbility?.();
+    this.unsubNewClass?.();
 
     this.crowd.dispose();
     this.gates.clear();
