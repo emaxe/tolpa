@@ -64,6 +64,8 @@ export class BossManager {
   private attackCooldown: number = 0;
   private attackInterval: number = 2.5;
   private bossLevel: number = 10;
+  // Флаг однократного аудио-визуального оповещения о начале telegraph-фазы атаки босса
+  private telegraphAnnounced: boolean = false;
   // Атака "shield" (энергетический купол): пока активен, босс блокирует урон толпы.
   private isShielded: boolean = false;
   private shieldMesh: THREE.Mesh | null = null;
@@ -104,6 +106,7 @@ export class BossManager {
     this.lastAttackIndex = -1;
     this.retaliationTimer = 1.0;
     this.retaliationTelegraphed = false;
+    this.telegraphAnnounced = false;
     this.isEnraged = false;
     this.enrageTelegraphed = false;
     this.bossLevel = level;
@@ -281,6 +284,13 @@ export class BossManager {
       const currentAttack = attacks[this.currentAttackIndex];
 
       if (!this.isAttacking) {
+        // Однократный сигнал и эмит события при старте telegraph-фазы атаки босса
+        if (!this.telegraphAnnounced) {
+          this.telegraphAnnounced = true;
+          eventBus.emit('bossAttackTelegraph', { type: currentAttack.type, x: 0, z: this.bossArenaZ });
+          soundEngine.playSound('boss_attack_telegraph', 1, 0.8);
+        }
+
         // Telegraph phase. В фазе ярости окно телеграфа сокращается на 25% —
         // игроку остаётся меньше времени на перестроение толпы.
         const telegraphTime = this.isEnraged
@@ -381,6 +391,7 @@ export class BossManager {
           // Начинаем паузу перед следующей атакой.
           this.isCoolingDown = true;
           this.attackCooldown = this.attackInterval;
+          this.telegraphAnnounced = false;
           if (this.telegraphMesh) {
             this.telegraphMesh.visible = false;
             (this.telegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
@@ -748,6 +759,7 @@ export class BossManager {
     this.defeatBurstTimer = 0;
     this.hitFlashTimer = 0;
     this.retaliationTelegraphed = false;
+    this.telegraphAnnounced = false;
     // Раньше clear() не сбрасывал фазу атаки — если босс был повержен ВО ВРЕМЯ
     // фазы исполнения атаки, isAttacking=true и attackTimer протекали в следующий
     // бой: первая атака нового босса шла без телеграфа (фантомный лазер без урона,

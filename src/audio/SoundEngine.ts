@@ -350,6 +350,24 @@ export class SoundEngine {
         break;
       }
 
+      case 'boss_attack_telegraph': {
+        // Тревожный короткий сигнал предупреждения об атаке босса: восходящий свип sawtooth + шумовой акцент
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, t);
+        osc.frequency.exponentialRampToValueAtTime(520, t + 0.18);
+
+        gain.gain.setValueAtTime(0.15, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+
+        osc.connect(gain);
+        gain.connect(outGain);
+        osc.start(t);
+        osc.stop(t + 0.22);
+        break;
+      }
+
       case 'boss_slam': {
         // Heavy boom impact
         const osc = this.ctx.createOscillator();

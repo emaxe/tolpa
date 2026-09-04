@@ -17,6 +17,7 @@ export type SoundEffect =
   | 'adrenaline_activate'
   | 'adrenaline_whoosh'
   | 'boss_roar'
+  | 'boss_attack_telegraph'
   | 'boss_slam'
   | 'boss_laser'
   | 'boss_minions'
