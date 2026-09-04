@@ -68,7 +68,7 @@ export const translations = {
     wideDesc: 'Максимальный охват монет, ворот и сложения',
     circleDesc: 'Толкает и разрушает препятствия силой толпы',
     arrowDesc: 'Увеличивает скорость бега, ускоряет заряд Гипер-режима (+50%) и пробивает стены клином',
-    ovalDesc: 'Сбалансированный строй: компактный коридор и безопасный маневр',
+    ovalDesc: 'Баланс: ворота и сферы +25%, удача Мистики 85%',
     diamondDesc: 'Ромб: броня фронта +25%, пробивает стены и таранит в плотном строю',
 
     // Specialized mobs
@@ -129,6 +129,7 @@ export const translations = {
     perkArrowGate: 'СТРЕЛА: ×+0.5',
     perkCircleGate: 'ФАЛАНГА: +30%',
     perkWideGate: 'ШЕРЕНГА: +50%',
+    perkOvalGate: 'ОВАЛ: +25%',
     perkWedgeGate: 'КЛИН: -10% ПОТЕРЬ',
     perkDiamondGate: 'РОМБ: -15% ПОТЕРЬ',
     runMaxCrowd: 'Макс. толпа',
@@ -388,7 +389,7 @@ export const translations = {
     wideDesc: 'Maximum width for coins, gates & adds',
     circleDesc: 'Pushes and smashes barriers with crowd weight',
     arrowDesc: 'Increases run speed, boosts Hyper-mode charge (+50%) and pierces walls with a wedge',
-    ovalDesc: 'Balanced formation: compact corridor and safe maneuvering',
+    ovalDesc: 'Balanced: gates & orbs +25%, Mystery luck 85%',
     diamondDesc: 'Diamond: +25% frontline armor, pierces walls and rams in tight formation',
 
     // Specialized mobs
@@ -449,6 +450,7 @@ export const translations = {
     perkArrowGate: 'ARROW: ×+0.5',
     perkCircleGate: 'PHALANX: +30%',
     perkWideGate: 'RANKS: +50%',
+    perkOvalGate: 'OVAL: +25%',
     perkWedgeGate: 'WEDGE: -10% LOSSES',
     perkDiamondGate: 'DIAMOND: -15% LOSSES',
     runMaxCrowd: 'Max Crowd',

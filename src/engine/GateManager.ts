@@ -286,11 +286,14 @@ export class GateManager {
       // заново на каждый кадр → лавинное добавление «на каждого человечка».
       // Синергии формаций: Фаланга (circle) +30% при сложении, Шеренга (wide) — двойной проход
       // шеренги через add-ворота (+50%): линия охватывает оба крыла, ворота «прожимаются» дважды.
+      // Перк Овала: +25% к add-воротам.
       const addVal = crowd.formation === 'circle'
         ? Math.round(val * 1.3)
         : crowd.formation === 'wide'
           ? Math.round(val * 1.5)
-          : val;
+          : crowd.formation === 'oval'
+            ? Math.round(val * 1.25)
+            : val;
       let base = 0;
       if (isFirstTrigger) {
         base = crowd.addMobsNear(addVal, gateX, gateZ);
@@ -298,6 +301,8 @@ export class GateManager {
           perk = 'circle_add';
         } else if (crowd.formation === 'wide') {
           perk = 'wide_add';
+        } else if (crowd.formation === 'oval') {
+          perk = 'oval_buff';
         }
       }
       if (base > 0) {
@@ -328,12 +333,14 @@ export class GateManager {
       isPositive = true;
     } else if (op === 'mystery') {
       // Мистика: 60% — бонус (+N мобов), 40% — штраф (÷N по шагу). Риск/награда.
+      // Перк Овала: удача Мистики 85% вместо 60% при расчёте нового результата.
       // One-shot guard: эффект применяется один раз за ворота (isFirstTrigger).
       // Исход кэшируется в gateVisual.mysteryResult при первом кадре срабатывания, чтобы
       // растянутая формация, переходящая ворота несколько кадров, получала ОДИН согласованный
       // результат — иначе Math.random() перебрасывался бы каждый кадр (голова — бонус, хвост —
       // штраф на том же объекте).
-      const isLucky = gateVisual.mysteryResult ?? (gateVisual.mysteryResult = Math.random() < 0.6);
+      const mysteryLuck = crowd.formation === 'oval' ? 0.85 : 0.6;
+      const isLucky = gateVisual.mysteryResult ?? (gateVisual.mysteryResult = Math.random() < mysteryLuck);
       if (isLucky) {
         let base = 0;
         if (isFirstTrigger) {

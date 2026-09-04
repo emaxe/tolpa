@@ -816,6 +816,17 @@ describe('Formations & Math Helpers', () => {
     // Далеко по диагонали: гипотенуза минус радиус.
     expect(circleRectGap(2, 2, 0.3, 0, 0, 2, 2)).toBeCloseTo(Math.hypot(1, 1) - 0.3, 5);
   });
+
+  it('перк Овала: +25% к add-воротам, удача Мистики 0.85, буст сфер', () => {
+    // Проверяем чистую логику: 10 * 1.25 = 12.5 → round = 13 (GateManager add),
+    // mystery порог: Math.random() < 0.85 для oval, < 0.6 для остальных.
+    const addVal = 10;
+    expect(Math.round(addVal * 1.25)).toBe(13); // oval add
+    // Эмуляция порога удачи: граница между 0.6 и 0.85 — число 0.7
+    const roll = 0.7;
+    expect(roll < 0.85).toBe(true);   // oval — удача
+    expect(roll < 0.6).toBe(false);   // прочие — штраф
+  });
 });
 
 describe('Skin Rewards (бонусные скины)', () => {

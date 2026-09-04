@@ -237,9 +237,12 @@ export class BonusManager {
     const color = BONUS_COLORS[b.type];
     particles.emitBurst(b.x, b.y, b.z, 22, color, 5.0);
 
+    // Перк Овала: +25% к эффектам сфер (мобы, адреналин, монеты), лечение +1
+    const ovalMult = crowd.formation === 'oval' ? 1.25 : 1.0;
+
     switch (b.type) {
       case 'add_mobs': {
-        const added = crowd.addMobsNear(b.value, b.x, b.z);
+        const added = crowd.addMobsNear(Math.round(b.value * ovalMult), b.x, b.z);
         if (added > 0) {
           soundEngine.playSound('gate_pass_positive');
           eventBus.emit('bonusCollected', { type: b.type, value: added, x: b.x, z: b.z });
@@ -247,7 +250,7 @@ export class BonusManager {
         break;
       }
       case 'heal': {
-        const healed = crowd.healAll(b.value);
+        const healed = crowd.healAll(ovalMult > 1 ? b.value + 1 : b.value);
         if (healed > 0) {
           // Звук 'heal' уже играет healAll() (CrowdManager) — здесь только событие,
           // иначе подбор лечащего бонуса даёт сдвоенный клип.
@@ -256,17 +259,19 @@ export class BonusManager {
         break;
       }
       case 'adrenaline': {
-        crowd.activateHyperMode(b.value);
+        const adrValue = Math.round(b.value * ovalMult);
+        crowd.activateHyperMode(adrValue);
         soundEngine.playSound('adrenaline_activate');
-        eventBus.emit('bonusCollected', { type: b.type, value: b.value, x: b.x, z: b.z });
+        eventBus.emit('bonusCollected', { type: b.type, value: adrValue, x: b.x, z: b.z });
         break;
       }
       case 'coins': {
-        stateManager.runAddCoins(b.value);
+        const coinValue = Math.round(b.value * ovalMult);
+        stateManager.runAddCoins(coinValue);
         // Бонус-монеты всегда кристальные: звон + золотой burst.
         soundEngine.playSound('gem_pickup');
         particles.emitBurst(b.x, 1.0, b.z, 28, 0xf59e0b, 5.5);
-        eventBus.emit('coinCollected', { value: b.value, x: b.x, z: b.z, tier: 2 });
+        eventBus.emit('coinCollected', { value: coinValue, x: b.x, z: b.z, tier: 2 });
         break;
       }
     }

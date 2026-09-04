@@ -526,7 +526,7 @@ export const HUD: React.FC<HUDProps> = ({
             {currentFormation === 'wide' && '🧲 Охват +60% · Сложение +50%'}
             {currentFormation === 'circle' && '💥 Таран боссов ×1.35 · Стен ×2'}
             {currentFormation === 'arrow' && '⚡ Скорость +15%'}
-            {currentFormation === 'oval' && '⚖️ Баланс · Универсальный строй'}
+            {currentFormation === 'oval' && '⚖️ Баланс · Ворота и сферы +25%'}
             {currentFormation === 'diamond' && '💎 Броня −25% · Стены ×2 · Таран'}
           </div>
           <div className="pointer-events-auto grid grid-cols-6 gap-2 bg-slate-100/80 backdrop-blur-md p-1.5 rounded-xl border border-slate-300 max-sm:order-1 max-sm:grid-cols-1 max-sm:gap-1 max-sm:p-1 max-sm:rounded-2xl">
