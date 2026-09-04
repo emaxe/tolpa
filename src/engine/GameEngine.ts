@@ -2441,6 +2441,10 @@ export class GameEngine {
       case 'speed_boost':
       case 'ambush':
         this.eventSpeedMult = 1.0;
+        // Сбрасываем one-shot guard засады по окончании события: иначе при второй
+        // засаде в том же забеге (уровни 15+/endless) был бы только звук+слоу-мо,
+        // без препятствий.
+        if (evt.type === 'ambush') this.ambushObstaclesSpawned = false;
         break;
       case 'emp_storm':
         if (this.gates.isEmpActive()) this.gates.clearEmpStorm();
