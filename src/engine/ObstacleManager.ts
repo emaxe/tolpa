@@ -49,6 +49,10 @@ interface ObstacleVisual {
   dogTargetX?: number;
   dogTargetZ?: number;
   dogStateTime?: number; // сколько времени в текущем состоянии
+  // Однократно брошенная длительность текущего состояния (сек). Латчим при смене
+  // состояния, чтобы Math.random() не перебрасывался каждый кадр — иначе
+  // порог 4+rand*2 схлопывается к нижней границе (~4.0с) при 60 fps.
+  dogTargetDuration?: number;
   dogAnimPhase?: number; // фаза анимации шага/хвоста
   dogFacing?: number; // куда повёрнута собака (радианы, мировой Y)
   dogLungeT?: number; // прогресс броска при атаке (0..1), -1 когда не атакует
@@ -256,6 +260,7 @@ export class ObstacleManager {
       dogTargetX: (Math.random() - 0.5) * 1.5,
       dogTargetZ: (Math.random() - 0.5) * 1.5,
       dogStateTime: 0,
+      dogTargetDuration: 4 + Math.random() * 2,
       dogAnimPhase: Math.random() * Math.PI * 2,
       dogFacing: Math.random() * Math.PI * 2,
       dogLungeT: -1,
@@ -377,14 +382,18 @@ export class ObstacleManager {
       vis.dogTargetZ = (Math.random() - 0.5) * obs.range * 1.5;
     } else if (vis.dogState === 'wander') {
       // Периодически останавливаемся отдохнуть (сидим/лежим ~2-3с)
-      if (vis.dogStateTime > 4 + Math.random() * 2) {
+      // Длительность состояния бросается ОДИН РАЗ при его старте (dogTargetDuration),
+      // а не каждый кадр — пер-кадровый rand схлопывал интервал к нижней границе.
+      if (vis.dogStateTime > (vis.dogTargetDuration ?? 4)) {
         vis.dogState = 'idle';
         vis.dogStateTime = 0;
+        vis.dogTargetDuration = 2 + Math.random() * 1.5;
       }
     } else if (vis.dogState === 'idle') {
-      if (vis.dogStateTime > 2 + Math.random() * 1.5) {
+      if (vis.dogStateTime > (vis.dogTargetDuration ?? 2)) {
         vis.dogState = 'wander';
         vis.dogStateTime = 0;
+        vis.dogTargetDuration = 4 + Math.random() * 2;
         vis.dogTargetX = (Math.random() - 0.5) * obs.range * 1.5;
         vis.dogTargetZ = (Math.random() - 0.5) * obs.range * 1.5;
       }

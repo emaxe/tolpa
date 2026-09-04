@@ -653,6 +653,19 @@ export class BossManager {
       } else {
         eventBus.emit('bossShieldBlocked', { x: 0, z: this.bossArenaZ });
       }
+      // Накопленный в окне троттлинга урон по плоти (удар был до поднятия купола)
+      // не должен пропасть: HP уже списан, а эмит bossDamaged уйдёт только через
+      // isShielded-ранний return — HUD-полоса застряла бы на устаревшем значении.
+      if (this.hitDamageAccum > 0) {
+        eventBus.emit('bossDamaged', {
+          hp: this.bossData.hp,
+          maxHp: this.bossData.maxHp,
+          nameKey: this.bossData.nameKey,
+          x: 0,
+          z: this.bossArenaZ,
+          damage: this.hitDamageAccum,
+        });
+      }
       this.hitDamageAccum = 0;
       return;
     }

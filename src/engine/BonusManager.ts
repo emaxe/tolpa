@@ -260,8 +260,9 @@ export class BonusManager {
       }
       case 'adrenaline': {
         const adrValue = Math.round(b.value * ovalMult);
+        // Звук 'adrenaline_activate' уже играет activateHyperMode() (CrowdManager,
+        // единая точка активации) — как 'heal' выше, иначе сдвоенный клип.
         crowd.activateHyperMode(adrValue);
-        soundEngine.playSound('adrenaline_activate');
         eventBus.emit('bonusCollected', { type: b.type, value: adrValue, x: b.x, z: b.z });
         break;
       }
