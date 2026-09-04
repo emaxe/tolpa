@@ -811,14 +811,14 @@ export class CrowdManager {
     return this.formation === 'arrow' ? 1.5 : 1.0;
   }
 
-  /** Урон моба по кинетической стене: танки наносят 3 урона, маги — 2, формации Стрела и Фаланга — по 2, остальные — 1. */
+  /** Урон моба по кинетической стене: танки наносят 3 урона, маги — 2, формации Стрела, Фаланга и Ромб — по 2, остальные — 1. */
   public getMobWallDamage(mob: MobInstance): number {
-    return mob.type === 'tank' ? 3 : mob.type === 'mage' ? 2 : (this.formation === 'arrow' || this.formation === 'circle' ? 2 : 1);
+    return mob.type === 'tank' ? 3 : mob.type === 'mage' ? 2 : (this.formation === 'arrow' || this.formation === 'circle' || this.formation === 'diamond' ? 2 : 1);
   }
 
-  /** Фаланга (circle) с достаточной толпой может таранить разрушаемые препятствия. */
+  /** Фаланга (circle, ≥8) и Ромб (diamond, ≥10) с достаточной толпой могут таранить разрушаемые препятствия. */
   public canRamObstacles(): boolean {
-    return this.formation === 'circle' && this.aliveCount >= 8;
+    return (this.formation === 'circle' && this.aliveCount >= 8) || (this.formation === 'diamond' && this.aliveCount >= 10);
   }
 
   public update(dt: number, speed: number, steerInput: number, trackWidth: number): void {

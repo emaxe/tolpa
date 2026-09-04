@@ -288,7 +288,7 @@ export function computeWallImpact(
     return { damageDealt: 0, killed: false };
   }
 
-  const damageDealt = mob.type === 'tank' ? 3 : mob.type === 'mage' ? 2 : (formation === 'arrow' || formation === 'circle' ? 2 : 1);
+  const damageDealt = mob.type === 'tank' ? 3 : mob.type === 'mage' ? 2 : (formation === 'arrow' || formation === 'circle' || formation === 'diamond' ? 2 : 1);
 
   if (mob.type === 'ninja' && dodgeSuccess) {
     return { damageDealt, killed: false };

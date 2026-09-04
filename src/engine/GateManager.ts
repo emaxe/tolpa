@@ -409,11 +409,13 @@ export class GateManager {
         if (base > 0) isMageTransmuteSpawn = true;
       } else {
         // ÷N: пропускает каждого N-го по очереди, остальных убирает для каждого нового моба/группы.
-        // Синергия формаций: Клин (wedge) снижает потери (делитель val / 0.9).
-        const divArg = crowd.formation === 'wedge' ? val / 0.9 : val;
+        // Синергии формаций при делении: Клин — потери -10%, Ромб — потери -15% (таран плотным строем).
+        const divArg = crowd.formation === 'wedge' ? val / 0.9 : crowd.formation === 'diamond' ? val / 0.85 : val;
         netChange = -crowd.divideMobsByStep(wing, divArg, 'gate', gateVisual.divideStep);
         if (crowd.formation === 'wedge') {
           perk = 'wedge_div';
+        } else if (crowd.formation === 'diamond') {
+          perk = 'diamond_div';
         }
         if (isFirstTrigger) soundEngine.playSound('gate_pass_negative');
         if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 20, 0xef4444, 4.0);

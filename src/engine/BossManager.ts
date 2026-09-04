@@ -407,6 +407,9 @@ export class BossManager {
       // Фаланга (circle) пробивает энергетический купол на 20% от урона.
       this.takeDamage(crowdPower * crowdMult, particles, crowd.formation === 'circle');
 
+      // Босс погиб в этом же кадре (takeDamage вызвал defeatBoss) — удары возмездия прекращаются немедленно.
+      if (this.isDefeated || this.isDefeatCollapsing) return;
+
       // Boss retaliation — было "8% шанс за кадр" (~4.8 смертей/сек на 60 FPS без единого
       // предупреждения). Теперь фиксированный ритм с небольшой тряской-телеграфом.
       this.retaliationTimer -= dt;
@@ -594,6 +597,7 @@ export class BossManager {
         });
         this.hitDamageAccum = 0;
         this.defeatBoss(particles);
+        return;
       }
       return;
     }
@@ -644,6 +648,7 @@ export class BossManager {
 
     if (this.bossData.hp <= 0 && !this.isDefeatCollapsing && !this.isDefeated) {
       this.defeatBoss(particles);
+      return;
     }
   }
 

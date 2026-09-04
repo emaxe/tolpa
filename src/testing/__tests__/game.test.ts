@@ -908,6 +908,14 @@ describe('Kinetic Wall Impact & Damage Accounting', () => {
     expect(mobCircle.alive).toBe(false);
   });
 
+  it('Формация diamond даёт 2 урона стене для обычного моба (синхронно с getMobWallDamage)', () => {
+    const mob = { type: 'regular', shieldHp: 0, hp: 1, alive: true };
+    const res = computeWallImpact(mob, 'diamond');
+    expect(res.damageDealt).toBe(2);
+    expect(res.killed).toBe(true);
+    expect(mob.alive).toBe(false);
+  });
+
   it('Ниндзя с успешным уворотом наносит урон стене и выживает', () => {
     const ninja = { type: 'ninja', shieldHp: 0, hp: 1, alive: true };
     const res = computeWallImpact(ninja, 'oval', false, true);

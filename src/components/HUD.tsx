@@ -499,7 +499,7 @@ export const HUD: React.FC<HUDProps> = ({
             {currentFormation === 'circle' && '💥 Таран боссов ×1.35 · Стен ×2'}
             {currentFormation === 'arrow' && '⚡ Скорость +15%'}
             {currentFormation === 'oval' && '⚖️ Баланс · Универсальный строй'}
-            {currentFormation === 'diamond' && '💎 Броня фронта +25%'}
+            {currentFormation === 'diamond' && '💎 Броня −25% · Стены ×2 · Таран'}
           </div>
           <div className="pointer-events-auto grid grid-cols-6 gap-2 bg-slate-100/80 backdrop-blur-md p-1.5 rounded-xl border border-slate-300 max-sm:order-1 max-sm:grid-cols-1 max-sm:gap-1 max-sm:p-1 max-sm:rounded-2xl">
           <button
@@ -574,7 +574,7 @@ export const HUD: React.FC<HUDProps> = ({
                 ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-zinc-950 font-bold shadow-md shadow-teal-500/30'
                 : 'bg-white/60 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
             }`}
-            title={i18n.t('diamondDesc', 'Ромб: броня фронта +25% против ловушек')}
+            title={i18n.t('diamondDesc', 'Ромб: броня +25%, стены ×2, таран')}
           >
             <Diamond className="w-4 h-4 mb-0.5 max-sm:mb-0 max-sm:w-5 max-sm:h-5" />
             <span className="text-[10px] uppercase max-sm:hidden">6: {i18n.t('formationDiamond', 'Ромб').split(' ')[0]}</span>
