@@ -49,6 +49,14 @@ export interface GameEngineCallbacks {
   onPauseRequest?: () => void;
 }
 
+const BIOME_COLORS: Record<string, number> = {
+  cyber_city: 0x00f0ff,
+  magma_citadel: 0xf97316,
+  crystal_cavern: 0x10b981,
+  quantum_void: 0xa855f7,
+  celestial_core: 0xfacc15,
+};
+
 export class GameEngine {
   private container: HTMLElement;
   private scene: THREE.Scene;
@@ -245,6 +253,7 @@ export class GameEngine {
   private unsubFormationDefend: (() => void) | null = null;
   private unsubNewClass: (() => void) | null = null;
   private unsubAchievementReady: (() => void) | null = null;
+  private unsubBiomeEntered: (() => void) | null = null;
   // Haptic: троттлинг частых событий (coinCollected, bossDamaged) — не чаще 40мс.
   private lastHapticMs: number = 0;
 
@@ -746,6 +755,22 @@ export class GameEngine {
       }
     );
 
+    // 3D-фидбек смены биома в бесконечном режиме (biomeEntered): ударная волна,
+    // бурст частиц цвета биома, акцентный звук и тактильный отклик.
+    this.unsubBiomeEntered = eventBus.on(
+      'biomeEntered',
+      (data: { biome?: string; x?: number; z?: number }) => {
+        if (!data?.biome) return;
+        const x = data.x ?? this.crowd.leaderX;
+        const z = data.z ?? this.crowd.leaderZ;
+        const color = BIOME_COLORS[data.biome] ?? 0x00f0ff;
+        this.particles.emitShockwave(x, z, color);
+        this.particles.emitBurst(x, 1.2, z, 24, color, 5.0);
+        soundEngine.playSound('formation_change', 1.0, 0.9);
+        this.triggerHaptic([25, 20, 40]);
+      }
+    );
+
     // 3D-фидбек готового достижения (achievementReady): световой столб, ударная
     // волна, бурст частиц, акцентный звук и хаптика у позиции лидера толпы.
     // Событие эмитится StateManager ровно один раз при первом пересечении порога
@@ -1151,7 +1176,7 @@ export class GameEngine {
     this.endlessTrackLength = 500;
     this.endlessTrackWidth = DEFAULT_TRACK_WIDTH;
     this.setupBiomeEnvironment(this.endlessBiome);
-    eventBus.emit('biomeEntered', { biome: this.endlessBiome });
+    eventBus.emit('biomeEntered', { biome: this.endlessBiome, x: this.crowd.leaderX, z: this.crowd.leaderZ });
     this.buildTrack(this.endlessTrackLength, this.endlessTrackWidth, this.endlessBiome);
 
     this.crowd.reset(8, 0, DEFAULT_TRACK_WIDTH);
@@ -2954,7 +2979,7 @@ export class GameEngine {
       const biomeChanged = segBiome !== this.endlessBiome;
       if (biomeChanged) {
         this.endlessBiome = segBiome;
-        eventBus.emit('biomeEntered', { biome: segBiome });
+        eventBus.emit('biomeEntered', { biome: segBiome, x: this.crowd.leaderX, z: this.crowd.leaderZ });
         this.setupBiomeEnvironment(segBiome);
         soundEngine.playMusic(this.getMusicThemeForLevel(this.endlessSegmentIndex, segBiome));
       }
@@ -3111,6 +3136,7 @@ export class GameEngine {
     this.unsubFormationDefend?.();
     this.unsubNewClass?.();
     this.unsubAchievementReady?.();
+    this.unsubBiomeEntered?.();
 
     this.crowd.dispose();
     this.gates.clear();

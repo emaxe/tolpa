@@ -15,6 +15,34 @@ interface FloatingTextProps {
   engine: React.RefObject<GameEngine | null>;
 }
 
+const BIOME_BANNER_CONFIG: Record<string, { key: string; fallback: string; colorClass: string }> = {
+  cyber_city: {
+    key: 'biomeCyber',
+    fallback: 'Неоновый Мегаполис',
+    colorClass: 'text-cyan-400 font-black text-2xl drop-shadow-[0_0_14px_rgba(34,211,238,0.9)]',
+  },
+  magma_citadel: {
+    key: 'biomeMagma',
+    fallback: 'Магматическая Цитадель',
+    colorClass: 'text-orange-500 font-black text-2xl drop-shadow-[0_0_14px_rgba(249,115,22,0.9)]',
+  },
+  crystal_cavern: {
+    key: 'biomeCrystal',
+    fallback: 'Кристальные Недра',
+    colorClass: 'text-violet-400 font-black text-2xl drop-shadow-[0_0_14px_rgba(167,139,250,0.9)]',
+  },
+  quantum_void: {
+    key: 'biomeVoid',
+    fallback: 'Квантовая Пустота',
+    colorClass: 'text-blue-400 font-black text-2xl drop-shadow-[0_0_14px_rgba(96,165,250,0.9)]',
+  },
+  celestial_core: {
+    key: 'biomeCelestial',
+    fallback: 'Апекс-Ядро Селестии',
+    colorClass: 'text-yellow-300 font-black text-2xl drop-shadow-[0_0_14px_rgba(253,224,71,0.9)]',
+  },
+};
+
 /**
  * Лёгкий DOM-оверлей: всплывающие подписи над воротами/уроном/монетами.
  * Раньше единственным фидбеком был звук — игрок не видел, что именно изменилось
@@ -265,6 +293,13 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       spawnScreen(text, cls, -40);
     });
 
+    // Смена биома в бесконечном режиме — центральный всплывающий баннер с названием биома.
+    const unsubBiomeEntered = eventBus.on('biomeEntered', (data: { biome?: string }) => {
+      if (!data?.biome) return;
+      const cfg = BIOME_BANNER_CONFIG[data.biome] ?? BIOME_BANNER_CONFIG.cyber_city;
+      spawnScreen(i18n.t(cfg.key, cfg.fallback), cfg.colorClass, -50);
+    });
+
     // Покупка апгрейда: всплывающая плашка в центре экрана.
     // Событие upgradePurchased эмитится StateManager, но раньше никем не потреблялось.
     const unsubUpgrade = eventBus.on('upgradePurchased', (data: { upgradeKey?: string; level?: number }) => {
@@ -459,6 +494,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubClassAbility();
       unsubFormationDefend();
       unsubNewClass();
+      unsubBiomeEntered();
     };
   }, [engine]);
 
