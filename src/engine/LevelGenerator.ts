@@ -88,10 +88,11 @@ export class LevelGenerator {
     'celestial_core',
   ];
 
-  /** Биом для бесконечного сегмента: строго по кругу через все 5 биомов.
-   *  segmentIndex 0 → cyber_city (совпадает с инициализацией endlessBiome). */
+  /** Биом для бесконечного сегмента: блоками по 5 сегментов (600м) строго по кругу через все 5 биомов.
+   *  Босс на границе сегментов (каждые 5 сегментов) совпадает по биому.
+   *  segmentIndex 0..4 → cyber_city (совпадает с инициализацией endlessBiome). */
   public static getEndlessBiome(segmentIndex: number): BiomeType {
-    const i = Math.max(0, segmentIndex) % LevelGenerator.ENDLESS_BIOME_CYCLE.length;
+    const i = Math.floor(Math.max(0, segmentIndex) / 5) % LevelGenerator.ENDLESS_BIOME_CYCLE.length;
     return LevelGenerator.ENDLESS_BIOME_CYCLE[i];
   }
 

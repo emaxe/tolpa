@@ -42,6 +42,12 @@ interface HUDProps {
   nearMissMultiplier: number;
 }
 
+const NEAR_MISS_ALERT_KEYS: Record<number, string> = {
+  2: 'nearMissStreak2',
+  5: 'nearMissStreak5',
+  10: 'nearMissStreak10',
+};
+
 export const HUD: React.FC<HUDProps> = ({
   crowdCount,
   coinCount,
@@ -75,8 +81,8 @@ export const HUD: React.FC<HUDProps> = ({
   const [bossInfo, setBossInfo] = useState<{ hp: number; maxHp: number; nameKey: string } | null>(null);
   const [isBossShielded, setIsBossShielded] = useState<boolean>(false);
   const [damageFlashKey, setDamageFlashKey] = useState<number>(0);
-  // Баннер динамического события уровня (ambush/coin_train/emp_storm/meteor_rain/speed_boost)
-  const [eventAlert, setEventAlert] = useState<{ type: string; key: number } | null>(null);
+  // Баннер динамического события уровня (ambush/coin_train/emp_storm/meteor_rain/speed_boost/biomeEntered)
+  const [eventAlert, setEventAlert] = useState<{ type: string; key: number; multiplier?: number } | null>(null);
 
   // Маппинг типа события -> ключ локализации и цвет баннера
   const EVENT_ALERT_MAP: Record<string, { key: string; cls: string }> = {
@@ -99,6 +105,11 @@ export const HUD: React.FC<HUDProps> = ({
     newClass_tank: { key: 'newClassAppearedTank', cls: 'border-amber-400 text-amber-600' },
     newClass_ninja: { key: 'newClassAppearedNinja', cls: 'border-purple-400 text-purple-600' },
     newClass_mage: { key: 'newClassAppearedMage', cls: 'border-emerald-400 text-emerald-600' },
+    biomeEntered_cyber_city: { key: 'biomeCyber', cls: 'border-cyan-400 text-cyan-600' },
+    biomeEntered_magma_citadel: { key: 'biomeMagma', cls: 'border-orange-500 text-orange-600' },
+    biomeEntered_crystal_cavern: { key: 'biomeCrystal', cls: 'border-violet-400 text-violet-600' },
+    biomeEntered_quantum_void: { key: 'biomeVoid', cls: 'border-blue-400 text-blue-600' },
+    biomeEntered_celestial_core: { key: 'biomeCelestial', cls: 'border-yellow-300 text-yellow-500' },
   };
 
   useEffect(() => {
@@ -144,8 +155,7 @@ export const HUD: React.FC<HUDProps> = ({
 
     // Порог серии уворотов (x2/x5/x10) — центральный баннер-тост.
     const unsubNearMissMilestone = eventBus.on('nearMissMilestone', (data: { multiplier?: number }) => {
-      const mult = data?.multiplier ?? 1;
-      setEventAlert({ type: 'nearMissMilestone', key: Date.now() });
+      setEventAlert({ type: 'nearMissMilestone', key: Date.now(), multiplier: data?.multiplier });
       window.setTimeout(() => setEventAlert(null), 3200);
     });
 
@@ -199,6 +209,13 @@ export const HUD: React.FC<HUDProps> = ({
       window.setTimeout(() => setEventAlert(null), 3200);
     });
 
+    // Смена / вход в биом в бесконечном режиме — центральный баннер-тост с именем биома.
+    const unsubBiomeEntered = eventBus.on('biomeEntered', (data: { biome?: string }) => {
+      if (!data || !data.biome) return;
+      setEventAlert({ type: `biomeEntered_${data.biome}`, key: Date.now() });
+      window.setTimeout(() => setEventAlert(null), 3200);
+    });
+
     return () => {
       unsubBoss();
       unsubBossShield();
@@ -216,6 +233,7 @@ export const HUD: React.FC<HUDProps> = ({
       unsubEndlessRecordBeaten();
       unsubFinishLine();
       unsubNewClass();
+      unsubBiomeEntered();
     };
   }, []);
 
@@ -319,7 +337,9 @@ export const HUD: React.FC<HUDProps> = ({
           key={eventAlert.key}
           className={`absolute left-1/2 -translate-x-1/2 top-24 z-20 pointer-events-none px-6 py-2 rounded-xl border-2 bg-slate-100/85 backdrop-blur-md font-orbitron font-extrabold text-sm md:text-base tracking-wider animate-pulse shadow-2xl ${EVENT_ALERT_MAP[eventAlert.type].cls}`}
         >
-          {i18n.t(EVENT_ALERT_MAP[eventAlert.type].key)}
+          {eventAlert.type === 'nearMissMilestone' && eventAlert.multiplier && eventAlert.multiplier >= 2
+            ? i18n.t(NEAR_MISS_ALERT_KEYS[eventAlert.multiplier] || 'nearMissMilestone')
+            : i18n.t(EVENT_ALERT_MAP[eventAlert.type].key)}
         </div>
       )}
 

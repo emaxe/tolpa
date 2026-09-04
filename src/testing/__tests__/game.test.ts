@@ -587,6 +587,33 @@ describe('Level Generator Enhanced Tests', () => {
     }
   });
 
+  it('getEndlessBiome циклически меняет биомы блоками по 5 сегментов (600м)', () => {
+    // Сегменты 0..4 -> cyber_city
+    for (let s = 0; s < 5; s++) {
+      expect(LevelGenerator.getEndlessBiome(s)).toBe('cyber_city');
+    }
+    // Сегменты 5..9 -> magma_citadel (босс на сегменте 5 в магме)
+    for (let s = 5; s < 10; s++) {
+      expect(LevelGenerator.getEndlessBiome(s)).toBe('magma_citadel');
+    }
+    // Сегменты 10..14 -> crystal_cavern
+    for (let s = 10; s < 15; s++) {
+      expect(LevelGenerator.getEndlessBiome(s)).toBe('crystal_cavern');
+    }
+    // Сегменты 15..19 -> quantum_void
+    for (let s = 15; s < 20; s++) {
+      expect(LevelGenerator.getEndlessBiome(s)).toBe('quantum_void');
+    }
+    // Сегменты 20..24 -> celestial_core
+    for (let s = 20; s < 25; s++) {
+      expect(LevelGenerator.getEndlessBiome(s)).toBe('celestial_core');
+    }
+    // Сегменты 25..29 -> снова cyber_city
+    for (let s = 25; s < 30; s++) {
+      expect(LevelGenerator.getEndlessBiome(s)).toBe('cyber_city');
+    }
+  });
+
   it('gate и obstacle никогда не сталкиваются (clearance по Z >= 10, и нет X-перекрытия в z-полосе)', () => {
     for (let lvl = 1; lvl <= 50; lvl++) {
       const config = LevelGenerator.generateLevel(lvl);

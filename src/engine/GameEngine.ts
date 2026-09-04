@@ -1142,6 +1142,7 @@ export class GameEngine {
     this.endlessTrackLength = 500;
     this.endlessTrackWidth = DEFAULT_TRACK_WIDTH;
     this.setupBiomeEnvironment(this.endlessBiome);
+    eventBus.emit('biomeEntered', { biome: this.endlessBiome });
     this.buildTrack(this.endlessTrackLength, this.endlessTrackWidth, this.endlessBiome);
 
     this.crowd.reset(8, 0, DEFAULT_TRACK_WIDTH);
@@ -2938,12 +2939,13 @@ export class GameEngine {
     if (this.crowd.leaderZ > this.currentEndlessZ - 150) {
       this.endlessSegmentIndex++;
       this.baseSpeed = LevelGenerator.getEndlessBaseSpeed(this.endlessSegmentIndex);
-      // На границе биома (каждые ~10 сегментов) перестраиваем окружение и трассу
+      // На границе биома (каждые 5 сегментов) перестраиваем окружение и трассу
       // без затрагивания геймплейных менеджеров (gates/obstacles/crowd).
       const segBiome = LevelGenerator.getEndlessBiome(this.endlessSegmentIndex);
       const biomeChanged = segBiome !== this.endlessBiome;
       if (biomeChanged) {
         this.endlessBiome = segBiome;
+        eventBus.emit('biomeEntered', { biome: segBiome });
         this.setupBiomeEnvironment(segBiome);
         soundEngine.playMusic(this.getMusicThemeForLevel(this.endlessSegmentIndex, segBiome));
       }
