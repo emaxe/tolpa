@@ -779,7 +779,12 @@ export class LevelGenerator {
 
     if (nearestGate) {
       const guardZ = nearestGate.z - 11;
-      const guardType: ObstacleType = ctx.rng() < 0.6 ? 'guard_dog' : 'saw_blade';
+      // Гард перед воротами — ТОЛЬКО кибер-собака. Раньше здесь в ~40% случаев ставилась
+      // saw_blade (пила) прямо по оси прохода: при таране танками/гипер-режимом она ломалась
+      // со звуком obstacle_smash (sawtooth 180->40) + obstacle_hit/mob_death — игрок слышал
+      // «жужжание циркулярной пилы» в момент прохождения позитивных ворот (+). У собаки свой
+      // звук (dog_snap), пилящего савтута нет — проблема уходит.
+      const guardType: ObstacleType = 'guard_dog';
       const guardX = Math.max(-4.5, Math.min(4.5, nearestGate.x));
       this.pushObs(
         ctx.out,
