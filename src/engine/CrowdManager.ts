@@ -927,7 +927,7 @@ export class CrowdManager {
       const t = Math.min(1, (mob.deathT || 0) / 0.5);
       // Плавное заваливание + схлопывание к центру
       const rot = t * 2.2;
-      const s = Math.max(0.05, 1.0 - t * 0.7);
+      const s = mob.scale * Math.max(0.05, 1.0 - t * 0.7);
       mob.deathRotX = mob.deathRotX || 0;
       mob.deathRotZ = mob.deathRotZ || 0;
 

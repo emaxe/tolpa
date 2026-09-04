@@ -1067,6 +1067,7 @@ export class GameEngine {
     this.camera.updateProjectionMatrix();
     this.trackOffsetZ = 0;
     this.lastCrowdMilestone = 0;
+    this.screenShakeIntensity = 0;
     stateManager.beginRun();
 
     const levelConfig = LevelGenerator.generateLevel(levelNum);
@@ -1142,6 +1143,7 @@ export class GameEngine {
     this.camera.updateProjectionMatrix();
     this.trackOffsetZ = 0;
     this.lastCrowdMilestone = 0;
+    this.screenShakeIntensity = 0;
     stateManager.beginRun();
 
     // Стартуем с биома, соответствующего первому сегменту (getBiomeForLevel(0) = cyber_city)

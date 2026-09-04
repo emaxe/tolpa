@@ -614,6 +614,23 @@ export class BossManager {
     }
     this.hitFxAccum = 10; // ~6 Гц при 60 FPS (60/10)
 
+    // Гибель в кадре сразу после сброса троттлинга: guard ДО раннего return
+    // энергокупола, иначе bossShieldPierced эмитится для уже-мёртвого босса,
+    // а финальный bossDamaged запаздывает на кадр с damage=0.
+    if (this.bossData.hp <= 0 && !this.isDefeatCollapsing && !this.isDefeated) {
+      eventBus.emit('bossDamaged', {
+        hp: 0,
+        maxHp: this.bossData.maxHp,
+        nameKey: this.bossData.nameKey,
+        x: 0,
+        z: this.bossArenaZ,
+        damage: this.hitDamageAccum,
+      });
+      this.hitDamageAccum = 0;
+      this.defeatBoss(particles);
+      return;
+    }
+
     // Энергокупол босса: блокированный удар (Фаланга не пробила) получает ОТДЕЛЬНЫЙ
     // акустический/визуальный фидбек «отражения» вместо ложного звука попадания по
     // плоти + белых искр, из-за которого игрок думал «полоска HP забагована».
