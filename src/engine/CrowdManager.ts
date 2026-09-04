@@ -44,6 +44,9 @@ export class CrowdManager {
   // остаётся нетронутой — троттлится только частота фидбека.
   private lastClassAbilityEmitMs: number = 0;
   private static readonly CLASS_ABILITY_EMIT_INTERVAL_MS: number = 120;
+  // Троттлинг визуально-звукового фидбека брони формаций wedge/diamond (щит клина / броня ромба).
+  private lastFormationDefendEmitMs: number = 0;
+  private static readonly FORMATION_DEFEND_EMIT_INTERVAL_MS: number = 200;
   // Множество классов мобов, уже появлявшихся в текущем забеге. Для каждого нового
   // класса при ПЕРВОМ спавне эмитится newClassAppeared → HUD-баннер + звук + FloatingText.
   private seenClasses: Set<Exclude<MobType, 'regular'>> = new Set();
@@ -253,6 +256,15 @@ export class CrowdManager {
     eventBus.emit('classAbility', { type, ability, x, z });
   }
 
+  /** Троттлинг-эмит визуально-звукового фидбека брони формаций (wedge -40% / diamond -25%).
+   *  Ограничиваем частоту FORMATION_DEFEND_EMIT_INTERVAL_MS = 200 мс. */
+  private emitFormationDefend(formation: 'wedge' | 'diamond', saved: number): void {
+    const now = performance.now();
+    if (now - this.lastFormationDefendEmitMs < CrowdManager.FORMATION_DEFEND_EMIT_INTERVAL_MS) return;
+    this.lastFormationDefendEmitMs = now;
+    eventBus.emit('formationDefend', { formation, saved, x: this.leaderX, z: this.leaderZ });
+  }
+
   /** Возвращает живых мобов. ВАЖНО: возвращает переиспользуемый внутренний буфер —
    *  содержимое валидно только до следующего вызова getAliveMobs()/killMobs()/consumeMobs().
    *  Не храни ссылку на результат между кадрами. */
@@ -458,9 +470,14 @@ export class CrowdManager {
     const defenseAuraLvl = stateManager.getState().upgrades.defenseAura;
     const damageReduction = defenseAuraLvl * 0.1; // up to 50%
     // Урон 0 после брони должен оставаться 0, а не превращаться в гарантированную смерть.
-    let finalCount = Math.max(0, Math.round(count * (1 - damageReduction)));
+    const preFormation = Math.max(0, Math.round(count * (1 - damageReduction)));
+    let finalCount = preFormation;
     if (this.formation === 'wedge' && finalCount > 0) finalCount = Math.max(1, Math.round(finalCount * 0.6));
     else if (this.formation === 'diamond' && finalCount > 0) finalCount = Math.max(1, Math.round(finalCount * 0.75));
+    const saved = preFormation - finalCount;
+    if (saved > 0 && (this.formation === 'wedge' || this.formation === 'diamond')) {
+      this.emitFormationDefend(this.formation, saved);
+    }
     if (finalCount <= 0) return 0;
 
     let killed = 0;
@@ -644,9 +661,14 @@ export class CrowdManager {
     if (count <= 0) return 0;
     const defenseAuraLvl = stateManager.getState().upgrades.defenseAura;
     const damageReduction = defenseAuraLvl * 0.1;
-    let finalCount = Math.max(0, Math.round(count * (1 - damageReduction)));
+    const preFormation = Math.max(0, Math.round(count * (1 - damageReduction)));
+    let finalCount = preFormation;
     if (this.formation === 'wedge' && finalCount > 0) finalCount = Math.max(1, Math.round(finalCount * 0.6));
     else if (this.formation === 'diamond' && finalCount > 0) finalCount = Math.max(1, Math.round(finalCount * 0.75));
+    const saved = preFormation - finalCount;
+    if (saved > 0 && (this.formation === 'wedge' || this.formation === 'diamond')) {
+      this.emitFormationDefend(this.formation, saved);
+    }
     if (finalCount <= 0) return 0;
 
     if (group !== this.groupScratch) {

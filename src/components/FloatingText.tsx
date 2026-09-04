@@ -366,6 +366,21 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       }
     );
 
+    // Броня формаций (Щит Клина wedge / Броня Ромба diamond)
+    const unsubFormationDefend = eventBus.on(
+      'formationDefend',
+      (data: { formation?: 'wedge' | 'diamond'; saved?: number; x?: number; z?: number }) => {
+        if (!data) return;
+        const x = data.x ?? 0;
+        const z = data.z ?? 0;
+        if (data.formation === 'wedge') {
+          spawn(x, z, i18n.t('wedgeBlock', 'ЩИТ КЛИНА! -40%'), 'text-purple-300 font-extrabold drop-shadow-[0_0_8px_rgba(168,85,247,0.9)]');
+        } else if (data.formation === 'diamond') {
+          spawn(x, z, i18n.t('diamondArmor', 'БРОНЯ РОМБА! -25%'), 'text-slate-200 font-extrabold drop-shadow-[0_0_8px_rgba(148,163,184,0.9)]');
+        }
+      }
+    );
+
     // Новый класс бойца впервые появился в толпе — всплывающий 3D-ярлык над точкой спавна.
     const unsubNewClass = eventBus.on(
       'newClassAppeared',
@@ -405,6 +420,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubFormation();
       unsubFinishStep();
       unsubClassAbility();
+      unsubFormationDefend();
       unsubNewClass();
     };
   }, [engine]);

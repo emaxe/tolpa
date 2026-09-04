@@ -1,3 +1,10 @@
+export interface FormationDefendPayload {
+  formation: 'wedge' | 'diamond';
+  saved: number;
+  x: number;
+  z: number;
+}
+
 type EventCallback<T = any> = (data: T) => void;
 
 export class EventBus {

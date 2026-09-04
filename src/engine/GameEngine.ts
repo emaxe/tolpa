@@ -241,6 +241,7 @@ export class GameEngine {
   private unsubSettings: (() => void) | null = null;
   private unsubFormation: (() => void) | null = null;
   private unsubClassAbility: (() => void) | null = null;
+  private unsubFormationDefend: (() => void) | null = null;
   private unsubNewClass: (() => void) | null = null;
   private unsubAchievementReady: (() => void) | null = null;
   // Haptic: троттлинг частых событий (coinCollected, bossDamaged) — не чаще 40мс.
@@ -703,6 +704,19 @@ export class GameEngine {
             this.triggerHaptic(20);
           }
         }
+      }
+    );
+
+    // Аудиовизуальный фидбек брони формаций (Щит Клина wedge / Броня Ромба diamond)
+    this.unsubFormationDefend = eventBus.on(
+      'formationDefend',
+      (data: { formation?: 'wedge' | 'diamond'; saved?: number; x?: number; z?: number }) => {
+        if (!data) return;
+        const x = data.x ?? this.crowd.leaderX;
+        const z = data.z ?? this.crowd.leaderZ;
+        this.particles.emitBurst(x, 1.0, z, 14, data.formation === 'wedge' ? 0xa855f7 : 0x94a3b8, 3.5);
+        soundEngine.playSound('hammer_impact', 1.45);
+        this.triggerHaptic(15);
       }
     );
 
@@ -3078,6 +3092,7 @@ export class GameEngine {
     this.unsubSettings?.();
     this.unsubFormation?.();
     this.unsubClassAbility?.();
+    this.unsubFormationDefend?.();
     this.unsubNewClass?.();
     this.unsubAchievementReady?.();
 

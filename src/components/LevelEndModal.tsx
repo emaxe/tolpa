@@ -1,6 +1,6 @@
 import React from 'react';
 import { i18n } from '../core/Localization';
-import { RunStats } from '../core/StateManager';
+import { RunStats, stateManager } from '../core/StateManager';
 import { Trophy, Skull, Star, Coins, Gem, ArrowRight, RotateCcw, Home, ShoppingCart, Zap, Users, Shield, Swords, DoorOpen, Route, Trophy as RecordIcon } from 'lucide-react';
 
 interface LevelEndModalProps {
@@ -192,6 +192,28 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
               )}
             </div>
           )}
+
+          {/* Сводная статистика легиона за всё время */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-2 border-t border-slate-300/80">
+            <div className="col-span-2 text-left font-orbitron text-xs font-bold text-slate-800 tracking-wide">
+              {i18n.t('lifetimeStatsTitle', 'Статистика легиона')}
+            </div>
+            {[
+              { icon: DoorOpen, color: 'text-emerald-600', label: i18n.t('statTotalGates', 'Ворот за всё время'), value: stateManager.getStats().totalGatesPassed },
+              { icon: Users, color: 'text-teal-700', label: i18n.t('statTotalMobs', 'Бойцов создано'), value: stateManager.getStats().totalMobsSpawned },
+              { icon: Shield, color: 'text-rose-600', label: i18n.t('statTotalBosses', 'Боссов повержено'), value: stateManager.getStats().totalBossesDefeated },
+              { icon: Zap, color: 'text-amber-600', label: i18n.t('statBestCombo', 'Лучшее комбо'), value: `×${stateManager.getStats().highestCombo}` },
+              { icon: Users, color: 'text-indigo-600', label: i18n.t('statMaxCrowd', 'Макс. толпа'), value: stateManager.getStats().maxCrowdReached },
+              { icon: Route, color: 'text-cyan-600', label: i18n.t('statGames', 'Забегов сыграно'), value: stateManager.getStats().gamesPlayed },
+            ].map(({ icon: Icon, color, label, value }, idx) => (
+              <div key={idx} className="flex items-center justify-between text-slate-700">
+                <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-600">
+                  <Icon className={`w-3.5 h-3.5 ${color}`} /> {label}
+                </span>
+                <span className={`font-orbitron font-bold ${color}`}>{value}</span>
+              </div>
+            ))}
+          </div>
 
           <div className="flex justify-between items-center pt-2 border-t border-slate-300/80">
             <span className="font-orbitron font-bold text-xs text-slate-600">{i18n.t('totalReward')}</span>

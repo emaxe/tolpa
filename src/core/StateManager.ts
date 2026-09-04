@@ -620,6 +620,10 @@ export class StateManager {
     return this.state;
   }
 
+  public getStats(): Readonly<GameStats> {
+    return this.state.stats;
+  }
+
   public subscribe(listener: () => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
