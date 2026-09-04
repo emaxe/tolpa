@@ -64,6 +64,9 @@ interface ObstacleVisual {
   // события каждый кадр и держали тряску камеры на максимуме. Обратный отсчёт в
   // горячем цикле update(), гейт в checkObstacleCollision().
   feedbackCooldown?: number;
+  // Накопитель убитых мобов между тиками фидбека (по аналогии с BossManager.hitDamageAccum).
+  // Пока активен feedbackCooldown, потери суммируются сюда и эмитируются пачкой при истечении.
+  hitAccum?: number;
 }
 
 interface CoinVisual {
@@ -980,6 +983,7 @@ export class ObstacleManager {
           this.playDeathEffect(obs, mob.x, 0.8, mob.z, particles);
           anyHit = true;
           hitCount++;
+          obsVis.hitAccum = (obsVis.hitAccum ?? 0) + 1;
         }
       }
     }
@@ -996,12 +1000,18 @@ export class ObstacleManager {
         eventBus.emit('screenShake', { intensity: 0.3 });
         // Виньетка урона + всплывающие "-N" (HUD/FloatingText) подписаны на mobsKilled,
         // но ловушки его не эмитили — фидбек потерь на трассе отсутствовал. Батчим
-        // суммарный счёт за кадр (rate-limited вместе со звуком/тряской).
-        eventBus.emit('mobsKilled', { count: hitCount, reason: obs.type, x: obsVis.hazardX, z: obsVis.hazardZ });
+        // суммарный счёт за окно кулдауна (накопитель hitAccum).
+        eventBus.emit('mobsKilled', { count: obsVis.hitAccum ?? hitCount, reason: obs.type, x: obsVis.hazardX, z: obsVis.hazardZ });
+        obsVis.hitAccum = 0;
       }
       // Толпа понесла урон от ловушки — серия уворотов сбрасывается (без rate-limit,
       // чтобы стрик сбрасывался корректно в момент удара).
       this.breakNearMissStreak(obsVis.hazardX, obsVis.hazardZ);
+    } else if ((obsVis.hitAccum ?? 0) > 0) {
+      // Контакт с ловушкой закончился до истечения кулдауна — флешим накопленные за
+      // окно потери без звука/тряски, иначе они молча теряются.
+      eventBus.emit('mobsKilled', { count: obsVis.hitAccum, reason: obs.type, x: obsVis.hazardX, z: obsVis.hazardZ });
+      obsVis.hitAccum = 0;
     }
   }
 
@@ -1063,6 +1073,7 @@ export class ObstacleManager {
         }
         const coins = 8 * multiplier;
         stateManager.runAddCoins(coins);
+        eventBus.emit('coinCollected', { value: coins, x: obsVis.hazardX, z: rz, tier: 2 });
         // Эскалация звука по уровню серии (pitch выше на каждом увороте).
         soundEngine.playSound('near_miss', 1.0 + Math.min(1.0, streak * 0.05));
         // Эскалация визуального фидбека: больше частиц и ярче цвет на высоких сериях.

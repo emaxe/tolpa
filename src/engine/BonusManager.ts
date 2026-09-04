@@ -64,6 +64,7 @@ export class BonusManager {
   private bonuses: BonusVisual[] = [];
   private coreGeo: THREE.SphereGeometry;
   private ringGeo: THREE.TorusGeometry;
+  private glowGeo: THREE.SphereGeometry;
   private sharedTextures: Map<string, THREE.CanvasTexture> = new Map();
   private spinTimer: number = 0;
 
@@ -71,6 +72,7 @@ export class BonusManager {
     this.scene = scene;
     this.coreGeo = new THREE.SphereGeometry(0.45, 16, 16);
     this.ringGeo = new THREE.TorusGeometry(0.75, 0.06, 8, 24);
+    this.glowGeo = new THREE.SphereGeometry(0.7, 16, 16);
   }
 
   private textureFor(type: BonusType, label: string): THREE.CanvasTexture {
@@ -112,7 +114,7 @@ export class BonusManager {
 
     // Внешняя «звезда»-глоу (полупрозрачная оболочка)
     const glow = new THREE.Mesh(
-      new THREE.SphereGeometry(0.7, 16, 16),
+      this.glowGeo,
       new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22 })
     );
     group.add(glow);
@@ -278,7 +280,7 @@ export class BonusManager {
           const mat = child.material as THREE.Material | THREE.Material[];
           if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
           else mat.dispose();
-          if (child.geometry && child !== bv.core && child !== bv.ring) child.geometry.dispose();
+          if (child.geometry && child !== bv.core && child !== bv.ring && child !== bv.glow) child.geometry.dispose();
         }
       });
     });
@@ -291,5 +293,6 @@ export class BonusManager {
     this.clear();
     this.coreGeo.dispose();
     this.ringGeo.dispose();
+    this.glowGeo.dispose();
   }
 }

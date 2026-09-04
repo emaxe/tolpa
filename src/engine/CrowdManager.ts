@@ -47,6 +47,8 @@ export class CrowdManager {
   // Троттлинг визуально-звукового фидбека брони формаций wedge/diamond (щит клина / броня ромба).
   private lastFormationDefendEmitMs: number = 0;
   private static readonly FORMATION_DEFEND_EMIT_INTERVAL_MS: number = 200;
+  // Статичный компаратор сортировки мобов по Z по убыванию (0-GC: без аллокации замыкания).
+  private static readonly SORT_BY_Z_DESC = (a: MobInstance, b: MobInstance) => b.z - a.z;
   // Множество классов мобов, уже появлявшихся в текущем забеге. Для каждого нового
   // класса при ПЕРВОМ спавне эмитится newClassAppeared → HUD-баннер + звук + FloatingText.
   private seenClasses: Set<Exclude<MobType, 'regular'>> = new Set();
@@ -490,7 +492,7 @@ export class CrowdManager {
     // groupScratch (0-GC) и сортируем его.
     this.groupScratch.length = 0;
     for (let i = 0; i < alive.length; i++) this.groupScratch.push(alive[i]);
-    this.groupScratch.sort((a, b) => b.z - a.z);
+    this.groupScratch.sort(CrowdManager.SORT_BY_Z_DESC);
 
     for (let mob of this.groupScratch) {
       if (budget <= 0) break;

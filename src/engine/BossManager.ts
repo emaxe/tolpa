@@ -464,12 +464,18 @@ export class BossManager {
       // давали 60 вызовов, каждый с filter+sort по всему массиву (мгновенный вайп + фриз).
       // Считаем число попавших под удар один раз и бьём одним вызовом.
       const radius = attack.areaRadius || 3.5;
-      const hitCount = crowd
-        .getAliveMobs()
-        .reduce((n, mob) => {
-          const d = Math.sqrt(mob.x * mob.x + (mob.z - (this.bossArenaZ - 4)) ** 2);
-          return d <= radius ? n + 1 : n;
-        }, 0);
+      const rSq = radius * radius;
+      const centerZ = this.bossArenaZ - 4;
+      const aliveMobs = crowd.getAliveMobs();
+      let hitCount = 0;
+      for (let i = 0; i < aliveMobs.length; i++) {
+        const mob = aliveMobs[i];
+        const dx = mob.x;
+        const dz = mob.z - centerZ;
+        if (dx * dx + dz * dz <= rSq) {
+          hitCount++;
+        }
+      }
       if (hitCount > 0) {
         crowd.killMobs(Math.max(1, Math.round(hitCount * 0.35)), 'boss_slam');
       }
