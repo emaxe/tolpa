@@ -775,8 +775,6 @@ export class CrowdManager {
     this.dummy.position.set(0, -100, 0);
     this.dummy.updateMatrix();
     this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
-    soundEngine.playSound('mob_death');
-    eventBus.emit('mobsKilled', { count: 1, reason, x: mob.x, z: mob.z });
     this.wallImpactScratch.killed = true;
     return this.wallImpactScratch;
   }

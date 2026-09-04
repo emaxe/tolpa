@@ -173,6 +173,11 @@ export class WallManager {
       // в один кадр пересоздаётся CanvasTexture и дублируется звук/тряска на каждого моба
       // (0-GC нарушение + аудио-клиппинг).
       let totalDamage = 0;
+      // Считаем реально убитых мобов за кадр — единый агрегированный mobsKilled
+      // (вместо per-mob эмитов из resolveWallImpact, которые спамили звук и HUD-вспышку
+      // на каждого моба в широком строе). Физика урона осталась в resolveWallImpact,
+      // фидбек теперь отдаётся ОДИН раз на стену за кадр.
+      let killedCount = 0;
       for (let i = 0; i < this.throughScratch.length; i++) {
         if (wall.killsRemaining <= 0) break;
         const mob = this.throughScratch[i];
@@ -180,10 +185,16 @@ export class WallManager {
         const impact = crowd.resolveWallImpact(mob, 'wall');
         if (impact.damageDealt <= 0) continue;  // инвул/гипер/мёртвый
         totalDamage += impact.damageDealt;
+        if (impact.killed) killedCount++;
         wall.killsRemaining -= impact.damageDealt;
         if (wall.killsRemaining <= 0) break;    // стена сокрушена — остальные мобы проходят без урона
       }
       if (totalDamage > 0) {
+        // Единый агрегированный урон толпы от стены (звук + HUD damage-flash + частицы).
+        if (killedCount > 0) {
+          soundEngine.playSound('mob_death');
+          eventBus.emit('mobsKilled', { count: killedCount, reason: 'wall', x: wall.x, z: wall.z });
+        }
         if (wall.killsRemaining <= 0) {
           // Стена сокрушена в этом кадре — breakWall() сам даёт полный фидбек
           // (obstacle_smash, burst, тряска) ровно один раз.
