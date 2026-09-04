@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { BiomeType, FormationType, LevelConfig, LevelDynamicEvent, CoinData, ObstacleData } from '../types/game';
+import { BiomeType, FormationType, LevelConfig, LevelDynamicEvent, CoinData, ObstacleData, BonusData } from '../types/game';
 import { CrowdManager } from './CrowdManager';
 import { GateManager } from './GateManager';
 import { BonusManager } from './BonusManager';
@@ -637,6 +637,8 @@ export class GameEngine {
       // Звук boss_defeat и тряска уже проигрываются в BossManager.defeatBoss() — не дублируем.
       soundEngine.playCrowdCheer(1.2);
       this.triggerHaptic([50, 30, 50]);
+      // Физический взрыв лута на арене поверженного босса: ковёр монет + бонус-сферы.
+      this.spawnBossLootShower(bz);
       // Возврат фоновой музыки биома после босс-трек
       if (this.isEndless) {
         soundEngine.playMusic(this.getMusicThemeForLevel(this.endlessSegmentIndex, this.endlessBiome));
@@ -738,6 +740,32 @@ export class GameEngine {
     });
 
     this.animate = this.animate.bind(this);
+  }
+
+  /** Спавнит физический ковёр монет и 2 бонус-сферы на арене поверженного босса (Victory Lap). */
+  private spawnBossLootShower(bz: number): void {
+    // 30 монет: дуга/ромб в коридоре арены (Z: bz - 2 .. bz + 10, X: -5.0 .. +5.0)
+    const bossCoins: CoinData[] = [];
+    const count = 30;
+    for (let i = 0; i < count; i++) {
+      // Веер: центральные ближе, края дальше по Z
+      const t = i / (count - 1);
+      const x = (t - 0.5) * 10.0;                    // -5.0 .. +5.0
+      const z = bz - 1.5 + Math.sin(t * Math.PI) * 10.5; // ~bz-1.5 .. bz+9
+      bossCoins.push({ id: `boss-coin-${i}`, x, y: 0.5, z, value: 20 });
+    }
+    this.obstacles.appendObstacles([], bossCoins);
+
+    // 2 бонус-сферы подкрепления у краёв арены
+    const bossBonuses: BonusData[] = [
+      { id: 'boss-bonus-A', type: 'add_mobs', x: -4.5, y: 1.0, z: bz + 4, value: 4 },
+      { id: 'boss-bonus-B', type: 'coins',    x: 4.5,  y: 1.0, z: bz + 5, value: 100 },
+    ];
+    this.bonus.appendBonuses(bossBonuses);
+
+    // Аудио-акцент + ударная волна
+    soundEngine.playSound('coin_pickup');
+    this.particles.emitShockwave(0, bz, 0xfacc15);
   }
 
   /** Применяет текущие настройки графики к рендереру (pixelRatio, тени, antialias).
