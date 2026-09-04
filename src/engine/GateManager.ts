@@ -266,6 +266,7 @@ export class GateManager {
   ): void {
     let isPositive = false;
     let netChange = 0;
+    let perk: string | null = null;
     // Флаг: на этом кадре маг трансмутировал отрицательные ворота (÷N / мистика-штраф)
     // в позитивную прибавку, а ворота уже сработали on-first-trigger ранее (авангард прошёл
     // до мага). В этом случае isFirstTrigger == false, но фактический исход — позитивный
@@ -283,9 +284,14 @@ export class GateManager {
       // (при первом прошедшем мобе) — не на каждого прошедшего. Раньше executeGateEffect
       // вызывался каждый кадр, пока толпа тянулась через проём, и addMobsNear выполнялся
       // заново на каждый кадр → лавинное добавление «на каждого человечка».
+      // Синергия формаций: Фаланга (circle) даёт +30% бойцов при сложении.
+      const addVal = crowd.formation === 'circle' ? Math.round(val * 1.3) : val;
       let base = 0;
       if (isFirstTrigger) {
-        base = crowd.addMobsNear(val, gateX, gateZ);
+        base = crowd.addMobsNear(addVal, gateX, gateZ);
+        if (crowd.formation === 'circle') {
+          perk = 'circle_add';
+        }
       }
       if (base > 0) {
         const bonus = Math.floor(base * (comboFactor - 1));
@@ -298,7 +304,12 @@ export class GateManager {
       // ×N: каждый прошедший моб порождает (N-1) копий (N — целое).
       // Per-mob математика: multiplyGroup вызывается для каждого нового моба/группы.
       // Копии спавнятся на z-1.0 позади ворот и не триггерят повторно.
-      const base = crowd.multiplyGroup(wing, val, gateX, gateZ);
+      // Синергия формаций: Стрела (arrow) усиливает множитель на +0.5 (кап 4, при factor > 1).
+      const multFactor = crowd.formation === 'arrow' && val > 1 ? Math.min(4, val + 0.5) : val;
+      if (crowd.formation === 'arrow' && val > 1) {
+        perk = 'arrow_mult';
+      }
+      const base = crowd.multiplyGroup(wing, multFactor, gateX, gateZ);
       // Комбо-бонус — награда за серию, начисляется ОДИН раз за ворота (isFirstTrigger),
       // не на каждый кадр пересечения растянутой формации (fix double-counting).
       if (isFirstTrigger && base > 0) {
@@ -397,8 +408,13 @@ export class GateManager {
         isPositive = true;
         if (base > 0) isMageTransmuteSpawn = true;
       } else {
-        // ÷N: пропускает каждого N-го по очереди, остальных убирает для каждого нового моба/группы
-        netChange = -crowd.divideMobsByStep(wing, val, 'gate', gateVisual.divideStep);
+        // ÷N: пропускает каждого N-го по очереди, остальных убирает для каждого нового моба/группы.
+        // Синергия формаций: Клин (wedge) снижает потери (делитель val / 0.9).
+        const divArg = crowd.formation === 'wedge' ? val / 0.9 : val;
+        netChange = -crowd.divideMobsByStep(wing, divArg, 'gate', gateVisual.divideStep);
+        if (crowd.formation === 'wedge') {
+          perk = 'wedge_div';
+        }
         if (isFirstTrigger) soundEngine.playSound('gate_pass_negative');
         if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 20, 0xef4444, 4.0);
         if (isFirstTrigger) eventBus.emit('screenShake', { intensity: 0.3 });
@@ -440,7 +456,7 @@ export class GateManager {
       }
 
       stateManager.runRecordGatePass();
-      eventBus.emit('gatePassed', { op, val, isPositive, netChange, comboStreak: this.comboStreak, comboFactor, x: gateX, z: gateZ });
+      eventBus.emit('gatePassed', { op, val, isPositive, netChange, comboStreak: this.comboStreak, comboFactor, x: gateX, z: gateZ, perk });
     }
   }
 

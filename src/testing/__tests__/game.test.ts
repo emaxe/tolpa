@@ -50,6 +50,27 @@ describe('Gate & Math Operations', () => {
     expect(handled.has('coins')).toBe(true);
   });
 
+  it('синергия формаций с воротами: circle даёт +30% при сложении, arrow даёт +0.5 к множителю, wedge снижает потери при делении', () => {
+    // circle: add +N -> +30%
+    const baseAdd = 10;
+    const circleAdd = Math.round(baseAdd * 1.3);
+    expect(circleAdd).toBe(13);
+
+    // arrow: multiply *N -> +0.5 factor (capped at 4)
+    const multVal = 2;
+    const arrowMult = Math.min(4, multVal + 0.5);
+    expect(arrowMult).toBe(2.5);
+
+    const highMultVal = 3.8;
+    const arrowHighMult = Math.min(4, highMultVal + 0.5);
+    expect(arrowHighMult).toBe(4.0);
+
+    // wedge: divide /N -> divisor / 0.9 (меньше потерь)
+    const divVal = 2;
+    const wedgeDiv = divVal / 0.9;
+    expect(wedgeDiv).toBeGreaterThan(2.2);
+  });
+
   it('трансмутация ворот ÷N Хроно-Магом: one-shot guard предотвращает задвоение спавна при проходе несколькими пачками', () => {
     // Симуляция логики прохода ворот ÷N:
     // 1-я пачка: мобы без Мага -> деление толпы

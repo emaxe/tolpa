@@ -53,9 +53,9 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
 
     const unsubGate = eventBus.on(
       'gatePassed',
-      (data: { op?: string; netChange?: number; comboStreak?: number; x?: number; z?: number }) => {
+      (data: { op?: string; netChange?: number; comboStreak?: number; x?: number; z?: number; perk?: string | null }) => {
         if (!data || typeof data.netChange !== 'number' || data.netChange === 0) return;
-        const { op, netChange, comboStreak = 0, x = 0, z = 0 } = data;
+        const { op, netChange, comboStreak = 0, x = 0, z = 0, perk } = data;
         // Мистические ворота (риск/награда) получают отдельный яркий фидбек — игрок
         // должен видеть, что исход был случайным, а не обычным приростом/потерей.
         if (op === 'mystery') {
@@ -82,6 +82,16 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
           text,
           netChange > 0 ? (comboStreak >= 3 ? 'text-emerald-300 font-extrabold' : 'text-emerald-400') : 'text-red-400'
         );
+
+        if (perk) {
+          if (perk === 'arrow_mult') {
+            spawn(x, z - 1.0, i18n.t('perkArrowGate', 'СТРЕЛА: ×+0.5'), 'text-cyan-300 font-bold drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]');
+          } else if (perk === 'circle_add') {
+            spawn(x, z - 1.0, i18n.t('perkCircleGate', 'ФАЛАНГА: +30%'), 'text-emerald-300 font-bold drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]');
+          } else if (perk === 'wedge_div') {
+            spawn(x, z - 1.0, i18n.t('perkWedgeGate', 'КЛИН: -10% ПОТЕРЬ'), 'text-purple-300 font-bold drop-shadow-[0_0_8px_rgba(168,85,247,0.9)]');
+          }
+        }
       }
     );
 
