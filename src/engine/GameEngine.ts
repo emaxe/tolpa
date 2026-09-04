@@ -3013,7 +3013,11 @@ export class GameEngine {
       progress: this.isEndless ? 0 : clamp(this.crowd.leaderZ / len, 0, 1),
       metersLeft: this.isEndless ? -1 : Math.max(0, Math.round(len - this.crowd.leaderZ)),
       bossProgress: bossArenaZ > 0 ? clamp(bossArenaZ / len, 0, 1) : -1,
-      bossDistance: bossArenaZ > 0 ? Math.max(0, Math.round(bossArenaZ - this.crowd.leaderZ)) : -1,
+      // Чип приближения босса в HUD работает и в Бесконечном режиме: раньше
+      // bossDistance в эндлессе всегда был -1 — игрок не видел, что впереди арена.
+      bossDistance: bossArenaZ > 0 && bossArenaZ !== Infinity
+        ? Math.max(0, Math.round(bossArenaZ - this.crowd.leaderZ))
+        : -1,
       nextHazardDistance: this.obstacles.getNextHazardDistance(this.crowd.leaderZ),
       distanceTraveled: Math.max(0, Math.round(this.crowd.leaderZ)),
       fps: perfMonitor.getFPS(),

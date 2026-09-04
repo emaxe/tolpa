@@ -741,6 +741,14 @@ export class BossManager {
     this.defeatBurstTimer = 0;
     this.hitFlashTimer = 0;
     this.retaliationTelegraphed = false;
+    // Раньше clear() не сбрасывал фазу атаки — если босс был повержен ВО ВРЕМЯ
+    // фазы исполнения атаки, isAttacking=true и attackTimer протекали в следующий
+    // бой: первая атака нового босса шла без телеграфа (фантомный лазер без урона,
+    // minion-тики без предупреждения).
+    this.isAttacking = false;
+    this.attackTimer = 0;
+    this.minionTickAccum = 0;
+    this.retaliationTimer = 0;
     this.isCoolingDown = false;
     this.attackCooldown = 0;
     this.currentAttackIndex = 0;
