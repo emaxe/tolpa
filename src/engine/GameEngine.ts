@@ -234,6 +234,7 @@ export class GameEngine {
   private unsubBossShieldBlocked: (() => void) | null = null;
   private unsubBossShieldPierced: (() => void) | null = null;
   private unsubBossShieldChanged: (() => void) | null = null;
+  private unsubBossEnraged: (() => void) | null = null;
   private unsubComboBreak: (() => void) | null = null;
   private unsubFinishStep: (() => void) | null = null;
   private unsubCrowdMilestone: (() => void) | null = null;
@@ -672,6 +673,12 @@ export class GameEngine {
       this.particles.emitBurst(0, 1.2, bz, 18, 0x22d3ee, 5.0);
       this.particles.emitShockwave(0, bz, 0x22d3ee);
       soundEngine.playSound('boss_shield_blocked');
+    });
+
+    // Ярость босса: 3D-фидбек движка — второй ударный столб + хаптик. Световой столб
+    // уже эмитится в BossManager.triggerEnrage; здесь хаптик-эскалация фазы.
+    this.unsubBossEnraged = eventBus.on('bossEnraged', () => {
+      this.triggerHaptic([60, 40, 60]);
     });
 
     // Аудиовизуальный фидбек классовых способностей (Уворот Ниндзя, Блок Щита Танка, Трансмутация Мага)
@@ -3095,6 +3102,7 @@ export class GameEngine {
     this.unsubBossShieldBlocked?.();
     this.unsubBossShieldPierced?.();
     this.unsubBossShieldChanged?.();
+    this.unsubBossEnraged?.();
     this.unsubSettings?.();
     this.unsubFormation?.();
     this.unsubClassAbility?.();

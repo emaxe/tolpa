@@ -575,7 +575,7 @@ export class BossManager {
     // Фаза ярости: при первом пересечении порога HP <= 45% босс впадает в ярость
     // (ускорение атак + красная аура + баннер-тост). Однократно за бой.
     if (!this.isEnraged && this.bossData.hp <= this.bossData.maxHp * BossManager.ENRAGE_HP_THRESHOLD) {
-      this.triggerEnrage();
+      this.triggerEnrage(particles);
     }
 
     // Фидбек-фикции гейтим ~6 Гц: меле-урон толпы приходит каждый кадр (60 Гц),
@@ -654,7 +654,7 @@ export class BossManager {
 
   /** Включает фазу ярости босса (однократно при HP <= 45%): ускоряет перезарядку
    *  атак, сокращает окно телеграфа и даёт красную ауру возмездия + баннер-тост. */
-  private triggerEnrage(): void {
+  private triggerEnrage(particles: ParticleSystem): void {
     if (this.isEnraged || this.enrageTelegraphed) return;
     this.isEnraged = true;
     this.enrageTelegraphed = true;
@@ -672,6 +672,8 @@ export class BossManager {
     }
     soundEngine.playSound('boss_roar', 1.25);
     eventBus.emit('screenShake', { intensity: 0.65 });
+    // Световой столб ярости: 3D-акцент над ареной (раньше был только HUD-тост).
+    particles.emitLightPillar(0, this.bossArenaZ, 44, 0xff0055);
     eventBus.emit('bossEnraged', { boss: this.bossData });
   }
 

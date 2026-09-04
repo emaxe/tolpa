@@ -310,6 +310,28 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       }
     );
 
+    // Ярость босса (HP <= 45%): 3D-надпись над ареной. Событие раньше потреблял
+    // только HUD (2D-тост) — 3D-фидбек над головой босса усиливает драматизм фазы.
+    // Паттерн как у bossDamaged: проекция y=4.5 (над головой босса ~5м).
+    const unsubBossEnraged = eventBus.on(
+      'bossEnraged',
+      (data: { boss?: { z?: number } }) => {
+        const eng = engine.current;
+        if (!eng) return;
+        const z = data?.boss?.z ?? 0;
+        const pos = eng.projectToScreen(0, 4.5, z);
+        const id = idRef.current++;
+        setItems((prev) => [...prev.slice(-24), {
+          id, text: i18n.t('bossEnraged'),
+          colorClass: 'text-rose-400 font-black text-2xl drop-shadow-[0_0_12px_rgba(244,63,94,1)]',
+          x: pos.x, y: pos.y,
+        }]);
+        window.setTimeout(() => {
+          setItems((prev) => prev.filter((it) => it.id !== id));
+        }, 1100);
+      }
+    );
+
     // 3D-бейдж при смене боевого построения: название строя всплывает над толпой.
     // Событие formationChanged эмитится CrowdManager.setFormation, но FloatingText
     // раньше не потреблял его — игрок видел только звук + частицы, без текстовой
@@ -431,6 +453,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubBossDamaged();
       unsubBossShieldBlocked();
       unsubBossShieldPierced();
+      unsubBossEnraged();
       unsubFormation();
       unsubFinishStep();
       unsubClassAbility();
