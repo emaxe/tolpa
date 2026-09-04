@@ -2935,11 +2935,18 @@ export class GameEngine {
   }
 
   // Световые лучи (покачивание), флаги (sin-волна) и дроны (дрейф по X). 0-GC.
+  // Spatial culling: как и decorAnimated, лучи/флаги/дроны анимируются только в
+  // видимом окне вокруг толпы — на трассе 600м это ~90 объектов, из которых видна
+  // лишь пятая часть. Анимация абсолютная (фаза от t), при возврате в окно
+  // позиция корректна без накопления состояния.
   private animateBeamsFlagsDrones(dt: number): void {
     const t = performance.now() * 0.001;
+    const leaderZ = this.crowd.leaderZ;
 
     for (let i = 0; i < this.beamMeshes.length; i++) {
       const beam = this.beamMeshes[i];
+      const bdz = beam.position.z - leaderZ;
+      if (bdz > GameEngine.DECOR_ANIM_CULL_AHEAD || bdz < -GameEngine.DECOR_ANIM_CULL_BACK) continue;
       const baseY = (beam.userData.baseY as number) ?? 4.5;
       const phase = (beam.userData.phase as number) ?? 0;
       beam.position.y = baseY + Math.sin(t * 0.8 + phase) * 0.4;
@@ -2948,6 +2955,8 @@ export class GameEngine {
 
     for (let i = 0; i < this.flagMeshes.length; i++) {
       const flag = this.flagMeshes[i];
+      const fdz = flag.position.z - leaderZ;
+      if (fdz > GameEngine.DECOR_ANIM_CULL_AHEAD || fdz < -GameEngine.DECOR_ANIM_CULL_BACK) continue;
       const phase = (flag.userData.phase as number) ?? 0;
       const baseX = (flag.userData.baseX as number) ?? flag.position.x;
       flag.rotation.y = Math.sin(t * 2.2 + phase) * 0.35;
@@ -2956,6 +2965,8 @@ export class GameEngine {
 
     for (let i = 0; i < this.droneMeshes.length; i++) {
       const drone = this.droneMeshes[i];
+      const ddz = drone.position.z - leaderZ;
+      if (ddz > GameEngine.DECOR_ANIM_CULL_AHEAD || ddz < -GameEngine.DECOR_ANIM_CULL_BACK) continue;
       const phase = (drone.userData.phase as number) ?? 0;
       const baseX = (drone.userData.baseX as number) ?? drone.position.x;
       const baseY = (drone.userData.baseY as number) ?? 4.0;

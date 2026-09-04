@@ -352,6 +352,10 @@ export class GateManager {
         }
         if (isFirstTrigger && netChange > 0) soundEngine.playSound('gate_pass_positive');
         if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 25 : 6, 0xa855f7, netChange > 0 ? 5.0 : 2.0);
+        // Перк удачи Овала: 85% вместо 60% на mystery-воротах. Прошлая удача
+        // игрока молча повышала шанс без фидбека — всплывающий текст делает
+        // повышенный шанс видимым (тот же канал, что у остальных перков формаций).
+        if (crowd.formation === 'oval' && isFirstTrigger && netChange > 0) perk = 'oval_luck';
         isPositive = true;
       } else {
         // Штраф ÷N (≈40% Mystery). Хроно-Маг трансмутирует и его (BALANCE.md «маг
