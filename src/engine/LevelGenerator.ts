@@ -20,6 +20,18 @@ import { TRACK_RAIL_MARGIN } from '../utils/math';
 export const DEFAULT_TRACK_WIDTH = 16;
 export const GATE_CLEARANCE = 10.5;
 
+/** Цель толпы для победы уровня (детерминированная формула генератора, вынесена для звёзд и HUD). */
+export function getTargetMobsToWin(levelNum: number): number {
+  return Math.min(100, 8 + Math.floor(levelNum * 1.8));
+}
+
+/** Звёзды за финиш по доле выжившей толпы от цели уровня: >=100% → 3, >=60% → 2, иначе 1. */
+export function getStarsForFinish(remainingMobs: number, targetMobsToWin: number): number {
+  if (remainingMobs >= targetMobsToWin) return 3;
+  if (remainingMobs >= Math.ceil(targetMobsToWin * 0.6)) return 2;
+  return 1;
+}
+
 function createRng(seed: number) {
   let s = (seed * 1664525 + 1013904223) | 0;
   return () => {
@@ -122,7 +134,7 @@ export class LevelGenerator {
     const events: LevelDynamicEvent[] = [];
 
     const startingMobs = 8;
-    const targetMobsToWin = Math.min(100, 8 + Math.floor(levelNum * 1.8));
+    const targetMobsToWin = getTargetMobsToWin(levelNum);
 
     // -------------------------------------------------------------
     // ЭТАП 3: НЕЗАВИСИМЫЕ ВОРОТА (add/divide) и СТЕНЫ (−N со счётчиком)

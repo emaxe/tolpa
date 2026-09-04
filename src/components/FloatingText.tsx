@@ -88,6 +88,8 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
             spawn(x, z - 1.0, i18n.t('perkArrowGate', 'СТРЕЛА: ×+0.5'), 'text-cyan-300 font-bold drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]');
           } else if (perk === 'circle_add') {
             spawn(x, z - 1.0, i18n.t('perkCircleGate', 'ФАЛАНГА: +30%'), 'text-emerald-300 font-bold drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]');
+          } else if (perk === 'wide_add') {
+            spawn(x, z - 1.0, i18n.t('perkWideGate', 'ШЕРЕНГА: +50%'), 'text-teal-300 font-bold drop-shadow-[0_0_8px_rgba(45,212,191,0.8)]');
           } else if (perk === 'wedge_div') {
             spawn(x, z - 1.0, i18n.t('perkWedgeGate', 'КЛИН: -10% ПОТЕРЬ'), 'text-purple-300 font-bold drop-shadow-[0_0_8px_rgba(168,85,247,0.9)]');
           } else if (perk === 'diamond_div') {

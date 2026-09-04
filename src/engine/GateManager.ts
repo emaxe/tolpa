@@ -284,13 +284,20 @@ export class GateManager {
       // (при первом прошедшем мобе) — не на каждого прошедшего. Раньше executeGateEffect
       // вызывался каждый кадр, пока толпа тянулась через проём, и addMobsNear выполнялся
       // заново на каждый кадр → лавинное добавление «на каждого человечка».
-      // Синергия формаций: Фаланга (circle) даёт +30% бойцов при сложении.
-      const addVal = crowd.formation === 'circle' ? Math.round(val * 1.3) : val;
+      // Синергии формаций: Фаланга (circle) +30% при сложении, Шеренга (wide) — двойной проход
+      // шеренги через add-ворота (+50%): линия охватывает оба крыла, ворота «прожимаются» дважды.
+      const addVal = crowd.formation === 'circle'
+        ? Math.round(val * 1.3)
+        : crowd.formation === 'wide'
+          ? Math.round(val * 1.5)
+          : val;
       let base = 0;
       if (isFirstTrigger) {
         base = crowd.addMobsNear(addVal, gateX, gateZ);
         if (crowd.formation === 'circle') {
           perk = 'circle_add';
+        } else if (crowd.formation === 'wide') {
+          perk = 'wide_add';
         }
       }
       if (base > 0) {

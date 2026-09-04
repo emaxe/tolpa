@@ -12,6 +12,8 @@ interface LevelEndModalProps {
   stars: number;
   runStats: RunStats | null;
   sacrificedTotal?: number;
+  coinsEarned?: number;
+  gemsEarned?: number;
   isEndless?: boolean;
   endless?: { distance: number; isNewRecord: boolean; coinsEarned: number };
   onNextLevel: () => void;
@@ -29,6 +31,8 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
   stars,
   runStats,
   sacrificedTotal,
+  coinsEarned: coinsEarnedProp,
+  gemsEarned: gemsEarnedProp,
   isEndless = false,
   endless,
   onNextLevel,
@@ -36,8 +40,10 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
   onHome,
   onOpenShop,
 }) => {
-  const coinsEarned = isVictory ? Math.round(score * 0.5) : 25;
-  const gemsEarned = isVictory && levelNumber % 10 === 0 ? 10 : isVictory ? 2 : 0;
+  // Фактически начисленная награда приходит из App (уже с множителем экономики, как в балансе).
+  // Fallback на старую формулу для совместимости прямых вызовов.
+  const coinsEarned = coinsEarnedProp ?? (isVictory ? Math.round(score * 0.5) : 25);
+  const gemsEarned = gemsEarnedProp ?? (isVictory && levelNumber % 10 === 0 ? 10 : isVictory ? 2 : 0);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-100/85 backdrop-blur-md select-none animate-fade-in">

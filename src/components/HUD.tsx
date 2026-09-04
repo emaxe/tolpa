@@ -495,7 +495,7 @@ export const HUD: React.FC<HUDProps> = ({
               текущий строй, чтобы выбор формации читался как тактический инструмент. */}
           <div className="bg-slate-100/80 backdrop-blur-md border border-slate-300 rounded-lg px-2.5 py-1 text-[10px] font-orbitron font-bold text-teal-700 max-sm:hidden">
             {currentFormation === 'wedge' && '🛡️ Урон −40%'}
-            {currentFormation === 'wide' && '🧲 Охват сбора +60%'}
+            {currentFormation === 'wide' && '🧲 Охват +60% · Сложение +50%'}
             {currentFormation === 'circle' && '💥 Таран боссов ×1.35 · Стен ×2'}
             {currentFormation === 'arrow' && '⚡ Скорость +15%'}
             {currentFormation === 'oval' && '⚖️ Баланс · Универсальный строй'}

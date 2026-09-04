@@ -669,6 +669,11 @@ export class StateManager {
     return this.run;
   }
 
+  /** Публичный множитель экономики (1 + уровень апгрейда * 0.15) — единый источник для commitRun/addCoins/UI. */
+  public getIncomeMultiplier(): number {
+    return 1 + this.state.upgrades.incomeMultiplier * 0.15;
+  }
+
   /** Суммарное число монет, собранных в текущем активном забеге (трасса + награда за босса).
    *  Сырое значение ДО множителя экономики (incomeMultiplier применяется в commitRun). */
   public getRunCoins(): number {
@@ -759,7 +764,7 @@ export class StateManager {
     if (!r) return;
     this.run = null;
 
-    const incomeMultiplier = 1 + this.state.upgrades.incomeMultiplier * 0.15;
+    const incomeMultiplier = this.getIncomeMultiplier();
     const earnedCoins = Math.round((r.coins + r.bossCoins) * incomeMultiplier);
 
     this.state.coins += earnedCoins;
@@ -887,7 +892,7 @@ export class StateManager {
 
   // Currency
   public addCoins(amount: number): void {
-    const incomeMultiplier = 1 + (this.state.upgrades.incomeMultiplier * 0.15);
+    const incomeMultiplier = this.getIncomeMultiplier();
     const finalAmount = Math.round(amount * incomeMultiplier);
     this.state.coins += finalAmount;
     this.state.stats.totalCoinsEarned += finalAmount;

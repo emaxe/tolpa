@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LevelGenerator, DEFAULT_TRACK_WIDTH } from '../../engine/LevelGenerator';
+import { LevelGenerator, DEFAULT_TRACK_WIDTH, getTargetMobsToWin, getStarsForFinish } from '../../engine/LevelGenerator';
 import { StateManager } from '../../core/StateManager';
 import { ObjectPool, Poolable } from '../../core/ObjectPool';
 import { calculateFormationOffset, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact } from '../../utils/math';
@@ -69,6 +69,36 @@ describe('Gate & Math Operations', () => {
     const divVal = 2;
     const wedgeDiv = divVal / 0.9;
     expect(wedgeDiv).toBeGreaterThan(2.2);
+
+    // wide: add +N -> +50% (шеренга прожимает оба крыла ворот)
+    const wideAdd = Math.round(baseAdd * 1.5);
+    expect(wideAdd).toBe(15);
+  });
+
+  it('звёзды по цели уровня: getTargetMobsToWin детерминирован, getStarsForFinish по доле от цели', () => {
+    // Формула цели уровня (детерминированная, кап 100).
+    expect(getTargetMobsToWin(1)).toBe(9);
+    expect(getTargetMobsToWin(10)).toBe(26);
+    expect(getTargetMobsToWin(50)).toBe(98);
+    expect(getTargetMobsToWin(100)).toBe(100);
+
+    // 100% цели → 3 звезды; 60% → 2; меньше → 1. Старый хардкод 60/20 не учитывал цель.
+    expect(getStarsForFinish(9, 9)).toBe(3);    // L1: 9 из 9 — тройка (раньше была 1)
+    expect(getStarsForFinish(6, 9)).toBe(2);    // ceil(9*0.6)=6
+    expect(getStarsForFinish(5, 9)).toBe(1);
+    expect(getStarsForFinish(98, 98)).toBe(3);
+    expect(getStarsForFinish(59, 98)).toBe(2);  // ceil(58.8)=59
+    expect(getStarsForFinish(58, 98)).toBe(1);
+  });
+
+  it('множитель экономики единый: getIncomeMultiplier синхронен формулам commitRun/addCoins', () => {
+    const mgr = StateManager.getInstance();
+    mgr.resetProgress();
+    // Уровень апгрейда 0 → множитель 1.
+    expect(mgr.getIncomeMultiplier()).toBe(1);
+    // Формула: 1 + уровень * 0.15 (кап уровней до 10 в UI, формула не ограничена).
+    mgr.upgradeStat('incomeMultiplier');
+    expect(mgr.getIncomeMultiplier()).toBeCloseTo(1.15);
   });
 
   it('трансмутация ворот ÷N Хроно-Магом: one-shot guard предотвращает задвоение спавна при проходе несколькими пачками', () => {

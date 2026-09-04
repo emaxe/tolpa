@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { GamePhase, DialogueLine } from './types/game';
 import { stateManager, RunStats } from './core/StateManager';
+import { getTargetMobsToWin, getStarsForFinish } from './engine/LevelGenerator';
 import { GameCanvas } from './components/GameCanvas';
 import { MainMenu } from './components/MainMenu';
 import { DialogueModal } from './components/DialogueModal';
@@ -32,6 +33,8 @@ export const App: React.FC = () => {
     stars: number;
     runStats: RunStats | null;
     sacrificedTotal?: number;
+    coinsEarned?: number;
+    gemsEarned?: number;
     endless?: { distance: number; isNewRecord: boolean; coinsEarned: number };
   } | null>(null);
 
@@ -137,11 +140,12 @@ export const App: React.FC = () => {
 
   const handleLevelWon = useCallback(
     (score: number, mult: number, remainingMobs: number, sacrificed: number, runStats: RunStats) => {
-      const stars = remainingMobs >= 60 ? 3 : remainingMobs >= 20 ? 2 : 1;
-      const coinsEarned = Math.round(score * 0.5);
+      const target = getTargetMobsToWin(activeLevel);
+      const stars = getStarsForFinish(remainingMobs, target);
+      const coinsEarned = Math.round((score * 0.5) * stateManager.getIncomeMultiplier());
       const gemsEarned = activeLevel % 10 === 0 ? 10 : 2;
 
-      stateManager.addCoins(coinsEarned);
+      stateManager.addCoins(Math.round(score * 0.5));
       if (gemsEarned > 0) {
         stateManager.addGems(gemsEarned);
         soundEngine.playSound('gem_pickup');
@@ -156,6 +160,8 @@ export const App: React.FC = () => {
         stars,
         runStats,
         sacrificedTotal: sacrificed,
+        coinsEarned,
+        gemsEarned,
       });
       setPhase('level_won');
     },
@@ -172,8 +178,9 @@ export const App: React.FC = () => {
         const isNewRecord = distance > stateManager.getState().endlessHighScore;
         if (isNewRecord) stateManager.setEndlessHighScore(distance);
         // Награда за дистанцию: ~10 монет за 100 м (масштабируется с экономикой).
-        const coinsEarned = Math.floor(distance / 10);
-        if (coinsEarned > 0) stateManager.addCoins(coinsEarned);
+        const rawCoins = Math.floor(distance / 10);
+        if (rawCoins > 0) stateManager.addCoins(rawCoins);
+        const coinsEarned = Math.round(rawCoins * stateManager.getIncomeMultiplier());
         setEndResult({
           isVictory: true,
           score: distance,
@@ -181,14 +188,17 @@ export const App: React.FC = () => {
           crowdCount: runStats?.maxCrowd ?? 0,
           stars: 0,
           runStats,
+          coinsEarned,
+          gemsEarned: 0,
           endless: { distance, isNewRecord, coinsEarned },
         });
         setPhase('level_lost');
         return;
       }
       // Утешительная награда при поражении в кампании (совпадает с LevelEndModal: +25).
-      const consolationCoins = 25;
-      stateManager.addCoins(consolationCoins);
+      const rawCoins = 25;
+      stateManager.addCoins(rawCoins);
+      const coinsEarned = Math.round(rawCoins * stateManager.getIncomeMultiplier());
       setEndResult({
         isVictory: false,
         score: 0,
@@ -196,6 +206,8 @@ export const App: React.FC = () => {
         crowdCount: 0,
         stars: 0,
         runStats,
+        coinsEarned,
+        gemsEarned: 0,
       });
       setPhase('level_lost');
     },
@@ -299,6 +311,8 @@ export const App: React.FC = () => {
           stars={endResult.stars}
           runStats={endResult.runStats}
           sacrificedTotal={endResult.sacrificedTotal}
+          coinsEarned={endResult.coinsEarned}
+          gemsEarned={endResult.gemsEarned}
           isEndless={isEndless}
           endless={endResult.endless}
           onNextLevel={handleNextLevel}
