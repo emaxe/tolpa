@@ -2365,6 +2365,23 @@ export class GameEngine {
             3.5
           );
         }
+      } else if (event.type === 'speed_boost') {
+        // Ускорение: периодический циановый шлейф за толпой, пока событие активно.
+        // Раньше у speed_boost был только одноразовый бурст при старте — во время
+        // действия (до 5с при intensity 1.5+) игрок не видел, что ускорение ещё идёт.
+        // Пульс как у ambush/emp_storm — единый паттерн FX активных событий.
+        this.eventFxAccum += dt;
+        if (this.eventFxAccum >= 0.35) {
+          this.eventFxAccum = 0;
+          this.particles.emitBurst(
+            this.crowd.leaderX + (Math.random() - 0.5) * 2,
+            0.9,
+            this.crowd.leaderZ - 2.5 - Math.random() * 2,
+            10,
+            0x00f0ff,
+            3.0
+          );
+        }
       } else if (event.type === 'emp_storm') {
         // EMP-шторм: периодические фиолетовые разряды вокруг толпы, пока шторм активен.
         // Раньше у emp_storm был только одноразовый бурст при старте + перекраска ворот —

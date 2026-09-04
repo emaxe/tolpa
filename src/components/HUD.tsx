@@ -128,6 +128,10 @@ export const HUD: React.FC<HUDProps> = ({
       setBossInfo(null);
       setIsBossShielded(false);
       setEventAlert({ type: 'bossDefeated', key: Date.now() });
+      // BUGFIX: баннер победы над боссом не сбрасывался — единственный алерт без
+      // setTimeout. В бесконечном режиме «БОСС ПОВЕРЖЕН» висел на экране вечно,
+      // пока очередное событие не заменяло его. Таймаут как у остальных алертов.
+      window.setTimeout(() => setEventAlert(null), 3200);
     });
 
     // Босс проснулся (первый вход толпы в арену) — центральный баннер-тост.
