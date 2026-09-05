@@ -74,8 +74,6 @@ export class CrowdManager {
   public formation: FormationType = 'oval';
   public isHyperMode: boolean = false;
   public hyperTimer: number = 0;
-  // Текущий ввод руления [-1,1] (кэш из update) — для визуального крена толпы.
-  private steerInput: number = 0;
 
   // Игровая половина ширины трассы (trackWidth/2 - TRACK_RAIL_MARGIN) — считается в
   // update()/reset() и используется и для формации (calculateFormationOffset), и для
@@ -843,8 +841,6 @@ export class CrowdManager {
 
   public update(dt: number, speed: number, steerInput: number, trackWidth: number): void {
     this.animTime += dt * 15;
-    // Запоминаем ввод руления для визуального крена толпы (updateMobPositions).
-    this.steerInput = steerInput;
 
     // Hyper mode countdown
     if (this.isHyperMode) {
@@ -1059,11 +1055,6 @@ export class CrowdManager {
       // Setup 3D transform
       this.dummy.position.set(mob.x, mob.y, mob.z);
 
-      // Крен толпы при рулении: рысканье (yaw) + центробежный крен (roll).
-      // Чисто визуально — позиции/хитбоксы не трогаются. 0-GC (скаляры).
-      const steerYaw = this.steerInput * 0.25;
-      const steerRoll = this.steerInput * 0.18;
-
       // Покачивание корпуса (pitch вперёд), сильнее на толчке
       const lean = 0.14 + Math.max(0, stride) * 0.07;
       // Лёгкое качание по X (roll вокруг Z) + реакция на поворот строя
@@ -1084,10 +1075,10 @@ export class CrowdManager {
 
         // Позиционируем выделенную модель лидера там же, где стоит физический моб.
         this.leaderModel.position.set(mob.x, mob.y, mob.z);
-        this.leaderModel.rotation.set(lean, yaw + steerYaw, sway + steerRoll);
+        this.leaderModel.rotation.set(lean, yaw, sway);
         this.leaderModel.scale.set(s, s * sq, s);
       } else {
-        this.dummy.rotation.set(lean, yaw + steerYaw, sway + steerRoll);
+        this.dummy.rotation.set(lean, yaw, sway);
         this.dummy.scale.set(s, s * sq, s);
         this.dummy.updateMatrix();
         this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);

@@ -258,14 +258,14 @@ export class LevelGenerator {
     // -------------------------------------------------------------
     // ЭТАП 2: РИТМ УРОВНЯ, ПАТТЕРНЫ ПРЕПЯТСТВИЙ И SAFE CORRIDORS
     // -------------------------------------------------------------
-    let obsIndex = 0;
-    const baseObstacleTarget = Math.min(120, Math.floor(trackLength / 26));
-
     let sectionZ = 55;
     let lastPattern: PatternType | null = null;
     let sectionIndex = 0;
 
-    while (sectionZ < trackLength - 60 && obsIndex < baseObstacleTarget) {
+    // Генерируем препятствия до конца трассы (не обрезаем хвост счётчиком).
+    // Каждая секция продвигает sectionZ на >=26м, так что общее число препятствий
+    // естественно ограничено длиной трассы — отдельный count-кап не нужен.
+    while (sectionZ < trackLength - 60) {
       const phase = this.getPhaseInfo(sectionZ, trackLength);
 
       // Safe Corridor: каждые ~4 секции gap без ловушек (реже, чтобы не было пустых участков)
@@ -295,7 +295,6 @@ export class LevelGenerator {
         },
         phase.phaseName
       );
-      obsIndex += span.count;
       sectionZ += Math.max(26, span.spanZ);
     }
 
