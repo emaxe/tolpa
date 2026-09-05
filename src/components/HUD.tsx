@@ -103,6 +103,11 @@ export const HUD: React.FC<HUDProps> = ({
     bossAppear: { key: 'bossAppear', cls: 'border-red-500 text-red-600' },
     bossEnraged: { key: 'bossEnraged', cls: 'border-rose-600 text-rose-700' },
     bossAttackTelegraph: { key: 'bossAttackTelegraph', cls: 'border-orange-500 text-orange-600' },
+    bossAttack_slam: { key: 'bossAttackSlam', cls: 'border-orange-500 text-orange-600' },
+    bossAttack_laser: { key: 'bossAttackLaser', cls: 'border-orange-500 text-orange-600' },
+    bossAttack_minions: { key: 'bossAttackMinions', cls: 'border-orange-500 text-orange-600' },
+    bossAttack_meteors: { key: 'bossAttackMeteors', cls: 'border-orange-500 text-orange-600' },
+    bossAttack_shield: { key: 'bossAttackShield', cls: 'border-orange-500 text-orange-600' },
     newClass_tank: { key: 'newClassAppearedTank', cls: 'border-amber-400 text-amber-600' },
     newClass_ninja: { key: 'newClassAppearedNinja', cls: 'border-purple-400 text-purple-600' },
     newClass_mage: { key: 'newClassAppearedMage', cls: 'border-emerald-400 text-emerald-600' },
@@ -155,8 +160,12 @@ export const HUD: React.FC<HUDProps> = ({
     });
 
     // Телеграф атаки босса — оранжевый баннер-тост предупреждения (1800мс).
-    const unsubBossAttackTelegraph = eventBus.on('bossAttackTelegraph', () => {
-      showAlert('bossAttackTelegraph', undefined, 1800);
+    const unsubBossAttackTelegraph = eventBus.on('bossAttackTelegraph', (data: { type?: string }) => {
+      const map: Record<string, string> = {
+        slam: 'bossAttack_slam', laser: 'bossAttack_laser', minions: 'bossAttack_minions',
+        meteors: 'bossAttack_meteors', shield: 'bossAttack_shield',
+      };
+      showAlert(map[data?.type ?? ''] ?? 'bossAttackTelegraph', undefined, 1800);
     });
 
     const unsubMobsKilled = eventBus.on('mobsKilled', () => {
