@@ -104,6 +104,7 @@ export const HUD: React.FC<HUDProps> = ({
     bossAppear: { key: 'bossAppear', cls: 'border-red-500 text-red-600' },
     bossEnraged: { key: 'bossEnraged', cls: 'border-rose-600 text-rose-700' },
     bossAttackTelegraph: { key: 'bossAttackTelegraph', cls: 'border-orange-500 text-orange-600' },
+    retaliationTelegraph: { key: 'bossRetaliation', cls: 'border-rose-500 text-rose-600' },
     bossAttack_slam: { key: 'bossAttackSlam', cls: 'border-orange-500 text-orange-600' },
     bossAttack_laser: { key: 'bossAttackLaser', cls: 'border-orange-500 text-orange-600' },
     bossAttack_minions: { key: 'bossAttackMinions', cls: 'border-orange-500 text-orange-600' },
@@ -167,6 +168,11 @@ export const HUD: React.FC<HUDProps> = ({
         meteors: 'bossAttack_meteors', shield: 'bossAttack_shield',
       };
       showAlert(map[data?.type ?? ''] ?? 'bossAttackTelegraph', undefined, 1800);
+    });
+
+    // Телеграф возмездия босса — красный баннер-тост предупреждения (1400мс под цикл 1.4с).
+    const unsubRetaliation = eventBus.on('retaliationTelegraph', () => {
+      showAlert('retaliationTelegraph', undefined, 1400);
     });
 
     const unsubMobsKilled = eventBus.on('mobsKilled', () => {
@@ -246,6 +252,7 @@ export const HUD: React.FC<HUDProps> = ({
       unsubBossAppear();
       unsubBossEnraged();
       unsubBossAttackTelegraph();
+      unsubRetaliation();
       unsubMobsKilled();
       unsubEvent();
       unsubNearMissMilestone();

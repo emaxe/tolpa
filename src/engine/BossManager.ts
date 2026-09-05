@@ -430,6 +430,11 @@ export class BossManager {
         this.retaliationTelegraphed = true;
         this.particles.emitShockwave(0, this.bossArenaZ - 4.5, 0xf59e0b);
         this.particles.emitBurst(0, 1.0, this.bossArenaZ - 4.0, 12, 0xf59e0b, 2.5, 0.5);
+        // Аудио-визуальный телеграф возмездия: звук + HUD-баннер, чтобы игрок успел
+        // перестроить толпу в безопасную формацию (phalanx/circle). Раньше был только
+        // визуальный янтарный круг — без звука и баннера игрок не замечал предупреждение.
+        soundEngine.playSound('boss_attack_telegraph', 1, 0.8);
+        eventBus.emit('retaliationTelegraph');
       }
       if (this.retaliationTimer <= 0) {
         this.retaliationTimer = 1.4;
