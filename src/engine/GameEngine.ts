@@ -192,6 +192,9 @@ export class GameEngine {
   // Крен камеры при рулении (banking): мир наклоняется в сторону поворота.
   // Применяется как rotation.z СТРОГО ПОСЛЕ camera.lookAt (lookAt затирает roll).
   private cameraBank: number = 0;
+  // Предыдущий крен — для композиции через rotateZ(delta) вместо прямой записи
+  // rotation.z (прямая запись euler-угла пересчитывает quaternion и затирает lookAt).
+  private lastCameraBank: number = 0;
 
   // Screen shake
   private screenShakeIntensity: number = 0;
@@ -1139,6 +1142,7 @@ export class GameEngine {
     this.camera.fov = GameEngine.FOV_BASE;
     this.camera.updateProjectionMatrix();
     this.cameraBank = 0;
+    this.lastCameraBank = 0;
     this.trackOffsetZ = 0;
     this.lastCrowdMilestone = 0;
     this.crowdLowWarned = false;
@@ -1217,6 +1221,7 @@ export class GameEngine {
     this.camera.fov = GameEngine.FOV_BASE;
     this.camera.updateProjectionMatrix();
     this.cameraBank = 0;
+    this.lastCameraBank = 0;
     this.trackOffsetZ = 0;
     this.lastCrowdMilestone = 0;
     this.crowdLowWarned = false;
@@ -2763,9 +2768,15 @@ export class GameEngine {
       this.steerInput * GameEngine.CAMERA_BANK_MAX,
       GameEngine.CAMERA_BANK_LERP * dt
     );
-    if (Math.abs(this.cameraBank) > 0.0005) {
-      this.camera.rotation.z = this.cameraBank;
+    // Композиция крена ПОВЕРХ lookAt-ориентации: вращаем камеру вокруг её локальной
+    // оси Z на дельту от предыдущего крена. Прямая запись rotation.z пересчитывает
+    // quaternion из euler (0,0,bank) и затирает lookAt → камера разворачивается назад,
+    // экран зеркалится. rotateZ(delta) сохраняет lookAt и добавляет только roll.
+    const bankDelta = this.cameraBank - this.lastCameraBank;
+    if (Math.abs(bankDelta) > 0.0005) {
+      this.camera.rotateZ(bankDelta);
     }
+    this.lastCameraBank = this.cameraBank;
 
     // Animate floating energy orbs (bob + gentle spin), rings, biome scenery
     // (scenerySpin), pulse columns, pylon light-wave and monolith orbitals.
