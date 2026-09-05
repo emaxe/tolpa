@@ -253,12 +253,12 @@ export class GameEngine {
   private unsubComboBreak: (() => void) | null = null;
   private unsubFinishStep: (() => void) | null = null;
   private unsubCrowdMilestone: (() => void) | null = null;
-  private unsubEndlessRecordBeaten: (() => void) | null = null;
   private unsubSettings: (() => void) | null = null;
   private unsubFormation: (() => void) | null = null;
   private unsubClassAbility: (() => void) | null = null;
   private unsubFormationDefend: (() => void) | null = null;
   private unsubNewClass: (() => void) | null = null;
+  private unsubEndlessRecord: (() => void) | null = null;
   private unsubAchievementReady: (() => void) | null = null;
   private unsubBiomeEntered: (() => void) | null = null;
   // Haptic: троттлинг частых событий (coinCollected, bossDamaged) — не чаще 40мс.
@@ -533,15 +533,6 @@ export class GameEngine {
       this.triggerHaptic([30, 40, 30, 40]);
     });
 
-    // Рекорд бесконечного режима побит: золотой салют частиц, ликование толпы, тряска.
-    this.unsubEndlessRecordBeaten = eventBus.on('endlessRecordBeaten', () => {
-      const z = this.crowd.leaderZ;
-      this.particles.emitBurst(this.crowd.leaderX, 1.2, z, 20, 0xfacc15, 4.0);
-      soundEngine.playCrowdCheer(0.8);
-      eventBus.emit('screenShake', { intensity: 0.2 });
-      this.triggerHaptic([20, 30, 20]);
-    });
-
     // Живое применение настроек графики: смена качества/теней в настройках сразу
     // влияет на рендер, без перезапуска забега.
     this.unsubSettings = eventBus.on('settingsChanged', () => this.applyGraphicsSettings());
@@ -777,6 +768,19 @@ export class GameEngine {
         this.triggerHaptic([25, 20, 40]);
       }
     );
+
+    // Праздничный 3D-фидбек побития рекорда бесконечного режима (endlessRecordBeaten):
+    // золотой световой столб, ударная волна, бурст частиц, ликование толпы и хаптика
+    // у позиции лидера. Событие эмитится StateManager ровно один раз за забег.
+    this.unsubEndlessRecord = eventBus.on('endlessRecordBeaten', () => {
+      const x = this.crowd.leaderX;
+      const z = this.crowd.leaderZ;
+      this.particles.emitLightPillar(x, z, 40, 0xfacc15);
+      this.particles.emitShockwave(x, z, 0xfacc15);
+      this.particles.emitBurst(x, 1.6, z, 28, 0xfacc15, 5.0);
+      soundEngine.playCrowdCheer(0.9);
+      this.triggerHaptic([40, 30, 50]);
+    });
 
     // 3D-фидбек готового достижения (achievementReady): световой столб, ударная
     // волна, бурст частиц, акцентный звук и хаптика у позиции лидера толпы.
@@ -3199,7 +3203,6 @@ export class GameEngine {
     this.unsubComboBreak?.();
     this.unsubFinishStep?.();
     this.unsubCrowdMilestone?.();
-    this.unsubEndlessRecordBeaten?.();
     this.unsubAdrenaline?.();
     this.unsubAdrenalineEnded?.();
     this.unsubBonusCollected?.();
@@ -3216,6 +3219,7 @@ export class GameEngine {
     this.unsubClassAbility?.();
     this.unsubFormationDefend?.();
     this.unsubNewClass?.();
+    this.unsubEndlessRecord?.();
     this.unsubAchievementReady?.();
     this.unsubBiomeEntered?.();
 

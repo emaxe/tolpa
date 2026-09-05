@@ -304,6 +304,11 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       spawnScreen(i18n.t(cfg.key, cfg.fallback), cfg.colorClass, -50);
     });
 
+    // Побитие рекорда бесконечного режима — золотая праздничная плашка по центру.
+    const unsubEndlessRecord = eventBus.on('endlessRecordBeaten', () => {
+      spawnScreen(i18n.t('endlessRecordBeaten'), 'text-yellow-300 font-extrabold text-lg drop-shadow-[0_0_10px_rgba(250,204,21,0.9)]');
+    });
+
     // Покупка апгрейда: всплывающая плашка в центре экрана.
     // Событие upgradePurchased эмитится StateManager, но раньше никем не потреблялось.
     const unsubUpgrade = eventBus.on('upgradePurchased', (data: { upgradeKey?: string; level?: number }) => {
@@ -499,6 +504,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubFormationDefend();
       unsubNewClass();
       unsubBiomeEntered();
+      unsubEndlessRecord();
     };
   }, [engine]);
 
