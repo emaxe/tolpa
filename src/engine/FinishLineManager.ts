@@ -5,6 +5,7 @@ import { soundEngine } from '../audio/SoundEngine';
 import { eventBus } from '../core/EventBus';
 import { stateManager } from '../core/StateManager';
 import { createFinishWallTexture } from '../utils/proceduralMeshes';
+import { getFinishWallCost } from '../utils/math';
 import confetti from 'canvas-confetti';
 
 interface WallStep {
@@ -151,10 +152,12 @@ export class FinishLineManager {
         const step = this.wallSteps[this.finalStepIndex];
 
         if (crowdZ >= step.z - 1.0 && !step.smashed) {
-          if (mobCount > step.costMobs) {
+          // Перк Шеренги (wide): прорыв широким фронтом — жертвует на 20% меньше.
+          const effectiveCost = getFinishWallCost(step.costMobs, crowd.formation);
+          if (mobCount > effectiveCost) {
             // Жертвуем легионеров на кинетический прорыв стены — толпа реально редеет.
             // Строгое условие > гарантирует, что после жертвы останется минимум 1 живой.
-            const sacrificed = crowd.consumeMobs(step.costMobs);
+            const sacrificed = crowd.consumeMobs(effectiveCost);
             this.sacrificedTotal += sacrificed;
 
             // Smash wall!
@@ -166,8 +169,13 @@ export class FinishLineManager {
             particles.emitBurst(0, 1.5, step.z, 35, 0x00f0ff, 6.0);
             eventBus.emit('screenShake', { intensity: 0.35 });
 
-            // Эмитим событие пробития финишной ступени
-            eventBus.emit('finishStepSmashed', { multiplier: step.multiplier, x: 0, z: step.z });
+            // Эмитим событие пробития финишной ступени (perk — для второго floating-text)
+            eventBus.emit('finishStepSmashed', {
+              multiplier: step.multiplier,
+              x: 0,
+              z: step.z,
+              perk: crowd.formation === 'wide' ? 'wide_finish' : null,
+            });
 
             // Красная вспышка урона + плавающий текст потерь при жертве.
             if (sacrificed > 0) {
@@ -236,10 +244,10 @@ export class FinishLineManager {
    * Стоимость следующей стены в легионерах для HUD-индикатора финишной фазы.
    * Возвращает -1, если финиш не активен (черта не пересечена) или все стены пробиты.
    */
-  public getNextWallCost(): number {
+  public getNextWallCost(formation?: CrowdManager['formation']): number {
     if (!this.hasCrossedFinish) return -1;
     if (this.finalStepIndex >= this.wallSteps.length) return -1;
-    return this.wallSteps[this.finalStepIndex].costMobs;
+    return getFinishWallCost(this.wallSteps[this.finalStepIndex].costMobs, formation);
   }
 
   public clear(): void {

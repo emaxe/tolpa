@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { LevelGenerator, DEFAULT_TRACK_WIDTH, getTargetMobsToWin, getStarsForFinish } from '../../engine/LevelGenerator';
 import { StateManager } from '../../core/StateManager';
 import { ObjectPool, Poolable } from '../../core/ObjectPool';
-import { calculateFormationOffset, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact } from '../../utils/math';
+import { calculateFormationOffset, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT } from '../../utils/math';
 
 describe('Gate & Math Operations', () => {
   it('выполняет сложение мобов (+15 к 10 = 25)', () => {
@@ -1018,6 +1018,39 @@ describe('Kinetic Wall Impact & Damage Accounting', () => {
 
     const hyperMob = { type: 'tank', shieldHp: 2, hp: 3, alive: true };
     expect(computeWallImpact(hyperMob, 'circle', true).damageDealt).toBe(0);
+  });
+});
+
+describe('Finish Line & Multiplier Wall Perks', () => {
+  it('формация wide (Шеренга) снижает стоимость стен на 20% с гарантированным минимумом 1', () => {
+    const baseCosts = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15];
+    const expectedWideCosts = [1, 2, 2, 3, 4, 5, 6, 8, 10, 12];
+
+    baseCosts.forEach((cost, idx) => {
+      expect(getFinishWallCost(cost, 'wide')).toBe(expectedWideCosts[idx]);
+    });
+
+    // Другие формации платят полную стоимость 1:1
+    const otherFormations: Array<'oval' | 'circle' | 'arrow' | 'wedge' | 'diamond'> = ['oval', 'circle', 'arrow', 'wedge', 'diamond'];
+    for (const f of otherFormations) {
+      baseCosts.forEach((cost) => {
+        expect(getFinishWallCost(cost, f)).toBe(cost);
+      });
+    }
+
+    // Суммарная экономия мобов (66 -> 53, экономия 13)
+    const totalBase = baseCosts.reduce((a, b) => a + b, 0);
+    const totalWide = baseCosts.map((c) => getFinishWallCost(c, 'wide')).reduce((a, b) => a + b, 0);
+    expect(totalBase).toBe(66);
+    expect(totalWide).toBe(53);
+    expect(totalBase - totalWide).toBe(13);
+    expect(WIDE_FINISH_DISCOUNT).toBe(0.8);
+  });
+
+  it('граничные случаи: 0 или отрицательная базовая стоимость возвращают 0', () => {
+    expect(getFinishWallCost(0, 'wide')).toBe(0);
+    expect(getFinishWallCost(-5, 'wide')).toBe(0);
+    expect(getFinishWallCost(1, 'wide')).toBe(1);
   });
 });
 

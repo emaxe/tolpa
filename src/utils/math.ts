@@ -307,3 +307,19 @@ export function computeWallImpact(
   mob.alive = false;
   return { damageDealt, killed: true };
 }
+
+/**
+ * Чистая функция расчёта стоимости пробития ступени финишной стены множителей
+ * с учётом перка формации. Шеренга (wide) пробивает широкую стену «широким
+ * фронтом» — жертвует на 20% меньше легионеров (минимум 1). Остальные формации
+ * платят полную стоимость. 0 аллокаций, без зависимостей от Three.js/DOM.
+ */
+export const WIDE_FINISH_DISCOUNT = 0.8;
+
+export function getFinishWallCost(baseCost: number, formation: FormationType = 'oval'): number {
+  if (baseCost <= 0) return 0;
+  if (formation === 'wide') {
+    return Math.max(1, Math.round(baseCost * WIDE_FINISH_DISCOUNT));
+  }
+  return baseCost;
+}

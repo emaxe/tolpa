@@ -65,7 +65,7 @@ export const translations = {
 
     // Formations
     wedgeDesc: 'Снижает урон от фронтальных ловушек на 40%',
-    wideDesc: 'Максимальный охват монет, ворот и сложения',
+    wideDesc: 'Максимальный охват монет, ворот и сложения; прорыв финишных стен (-20% жертв)',
     circleDesc: 'Толкает и разрушает препятствия силой толпы',
     arrowDesc: 'Увеличивает скорость бега, ускоряет заряд Гипер-режима (+50%) и пробивает стены клином',
     ovalDesc: 'Баланс: ворота и сферы +25%, удача Мистики 85%',
@@ -134,6 +134,7 @@ export const translations = {
     perkArrowGate: 'СТРЕЛА: ×+0.5',
     perkCircleGate: 'ФАЛАНГА: +30%',
     perkWideGate: 'ШЕРЕНГА: +50%',
+    perkWideFinish: 'ШЕРЕНГА: -20% ЖЕРТВ',
     perkOvalGate: 'ОВАЛ: +25%',
     perkOvalLuck: 'ОВАЛ: УДАЧА 85%',
     perkWedgeGate: 'КЛИН: -10% ПОТЕРЬ',
@@ -393,7 +394,7 @@ export const translations = {
 
     // Formations
     wedgeDesc: 'Reduces frontal trap damage by 40%',
-    wideDesc: 'Maximum width for coins, gates & adds',
+    wideDesc: 'Maximum width for coins, gates & adds; finish wall breakthrough (-20% sacrifice)',
     circleDesc: 'Pushes and smashes barriers with crowd weight',
     arrowDesc: 'Increases run speed, boosts Hyper-mode charge (+50%) and pierces walls with a wedge',
     ovalDesc: 'Balanced: gates & orbs +25%, Mystery luck 85%',
@@ -462,6 +463,7 @@ export const translations = {
     perkArrowGate: 'ARROW: ×+0.5',
     perkCircleGate: 'PHALANX: +30%',
     perkWideGate: 'RANKS: +50%',
+    perkWideFinish: 'RANKS: -20% SACRIFICE',
     perkOvalGate: 'OVAL: +25%',
     perkOvalLuck: 'OVAL: LUCK 85%',
     perkWedgeGate: 'WEDGE: -10% LOSSES',

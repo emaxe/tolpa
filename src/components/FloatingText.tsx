@@ -409,7 +409,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
     // Финишная дорожка множителей: всплывающий яркий 3D-множитель при пробитии стены
     const unsubFinishStep = eventBus.on(
       'finishStepSmashed',
-      (data: { multiplier?: number; x?: number; z?: number }) => {
+      (data: { multiplier?: number; x?: number; z?: number; perk?: string | null }) => {
         if (!data || typeof data.multiplier !== 'number') return;
         const mult = data.multiplier;
         const isMax = mult >= 10;
@@ -420,6 +420,16 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
           ? 'text-amber-300 font-extrabold text-xl scale-110 drop-shadow-[0_0_12px_rgba(245,158,11,0.9)]'
           : 'text-cyan-300 font-extrabold text-lg drop-shadow-[0_0_10px_rgba(6,182,212,0.9)]';
         spawn(data.x ?? 0, data.z ?? 0, text, colorClass);
+
+        // Второй floating-text: индикатор перка Шеренги (прорыв широким фронтом)
+        if (data.perk === 'wide_finish') {
+          spawn(
+            data.x ?? 0,
+            (data.z ?? 0) - 1.0,
+            i18n.t('perkWideFinish', 'ШЕРЕНГА: -20% ЖЕРТВ'),
+            'text-teal-300 font-bold drop-shadow-[0_0_8px_rgba(45,212,191,0.8)]'
+          );
+        }
       }
     );
 

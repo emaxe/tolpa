@@ -3169,9 +3169,9 @@ export class GameEngine {
       finishStepsDone: this.finishLine.getFinishStepsDone(),
       finishStepsTotal: this.finishLine.getFinishStepsTotal(),
       isFinishActive: this.finishLine.hasCrossedFinish,
-      finishNextWallCost: this.finishLine.getNextWallCost(),
+      finishNextWallCost: this.finishLine.getNextWallCost(this.crowd.formation),
       finishNextWallAffordable: (() => {
-        const cost = this.finishLine.getNextWallCost();
+        const cost = this.finishLine.getNextWallCost(this.crowd.formation);
         return cost >= 0 && this.crowd.getAliveCount() > cost;
       })(),
       nearMissStreak: this.obstacles.getNearMissStreak(),
