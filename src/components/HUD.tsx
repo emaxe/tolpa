@@ -96,6 +96,7 @@ export const HUD: React.FC<HUDProps> = ({
     comboMax: { key: 'comboMaxBanner', cls: 'border-yellow-400 text-yellow-600' },
     achievementReady: { key: 'achievementReady', cls: 'border-amber-400 text-amber-600' },
     crowdMilestone: { key: 'crowdMilestone', cls: 'border-emerald-500 text-emerald-600' },
+    crowdLowWarning: { key: 'crowdLowWarning', cls: 'border-red-500 text-red-400' },
     adrenalineReady: { key: 'hyperModeReady', cls: 'border-amber-400 text-amber-600' },
     endlessRecordBeaten: { key: 'endlessRecordBeaten', cls: 'border-yellow-400 text-yellow-600' },
     finishLineCrossed: { key: 'finishLineCrossed', cls: 'border-cyan-400 text-cyan-600' },
@@ -204,6 +205,11 @@ export const HUD: React.FC<HUDProps> = ({
       showAlert('crowdMilestone');
     });
 
+    // Толпа не пробивает следующую финишную стену — предупреждающий баннер-тост.
+    const unsubCrowdLow = eventBus.on('crowdLowWarning', () => {
+      showAlert('crowdLowWarning', undefined, 2400);
+    });
+
     // Адреналин заряжен до 100% — гипер-режим доступен. Центральный баннер-тост,
     // чтобы игрок не упустил момент, когда можно безопасно протаранить препятствия.
     const unsubAdrenalineReady = eventBus.on('adrenalineReady', () => {
@@ -247,6 +253,7 @@ export const HUD: React.FC<HUDProps> = ({
       unsubComboMax();
       unsubAchReady();
       unsubCrowdMilestone();
+      unsubCrowdLow();
       unsubAdrenalineReady();
       unsubEndlessRecordBeaten();
       unsubFinishLine();

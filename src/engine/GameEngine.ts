@@ -202,6 +202,9 @@ export class GameEngine {
   // Эмитит crowdMilestone при пересечении 50/100/150/200 бойцов — ключевой момент в crowd evolution.
   private lastCrowdMilestone: number = 0;
   private static readonly CROWD_MILESTONES = [50, 100, 150, 200];
+  // Флаг «толпа не пробивает следующую финишную стену» — эмитим crowdLowWarning
+  // ровно один раз при падении ниже стоимости стены, сбрасываем при восстановлении.
+  private crowdLowWarned: boolean = false;
 
   // Параметры метеоритного дождя (честная телеграф-механика)
   private static readonly METEOR_POOL_SIZE = 6;
@@ -261,6 +264,7 @@ export class GameEngine {
   private unsubComboBreak: (() => void) | null = null;
   private unsubFinishStep: (() => void) | null = null;
   private unsubCrowdMilestone: (() => void) | null = null;
+  private unsubCrowdLow: (() => void) | null = null;
   private unsubSettings: (() => void) | null = null;
   private unsubFormation: (() => void) | null = null;
   private unsubClassAbility: (() => void) | null = null;
@@ -539,6 +543,18 @@ export class GameEngine {
       soundEngine.playCrowdCheer(tier >= 3 ? 1.0 : tier >= 2 ? 0.8 : 0.6);
       eventBus.emit('screenShake', { intensity: tier >= 3 ? 0.3 : 0.2 });
       this.triggerHaptic([30, 40, 30, 40]);
+    });
+
+    // Толпа не пробивает следующую финишную стену — тревожный VFX: красный бурст
+    // у лидера + низкий предупреждающий звук + лёгкая тряска. Раньше был только
+    // пассивный красный пульс в HUD — теперь игрок слышит и видит критический момент.
+    this.unsubCrowdLow = eventBus.on('crowdLowWarning', (data: { x?: number; z?: number }) => {
+      const sx = data?.x ?? this.crowd.leaderX;
+      const sz = data?.z ?? this.crowd.leaderZ;
+      this.particles.emitBurst(sx, 1.2, sz, 18, 0xef4444, 4.0);
+      soundEngine.playSound('combo_break', 0.8, 0.8);
+      eventBus.emit('screenShake', { intensity: 0.12 });
+      this.triggerHaptic([20, 15, 20]);
     });
 
     // Живое применение настроек графики: смена качества/теней в настройках сразу
@@ -1125,6 +1141,7 @@ export class GameEngine {
     this.cameraBank = 0;
     this.trackOffsetZ = 0;
     this.lastCrowdMilestone = 0;
+    this.crowdLowWarned = false;
     this.screenShakeIntensity = 0;
     stateManager.beginRun();
 
@@ -1202,6 +1219,7 @@ export class GameEngine {
     this.cameraBank = 0;
     this.trackOffsetZ = 0;
     this.lastCrowdMilestone = 0;
+    this.crowdLowWarned = false;
     this.screenShakeIntensity = 0;
     stateManager.beginRun();
 
@@ -2880,6 +2898,22 @@ export class GameEngine {
         eventBus.emit('crowdMilestone', { count: m, x: this.crowd.leaderX, z: this.crowd.leaderZ });
       }
     }
+
+    // Предупреждение «толпа не пробивает следующую финишную стену»: когда финиш
+    // активен и численность падает ниже стоимости следующей стены, эмитим
+    // crowdLowWarning ровно один раз (флаг crowdLowWarned), сбрасываем при
+    // восстановлении. Раньше был только пассивный красный пульс в HUD — теперь
+    // звук + баннер + VFX, чтобы игрок не упустил критический момент.
+    if (!this.isEndless && this.finishLine.hasCrossedFinish) {
+      const wallCost = this.finishLine.getNextWallCost(this.crowd.formation);
+      const tooLow = wallCost >= 0 && crowdNow <= wallCost;
+      if (tooLow && !this.crowdLowWarned) {
+        this.crowdLowWarned = true;
+        eventBus.emit('crowdLowWarning', { x: this.crowd.leaderX, z: this.crowd.leaderZ, crowd: crowdNow, cost: wallCost });
+      } else if (!tooLow && this.crowdLowWarned) {
+        this.crowdLowWarned = false;
+      }
+    }
   }
 
   // Анимация зрителей: прыжки (sin по Y), качание (rotation.z), махание руками
@@ -3225,6 +3259,7 @@ export class GameEngine {
     this.unsubComboBreak?.();
     this.unsubFinishStep?.();
     this.unsubCrowdMilestone?.();
+    this.unsubCrowdLow?.();
     this.unsubAdrenaline?.();
     this.unsubAdrenalineEnded?.();
     this.unsubBonusCollected?.();
