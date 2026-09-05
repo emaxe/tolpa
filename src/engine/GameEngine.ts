@@ -64,6 +64,7 @@ export class GameEngine {
   private renderer: THREE.WebGLRenderer;
   private reqId: number | null = null;
   private lastTime: number = 0;
+  private lastFrameGate: number = 0;
 
   // Sub-systems
   public crowd: CrowdManager;
@@ -844,6 +845,7 @@ export class GameEngine {
   private updateAdaptiveResolution(dt: number): void {
     const settings = stateManager.getState().settings;
     if (settings.graphicsQuality === 'low') return; // low уже минимальный — нечего снижать
+    if (settings.fpsLimit === 30) return; // порог просадки 28мс ниже интервала 30fps — watchdog вечно резал бы разрешение
 
     this.adaptiveAccum += dt;
     this.adaptiveFrames++;
@@ -2117,6 +2119,7 @@ export class GameEngine {
     this.isRunning = true;
     this.isPaused = false;
     this.lastTime = performance.now();
+    this.lastFrameGate = 0;
     perfMonitor.reset(); // иначе первое измерение после паузы посчитает время простоя
     this.reqId = requestAnimationFrame(this.animate);
   }
@@ -2160,6 +2163,20 @@ export class GameEngine {
 
   private animate(now: number): void {
     if (!this.isRunning) return;
+
+    // Ограничитель FPS из настроек (fpsLimit): 0/60 = без ограничения (60Hz-экран),
+    // 30 — аккумуляторный гейт без setTimeout. Допуск 1мс компенсирует джиттер rAF
+    // (иначе на 60Гц мониторе строгая проверка режет каждый второй кадр до ~30FPS).
+    const limit = stateManager.getState().settings.fpsLimit;
+    if (limit === 30) {
+      const elapsed = now - this.lastFrameGate;
+      const interval = 1000 / 30;
+      if (elapsed < interval - 1) {
+        if (this.isRunning) this.reqId = requestAnimationFrame(this.animate);
+        return;
+      }
+      this.lastFrameGate = now - (elapsed % interval);
+    }
 
     let dt = (now - this.lastTime) / 1000;
     this.lastTime = now;

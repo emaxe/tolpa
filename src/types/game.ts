@@ -282,7 +282,6 @@ export interface GameSettings {
   musicVolume: number; // 0..1
   graphicsQuality: 'high' | 'medium' | 'low';
   enableShadows: boolean;
-  enablePostFX: boolean;
   enableScreenShake: boolean;
   enableHaptics: boolean;
   controlsSensitivity: number; // 0.5 .. 2.0

@@ -11,7 +11,6 @@ export const INITIAL_SETTINGS: GameSettings = {
   musicVolume: 0.6,
   graphicsQuality: 'high',
   enableShadows: true,
-  enablePostFX: true,
   enableScreenShake: true,
   enableHaptics: true,
   controlsSensitivity: 1.0,

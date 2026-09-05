@@ -171,6 +171,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
               {settings.graphicsQuality === 'low' && i18n.t('qualityLow')}
             </p>
 
+            {/* Target FPS limit */}
+            <div className="space-y-1.5 pt-1">
+              <span className="text-xs font-bold text-slate-700 font-orbitron">{i18n.t('fpsTarget')}</span>
+              <div className="grid grid-cols-2 gap-2">
+                {([30, 60] as const).map((fps) => (
+                  <button
+                    key={fps}
+                    onClick={() => updateSetting('fpsLimit', fps)}
+                    className={`py-2 rounded-xl font-orbitron font-bold text-xs uppercase transition-all cursor-pointer ${
+                      settings.fpsLimit === fps
+                        ? 'bg-amber-400 text-zinc-950 shadow shadow-amber-500/25'
+                        : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-300'
+                    }`}
+                  >
+                    {fps}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Checkboxes for FX */}
             <div className="grid grid-cols-2 gap-3 pt-2">
               <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
@@ -201,6 +221,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
                   className="accent-amber-400 rounded"
                 />
                 <span>{i18n.t('haptics')}</span>
+              </label>
+
+              <label className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.showFps}
+                  onChange={(e) => updateSetting('showFps', e.target.checked)}
+                  className="accent-amber-400 rounded"
+                />
+                <span>{i18n.t('showFps')}</span>
               </label>
             </div>
           </div>
