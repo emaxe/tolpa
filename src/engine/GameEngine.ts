@@ -176,6 +176,10 @@ export class GameEngine {
   private static readonly FOV_PER_MULT = 10.0;
   private static readonly FOV_LERP = 6.0;
 
+  // Крен камеры при рулении: максимум 0.10 рад (~5.7°) и скорость лерпа.
+  private static readonly CAMERA_BANK_MAX = 0.10;
+  private static readonly CAMERA_BANK_LERP = 6.0;
+
   // Adrenaline (перенесено сюда из HUD-таймера — заряд должен стоять на паузе
   // и не быть отвязан от реальной игры)
   public adrenalineCharge: number = 0;
@@ -184,6 +188,10 @@ export class GameEngine {
   private wasAdrenalineReady: boolean = false;
   // Текущий FOV камеры — плавно интерполируется к целевому при ускорении.
   private currentFov: number = GameEngine.FOV_BASE;
+
+  // Крен камеры при рулении (banking): мир наклоняется в сторону поворота.
+  // Применяется как rotation.z СТРОГО ПОСЛЕ camera.lookAt (lookAt затирает roll).
+  private cameraBank: number = 0;
 
   // Screen shake
   private screenShakeIntensity: number = 0;
@@ -1114,6 +1122,7 @@ export class GameEngine {
     this.currentFov = GameEngine.FOV_BASE;
     this.camera.fov = GameEngine.FOV_BASE;
     this.camera.updateProjectionMatrix();
+    this.cameraBank = 0;
     this.trackOffsetZ = 0;
     this.lastCrowdMilestone = 0;
     this.screenShakeIntensity = 0;
@@ -1190,6 +1199,7 @@ export class GameEngine {
     this.currentFov = GameEngine.FOV_BASE;
     this.camera.fov = GameEngine.FOV_BASE;
     this.camera.updateProjectionMatrix();
+    this.cameraBank = 0;
     this.trackOffsetZ = 0;
     this.lastCrowdMilestone = 0;
     this.screenShakeIntensity = 0;
@@ -2726,6 +2736,18 @@ export class GameEngine {
       GameEngine.CAMERA_LOOKAT_HEIGHT,
       this.crowd.leaderZ + GameEngine.CAMERA_LOOKAT_LEAD
     );
+
+    // Крен камеры при рулении (banking): roll вокруг Z в сторону поворота.
+    // steerInput в [-1,1]; знак подобран под зеркалирование камеры (+Z вперёд,
+    // экранное право = -X). Применяем ПОСЛЕ lookAt — иначе lookAt затрёт roll.
+    this.cameraBank = THREE.MathUtils.lerp(
+      this.cameraBank,
+      this.steerInput * GameEngine.CAMERA_BANK_MAX,
+      GameEngine.CAMERA_BANK_LERP * dt
+    );
+    if (Math.abs(this.cameraBank) > 0.0005) {
+      this.camera.rotation.z = this.cameraBank;
+    }
 
     // Animate floating energy orbs (bob + gentle spin), rings, biome scenery
     // (scenerySpin), pulse columns, pylon light-wave and monolith orbitals.
