@@ -75,6 +75,14 @@ interface ObstacleVisual {
 
 export class ObstacleManager {
   private static readonly PRUNE_MARGIN = 40;
+  // Окно анимации ловушек: впереди ~60м, позади ~30м (камера на leaderZ-16, видно ~45м
+  // вперёд). Аналог BONUS_ANIM_CULL/DECOR_ANIM_CULL: ловушки вне окна пропускают
+  // sin/cos-анимацию и перезапись hazard-бокса (0-GC hot-path) — коллизии и near-miss
+  // всё равно гейтятся своим окном ±10м ниже. rolling_spike_ball возобновляет перекат
+  // при входе в окно (60м > ~45м видимости — незаметно); его смерть (leaderZ-25) и все
+  // контакты остаются внутри окна BACK=30.
+  private static readonly OBSTACLE_ANIM_CULL_AHEAD = 60;
+  private static readonly OBSTACLE_ANIM_CULL_BACK = 30;
   private scene: THREE.Scene;
   private obstacles: ObstacleVisual[] = [];
   // Монеты: вместо сотен отдельных Mesh — ОДИН InstancedMesh (1 draw call на все).
@@ -561,6 +569,13 @@ export class ObstacleManager {
       const obsVis = this.obstacles[oi];
       const obs = obsVis.data;
       if (obs.isDead) continue;
+
+      // Spatial culling анимации: ловушки вне окна видимости не анимируем (sin/cos,
+      // перезапись hazard-бокса) — коллизии/near-miss ниже гейтятся окном ±10м.
+      // staticHazard-ловушки (spike_trap/lava_pit/laser_grid) не требуют анимации,
+      // но им нужна актуальная позиция после свипа — их пропускаем аналогично.
+      const animDz = obs.z - crowd.leaderZ;
+      if (animDz > ObstacleManager.OBSTACLE_ANIM_CULL_AHEAD || animDz < -ObstacleManager.OBSTACLE_ANIM_CULL_BACK) continue;
 
       // Обратный отсчёт rate-limit эмита feedback (screenShake/звук) при контакте.
       if (obsVis.feedbackCooldown && obsVis.feedbackCooldown > 0) {
