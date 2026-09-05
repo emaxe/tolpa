@@ -483,7 +483,21 @@ export class BossManager {
       soundEngine.playSound('boss_laser');
       eventBus.emit('screenShake', { intensity: 0.4 });
       particles.emitBurst(0, 1.5, this.bossArenaZ - 2, 30, 0x00f0ff, 6.0);
-      crowd.killMobs(Math.floor(attack.damage / 3), 'boss_laser');
+      // Лазер бьёт только мобов в створе луча (ширина телеграфа 4.2 => |X| <= 2.1,
+      // длина 28 => Z в [arenaZ-28, arenaZ]). Уворот на фланг полностью защищает.
+      const halfW = 2.1;
+      const zMin = this.bossArenaZ - 28;
+      const aliveMobs = crowd.getAliveMobs();
+      const inBeam: any[] = [];
+      for (let i = 0; i < aliveMobs.length; i++) {
+        const mob = aliveMobs[i];
+        if (Math.abs(mob.x) <= halfW && mob.z >= zMin && mob.z <= this.bossArenaZ) {
+          inBeam.push(mob);
+        }
+      }
+      if (inBeam.length > 0) {
+        crowd.killMobsFromGroup(inBeam, Math.min(Math.floor(attack.damage / 3), inBeam.length), 'boss_laser');
+      }
     } else if (attack.type === 'minions') {
       // Рой мелких тварей: босс призывает рой, который грызёт толпу в течение всей
       // длительности атаки. Урон наносится тиками (каждые ~0.5с), а не одним ударом,
