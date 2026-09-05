@@ -721,7 +721,7 @@ export class BossManager {
     eventBus.emit('screenShake', { intensity: 0.65 });
     // Световой столб ярости: 3D-акцент над ареной (раньше был только HUD-тост).
     particles.emitLightPillar(0, this.bossArenaZ, 44, 0xff0055);
-    eventBus.emit('bossEnraged', { boss: this.bossData });
+    eventBus.emit('bossEnraged', { boss: this.bossData, x: 0, z: this.bossArenaZ });
   }
 
   private defeatBoss(particles: ParticleSystem): void {

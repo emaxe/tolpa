@@ -359,10 +359,10 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
     // Паттерн как у bossDamaged: проекция y=4.5 (над головой босса ~5м).
     const unsubBossEnraged = eventBus.on(
       'bossEnraged',
-      (data: { boss?: { z?: number } }) => {
+      (data: { boss?: { z?: number }; x?: number; z?: number }) => {
         const eng = engine.current;
         if (!eng) return;
-        const z = data?.boss?.z ?? 0;
+        const z = data?.z ?? data?.boss?.z ?? 0;
         const pos = eng.projectToScreen(0, 4.5, z);
         const id = idRef.current++;
         setItems((prev) => [...prev.slice(-24), {
