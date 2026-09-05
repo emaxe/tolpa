@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { GameSettings } from '../types/game';
 import { stateManager } from '../core/StateManager';
 import { i18n } from '../core/Localization';
@@ -15,6 +15,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
   const [importStr, setImportStr] = useState<string>('');
   const [importMsg, setImportMsg] = useState<string>('');
   const [showResetConfirm, setShowResetConfirm] = useState<boolean>(false);
+
+  // Единый таймер сообщения импорта/экспорта: старый setTimeout гасил НОВОЕ сообщение
+  // раньше срока (экспорт сразу после импорта) и тек после закрытия модалки.
+  const msgTimerRef = useRef<number | null>(null);
+  const showImportMsg = (text: string, ms: number = 3000) => {
+    if (msgTimerRef.current !== null) window.clearTimeout(msgTimerRef.current);
+    setImportMsg(text);
+    if (text) {
+      msgTimerRef.current = window.setTimeout(() => {
+        setImportMsg('');
+        msgTimerRef.current = null;
+      }, ms);
+    }
+  };
 
   const updateSetting = <K extends keyof GameSettings>(key: K, value: GameSettings[K]) => {
     const next = { ...settings, [key]: value };
@@ -33,8 +47,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
   const handleExport = () => {
     const b64 = stateManager.exportSave();
     navigator.clipboard.writeText(b64);
-    setImportMsg('Сохранение скопировано в буфер обмена!');
-    setTimeout(() => setImportMsg(''), 3000);
+    showImportMsg('Сохранение скопировано в буфер обмена!');
   };
 
   const handleImport = () => {
@@ -42,11 +55,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
     const ok = stateManager.importSave(importStr.trim());
     if (ok) {
       setSettings(stateManager.getState().settings);
-      setImportMsg('Сохранение успешно загружено!');
-      setTimeout(() => setImportMsg(''), 3000);
+      showImportMsg('Сохранение успешно загружено!');
       if (onLanguageChanged) onLanguageChanged();
     } else {
-      setImportMsg('Ошибка: неверный формат данных сохранения.');
+      showImportMsg('Ошибка: неверный формат данных сохранения.');
     }
   };
 

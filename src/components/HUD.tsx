@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FormationType } from '../types/game';
 import { i18n } from '../core/Localization';
 import { stateManager } from '../core/StateManager';
@@ -113,6 +113,20 @@ export const HUD: React.FC<HUDProps> = ({
     biomeEntered_celestial_core: { key: 'biomeCelestial', cls: 'border-yellow-300 text-yellow-500' },
   };
 
+  // Единый таймер баннера-алерта: без него каждый из 15 обработчиков вешал свой
+  // window.setTimeout, старый таймер гасил НОВЫЙ баннер раньше срока (biomeEntered
+  // сразу после bossDefeated жил ~2.2с вместо 3.2с), а таймеры текли после unmount
+  // (cleanup их не отменял). clearTimeout перед каждым новым алертом + отмена в cleanup.
+  const eventAlertTimerRef = useRef<number | null>(null);
+  const showAlert = (type: string, multiplier?: number, ms: number = 3200) => {
+    if (eventAlertTimerRef.current !== null) window.clearTimeout(eventAlertTimerRef.current);
+    setEventAlert({ type, key: Date.now(), multiplier });
+    eventAlertTimerRef.current = window.setTimeout(() => {
+      setEventAlert(null);
+      eventAlertTimerRef.current = null;
+    }, ms);
+  };
+
   useEffect(() => {
     const unsubBoss = eventBus.on('bossDamaged', (data) => {
       setBossInfo(data);
@@ -127,29 +141,22 @@ export const HUD: React.FC<HUDProps> = ({
     const unsubBossDefeat = eventBus.on('bossDefeated', () => {
       setBossInfo(null);
       setIsBossShielded(false);
-      setEventAlert({ type: 'bossDefeated', key: Date.now() });
-      // BUGFIX: баннер победы над боссом не сбрасывался — единственный алерт без
-      // setTimeout. В бесконечном режиме «БОСС ПОВЕРЖЕН» висел на экране вечно,
-      // пока очередное событие не заменяло его. Таймаут как у остальных алертов.
-      window.setTimeout(() => setEventAlert(null), 3200);
+      showAlert('bossDefeated');
     });
 
     // Босс проснулся (первый вход толпы в арену) — центральный баннер-тост.
     const unsubBossAppear = eventBus.on('bossAppear', () => {
-      setEventAlert({ type: 'bossAppear', key: Date.now() });
-      window.setTimeout(() => setEventAlert(null), 3200);
+      showAlert('bossAppear');
     });
 
     // Босс впал в ярость (HP <= 45%) — красный баннер-тост предупреждения.
     const unsubBossEnraged = eventBus.on('bossEnraged', () => {
-      setEventAlert({ type: 'bossEnraged', key: Date.now() });
-      window.setTimeout(() => setEventAlert(null), 3200);
+      showAlert('bossEnraged');
     });
 
     // Телеграф атаки босса — оранжевый баннер-тост предупреждения (1800мс).
     const unsubBossAttackTelegraph = eventBus.on('bossAttackTelegraph', () => {
-      setEventAlert({ type: 'bossAttackTelegraph', key: Date.now() });
-      window.setTimeout(() => setEventAlert(null), 1800);
+      showAlert('bossAttackTelegraph', undefined, 1800);
     });
 
     const unsubMobsKilled = eventBus.on('mobsKilled', () => {
@@ -160,74 +167,64 @@ export const HUD: React.FC<HUDProps> = ({
 
     const unsubEvent = eventBus.on('levelEvent', (data: { type?: string }) => {
       if (!data || !data.type) return;
-      setEventAlert({ type: data.type, key: Date.now() });
-      window.setTimeout(() => setEventAlert(null), 3200);
+      showAlert(data.type);
     });
 
     // Порог серии уворотов (x2/x5/x10) — центральный баннер-тост.
     const unsubNearMissMilestone = eventBus.on('nearMissMilestone', (data: { multiplier?: number }) => {
-      setEventAlert({ type: 'nearMissMilestone', key: Date.now(), multiplier: data?.multiplier });
-      window.setTimeout(() => setEventAlert(null), 3200);
+      showAlert('nearMissMilestone', data?.multiplier);
     });
 
     // Порог серии ворот (5/10/15...) — центральный баннер-тост.
     const unsubComboMilestone = eventBus.on('comboMilestone', () => {
-      setEventAlert({ type: 'comboMilestone', key: Date.now() });
-      window.setTimeout(() => setEventAlert(null), 3200);
+      showAlert('comboMilestone');
     });
 
     // Потолок серии ворот (×1.8) — праздничный баннер-тост.
     const unsubComboMax = eventBus.on('comboMax', () => {
-      setEventAlert({ type: 'comboMax', key: Date.now() });
-      window.setTimeout(() => setEventAlert(null), 3200);
+      showAlert('comboMax');
     });
 
     // Достижение готово к получению — центральный баннер-тост.
     const unsubAchReady = eventBus.on('achievementReady', () => {
-      setEventAlert({ type: 'achievementReady', key: Date.now() });
-      window.setTimeout(() => setEventAlert(null), 3200);
+      showAlert('achievementReady');
     });
 
     // Толпа достигла порога 50/100/150/200 — центральный баннер-тост.
     const unsubCrowdMilestone = eventBus.on('crowdMilestone', (data: { count?: number }) => {
-      setEventAlert({ type: 'crowdMilestone', key: Date.now() });
-      window.setTimeout(() => setEventAlert(null), 3200);
+      showAlert('crowdMilestone');
     });
 
     // Адреналин заряжен до 100% — гипер-режим доступен. Центральный баннер-тост,
     // чтобы игрок не упустил момент, когда можно безопасно протаранить препятствия.
     const unsubAdrenalineReady = eventBus.on('adrenalineReady', () => {
-      setEventAlert({ type: 'adrenalineReady', key: Date.now() });
-      window.setTimeout(() => setEventAlert(null), 2400);
+      showAlert('adrenalineReady', undefined, 2400);
     });
 
     // Побитие личного рекорда в бесконечном режиме — центральный баннер-тост.
     const unsubEndlessRecordBeaten = eventBus.on('endlessRecordBeaten', () => {
-      setEventAlert({ type: 'endlessRecordBeaten', key: Date.now() });
-      window.setTimeout(() => setEventAlert(null), 3200);
+      showAlert('endlessRecordBeaten');
     });
 
     // Финишная прямая пересечена — центральный баннер-тост.
     const unsubFinishLine = eventBus.on('finishLineCrossed', () => {
-      setEventAlert({ type: 'finishLineCrossed', key: Date.now() });
-      window.setTimeout(() => setEventAlert(null), 3200);
+      showAlert('finishLineCrossed');
     });
 
     // Новый класс бойца впервые появился в толпе — баннер-тост с именем класса.
     const unsubNewClass = eventBus.on('newClassAppeared', (data: { type?: string }) => {
       if (!data || !data.type) return;
-      setEventAlert({ type: `newClass_${data.type}`, key: Date.now() });
-      window.setTimeout(() => setEventAlert(null), 3200);
+      showAlert(`newClass_${data.type}`);
     });
 
     // Смена / вход в биом в бесконечном режиме — центральный баннер-тост с именем биома.
     const unsubBiomeEntered = eventBus.on('biomeEntered', (data: { biome?: string }) => {
       if (!data || !data.biome) return;
-      setEventAlert({ type: `biomeEntered_${data.biome}`, key: Date.now() });
-      window.setTimeout(() => setEventAlert(null), 3200);
+      showAlert(`biomeEntered_${data.biome}`);
     });
 
     return () => {
+      if (eventAlertTimerRef.current !== null) window.clearTimeout(eventAlertTimerRef.current);
       unsubBoss();
       unsubBossShield();
       unsubBossDefeat();
