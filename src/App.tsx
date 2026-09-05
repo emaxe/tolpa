@@ -215,11 +215,13 @@ export const App: React.FC = () => {
   );
 
   const handleNextLevel = useCallback(() => {
+    soundEngine.playSound('button_click');
     const nextLvl = Math.min(50, activeLevel + 1);
     handlePlayLevel(nextLvl);
   }, [activeLevel, handlePlayLevel]);
 
   const handleRetry = useCallback(() => {
+    soundEngine.playSound('button_click');
     if (isEndless) {
       handlePlayEndless();
     } else {
@@ -228,6 +230,7 @@ export const App: React.FC = () => {
   }, [isEndless, activeLevel, handlePlayEndless, handlePlayLevel]);
 
   const handleToMainMenu = useCallback(() => {
+    soundEngine.playSound('button_click');
     // Чилловая BGM-тема меню (dead-but-supported: тема синтезирована, но меню было в тишине).
     // playMusic() сам переключает currentTheme и не трогает идущий интервал при возврате.
     soundEngine.playMusic('menu');
@@ -242,11 +245,25 @@ export const App: React.FC = () => {
   }, []);
 
   const handleResume = useCallback(() => {
+    soundEngine.playSound('button_click');
     setPhase((p) => (p === 'paused' ? 'running' : p));
   }, []);
 
   const handlePauseButton = useCallback(() => {
+    soundEngine.playSound('button_click');
     setPhase((p) => (p === 'running' ? 'paused' : p === 'paused' ? 'running' : p));
+  }, []);
+
+  // Единая точка звука для открытия/закрытия модалок: покрывает close-кнопки
+  // Shop/Settings/Achievements/Guide/Test и open из меню/финала одним местом —
+  // раньше все эти кнопки были немыми (звук был только в MainMenu-открытиях).
+  const openModal = useCallback((m: 'shop' | 'settings' | 'achievements' | 'guide' | 'tests') => {
+    soundEngine.playSound('button_click');
+    setActiveModal(m);
+  }, []);
+  const closeModal = useCallback(() => {
+    soundEngine.playSound('button_click');
+    setActiveModal(null);
   }, []);
 
   return (
@@ -272,11 +289,11 @@ export const App: React.FC = () => {
         <MainMenu
           onPlayLevel={handlePlayLevel}
           onPlayEndless={handlePlayEndless}
-          onOpenShop={() => setActiveModal('shop')}
-          onOpenAchievements={() => setActiveModal('achievements')}
-          onOpenSettings={() => setActiveModal('settings')}
-          onOpenGuide={() => setActiveModal('guide')}
-          onOpenTests={() => setActiveModal('tests')}
+          onOpenShop={() => openModal('shop')}
+          onOpenAchievements={() => openModal('achievements')}
+          onOpenSettings={() => openModal('settings')}
+          onOpenGuide={() => openModal('guide')}
+          onOpenTests={() => openModal('tests')}
         />
       )}
 
@@ -318,21 +335,21 @@ export const App: React.FC = () => {
           onNextLevel={handleNextLevel}
           onRetry={handleRetry}
           onHome={handleToMainMenu}
-          onOpenShop={() => setActiveModal('shop')}
+          onOpenShop={() => openModal('shop')}
         />
       )}
 
       {/* Modals */}
-      {activeModal === 'shop' && <ShopModal onClose={() => setActiveModal(null)} />}
+      {activeModal === 'shop' && <ShopModal onClose={closeModal} />}
       {activeModal === 'settings' && (
         <SettingsModal
-          onClose={() => setActiveModal(null)}
+          onClose={closeModal}
           onLanguageChanged={() => setTick((t) => t + 1)}
         />
       )}
-      {activeModal === 'achievements' && <AchievementsModal onClose={() => setActiveModal(null)} />}
-      {activeModal === 'guide' && <GuideModal onClose={() => setActiveModal(null)} />}
-      {activeModal === 'tests' && <TestModal onClose={() => setActiveModal(null)} />}
+      {activeModal === 'achievements' && <AchievementsModal onClose={closeModal} />}
+      {activeModal === 'guide' && <GuideModal onClose={closeModal} />}
+      {activeModal === 'tests' && <TestModal onClose={closeModal} />}
     </div>
   );
 };

@@ -30,7 +30,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
     }
   };
 
+  // Тик-звук кликов настроек: слайдеры при drag тикают не чаще раза в 150мс,
+  // чтобы проводка ползунка не спамила WebAudio; кнопки тикают мгновенно.
+  const lastTickRef = useRef<number>(0);
+  const playTick = () => {
+    const now = Date.now();
+    if (now - lastTickRef.current < 150) return;
+    lastTickRef.current = now;
+    soundEngine.playSound('button_click');
+  };
+
   const updateSetting = <K extends keyof GameSettings>(key: K, value: GameSettings[K]) => {
+    playTick();
     const next = { ...settings, [key]: value };
     setSettings(next);
     stateManager.updateSettings({ [key]: value });
@@ -45,6 +56,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
   };
 
   const handleExport = () => {
+    playTick();
     const b64 = stateManager.exportSave();
     navigator.clipboard.writeText(b64);
     showImportMsg('Сохранение скопировано в буфер обмена!');
@@ -52,6 +64,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
 
   const handleImport = () => {
     if (!importStr.trim()) return;
+    playTick();
     const ok = stateManager.importSave(importStr.trim());
     if (ok) {
       setSettings(stateManager.getState().settings);
@@ -63,6 +76,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
   };
 
   const handleReset = () => {
+    playTick();
     stateManager.resetProgress();
     setSettings(stateManager.getState().settings);
     setShowResetConfirm(false);
@@ -321,7 +335,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
             <div className="pt-3 border-t border-slate-300">
               {!showResetConfirm ? (
                 <button
-                  onClick={() => setShowResetConfirm(true)}
+                  onClick={() => {
+                    playTick();
+                    setShowResetConfirm(true);
+                  }}
                   className="w-full py-2 border border-red-500/40 hover:bg-red-500/10 text-red-400 rounded-xl font-orbitron text-xs flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
@@ -338,7 +355,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
                       ДА, СБРОСИТЬ
                     </button>
                     <button
-                      onClick={() => setShowResetConfirm(false)}
+                      onClick={() => {
+                        playTick();
+                        setShowResetConfirm(false);
+                      }}
                       className="flex-1 py-1.5 bg-slate-200 text-slate-700 font-orbitron text-xs rounded-lg cursor-pointer"
                     >
                       ОТМЕНА

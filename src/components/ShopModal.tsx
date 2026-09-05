@@ -136,7 +136,11 @@ export const ShopModal: React.FC<ShopModalProps> = ({ onClose }) => {
         {/* Tab Selector */}
         <div className="grid grid-cols-2 p-2 bg-slate-100/40 gap-2 border-b border-slate-300">
           <button
-            onClick={() => setTab('upgrades')}
+            onClick={() => {
+              // Клик по уже активному табу — без звука (нет смены состояния).
+              if (tab !== 'upgrades') soundEngine.playSound('button_click');
+              setTab('upgrades');
+            }}
             className={`py-2.5 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
               tab === 'upgrades'
                 ? 'bg-amber-400 text-zinc-950 shadow-md shadow-amber-500/25'
@@ -146,7 +150,11 @@ export const ShopModal: React.FC<ShopModalProps> = ({ onClose }) => {
             {i18n.t('upgrades')}
           </button>
           <button
-            onClick={() => setTab('skins')}
+            onClick={() => {
+              // Клик по уже активному табу — без звука (нет смены состояния).
+              if (tab !== 'skins') soundEngine.playSound('button_click');
+              setTab('skins');
+            }}
             className={`py-2.5 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
               tab === 'skins'
                 ? 'bg-amber-400 text-zinc-950 shadow-md shadow-amber-500/25'

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { runAllTests, TestResult } from '../testing/testSuites';
 import { i18n } from '../core/Localization';
+import { soundEngine } from '../audio/SoundEngine';
 import { X, CheckCircle, XCircle, Play, FileCheck, CheckSquare, Layers } from 'lucide-react';
 
 interface TestModalProps {
@@ -66,7 +67,11 @@ export const TestModal: React.FC<TestModalProps> = ({ onClose }) => {
         {/* Tab Controls */}
         <div className="grid grid-cols-2 p-2 bg-slate-100/40 gap-2 border-b border-slate-300">
           <button
-            onClick={() => setTab('tests')}
+            onClick={() => {
+              // Клик по уже активному табу — без звука (нет смены состояния).
+              if (tab !== 'tests') soundEngine.playSound('button_click');
+              setTab('tests');
+            }}
             className={`py-2 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
               tab === 'tests' ? 'bg-teal-600 text-slate-900 shadow shadow-teal-600/30' : 'bg-white text-slate-600 hover:text-slate-900'
             }`}
@@ -75,7 +80,11 @@ export const TestModal: React.FC<TestModalProps> = ({ onClose }) => {
             <span>Unit & Smoke Тесты ({results.length})</span>
           </button>
           <button
-            onClick={() => setTab('checklist')}
+            onClick={() => {
+              // Клик по уже активному табу — без звука (нет смены состояния).
+              if (tab !== 'checklist') soundEngine.playSound('button_click');
+              setTab('checklist');
+            }}
             className={`py-2 rounded-xl font-orbitron font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
               tab === 'checklist' ? 'bg-teal-600 text-slate-900 shadow shadow-teal-600/30' : 'bg-white text-slate-600 hover:text-slate-900'
             }`}
@@ -92,7 +101,12 @@ export const TestModal: React.FC<TestModalProps> = ({ onClose }) => {
               <div className="flex justify-between items-center mb-2">
                 <span className="text-xs font-orbitron text-slate-600">Автоматизированные тесты движка и логики</span>
                 <button
-                  onClick={executeTests}
+                  // Звук здесь, не внутри executeTests: тесты автозапускаются при
+                  // открытии модалки — звук внутри дал бы «писк» при каждом открытии.
+                  onClick={() => {
+                    soundEngine.playSound('button_click');
+                    executeTests();
+                  }}
                   disabled={isRunning}
                   className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-orbitron flex items-center gap-1.5 cursor-pointer"
                 >
