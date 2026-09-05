@@ -1313,11 +1313,15 @@ export class LevelGenerator {
     // более широкий арсенал: метеоритный залп (meteors) и энергетический купол (shield).
     const minionsDamage = Math.round(12 * tierScale);
     const meteorDamage = Math.round(30 * tierScale);
-    const baseSlam = { type: 'slam' as const, telegraphTime: Math.max(1.0, 1.5 - telegraphBonus), duration: 0.8, damage: slamDamage, areaRadius: 3.5 };
-    const baseLaser = { type: 'laser' as const, telegraphTime: Math.max(1.2, 2.0 - telegraphBonus), duration: 1.2, damage: laserDamage, direction: 0 };
-    const baseMinions = { type: 'minions' as const, telegraphTime: Math.max(0.7, 1.0 - telegraphBonus), duration: 0.5, damage: minionsDamage };
-    const meteors = { type: 'meteors' as const, telegraphTime: Math.max(1.0, 1.5 - telegraphBonus), duration: 0.9, damage: meteorDamage, areaRadius: 3 };
-    const shield = { type: 'shield' as const, telegraphTime: Math.max(0.8, 1.2 - telegraphBonus), duration: 2.2, damage: 0 };
+    const baseSlam = { type: 'slam' as const, telegraphTime: Math.max(1.0, 1.5 - telegraphBonus), duration: 0.8, damage: slamDamage, areaRadius: 3.5, weight: 30 };
+    const baseLaser = { type: 'laser' as const, telegraphTime: Math.max(1.2, 2.0 - telegraphBonus), duration: 1.2, damage: laserDamage, direction: 0, weight: 26 };
+    const baseMinions = { type: 'minions' as const, telegraphTime: Math.max(0.7, 1.0 - telegraphBonus), duration: 0.5, damage: minionsDamage, weight: 18 };
+    const meteors = { type: 'meteors' as const, telegraphTime: Math.max(1.0, 1.5 - telegraphBonus), duration: 0.9, damage: meteorDamage, areaRadius: 3, weight: 22 };
+    const shield = { type: 'shield' as const, telegraphTime: Math.max(0.8, 1.2 - telegraphBonus), duration: 2.2, damage: 0, weight: 10 };
+    // Веса задают «характер» босса через частоту атак. Дефолтные веса были одинаковы для
+    // всех — бои отличались только составом пула. Теперь утилитарная непробиваемая купола
+    // (shield, стана) реже сбивает ритм боя (10 против 25), а слабые призывы (minions) не
+    // разбавляют основной урон тяжёлых боссов — каждый тип атаки встречается по своей роли.
 
     // Набор атак зависит от модели босса (тира), а не одинаков для всех.
     let attacks: BossData['attacks'];
