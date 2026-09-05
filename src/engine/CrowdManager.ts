@@ -24,6 +24,8 @@ export class CrowdManager {
   // моб не падал/не умирал (штатный бег без потерь). Счётчики дают ранний выход —
   // по образцу activeCount в ParticleSystem. Ортогональны: падение и смерть независимы.
   private fallingCount: number = 0;
+  // Аккумулятор падений с края за кадр — агрегированный фидбек вместо per-mob спама.
+  private frameFallAccum: number = 0;
   private dyingCount: number = 0;
   // Frame-cached snapshot живых мобов: getAliveMobs() вызывается до ~6 раз/кадр из
   // разных менеджеров (Obstacle/Wall/Boss/Gate). Раньше каждый вызов заново сканировал
@@ -956,6 +958,7 @@ export class CrowdManager {
     const aliveMobs = this.getAliveMobs();
     const totalCount = aliveMobs.length;
     let index = 0;
+    this.frameFallAccum = 0;
 
     // Вычисляем масштаб формации 1 раз за кадр на всю толпу (0-GC оптимизация)
     const formationScale = getFormationScale(this.formation, totalCount, this.playableHalfWidth);
@@ -1023,8 +1026,8 @@ export class CrowdManager {
         mob.fallVy = 0;
         mob.fallRotX = (Math.random() - 0.5) * 0.6;
         mob.fallRotZ = (Math.random() - 0.5) * 0.6;
-        // Спецэффект: вспышка у края + звук падения
-        eventBus.emit('mobFell', { x: mob.x, z: mob.z });
+        // Фидбек отложен: аккумулятор агрегирует падения за кадр → один emit после цикла.
+        this.frameFallAccum++;
         continue;
       }
 
@@ -1068,6 +1071,14 @@ export class CrowdManager {
       }
 
       index++;
+    }
+
+    // Агрегированный фидбек падений с края за кадр (аналог killMobs/hitAccum):
+    // один emit mobsKilled (виньетка HUD + «-N») + один mobFell (бурст + один звук
+    // mob_fall за кадр вместо N при кластерном падении).
+    if (this.frameFallAccum > 0) {
+      eventBus.emit('mobsKilled', { count: this.frameFallAccum, reason: 'edge', x: this.leaderX, z: this.leaderZ });
+      eventBus.emit('mobFell', { x: this.leaderX, z: this.leaderZ });
     }
 
     this.instancedMesh.instanceMatrix.needsUpdate = true;
