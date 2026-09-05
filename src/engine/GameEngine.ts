@@ -200,6 +200,8 @@ export class GameEngine {
   private static readonly METEOR_IMPACT_RADIUS = 2.4;
   private static readonly METEOR_TELEGRAPH_TIME = 0.75;
   private static readonly METEOR_FALL_INTERVAL_BASE = 0.9;
+  // Стартовая высота болида над зоной падения (м).
+  private static readonly METEOR_FALL_HEIGHT = 16;
 
   // Динамические события уровня (ambush/coin_train/emp_storm/meteor_rain/speed_boost).
   // Система была "мёртвой" — события генерировались в LevelGenerator, но не исполнялись.
@@ -210,9 +212,13 @@ export class GameEngine {
   private eventSpeedMult: number = 1.0; // множитель скорости толпы от событий (boost>1, ambush<1)
   private meteorAccum: number = 0;
   private meteorRings: THREE.Mesh[] = [];
-  private activeMeteorStrikes: { x: number; z: number; timer: number; totalDuration: number; mesh: THREE.Mesh }[] = [];
+  // Тела болидов (1:1 с кольцами по индексу): падают сверху в телеграф-зону.
+  private meteorBodies: THREE.Mesh[] = [];
+  private activeMeteorStrikes: { x: number; z: number; timer: number; totalDuration: number; mesh: THREE.Mesh; body: THREE.Mesh }[] = [];
   private meteorRingGeo: THREE.RingGeometry | null = null;
-  private meteorRingMat: THREE.MeshBasicMaterial | null = null;
+  // Материал колец: клонируется per-mesh (общий перезаписывался opacity последнего страйка).
+  private meteorBodyGeo: THREE.DodecahedronGeometry | null = null;
+  private meteorBodyMat: THREE.MeshBasicMaterial | null = null;
   private eventFxAccum: number = 0;
   // Засада (ambush): флаг однократного спавна препятствий-засадников за событие.
   // Сбрасывается в triggerEvent при каждом новом ambush; в cleanupEvent НЕ трогается,
@@ -928,22 +934,34 @@ export class GameEngine {
   /** Инициализирует пул мешей для телеграф-колец метеоритного дождя. */
   private initMeteorPool(): void {
     this.meteorRingGeo = new THREE.RingGeometry(0.2, GameEngine.METEOR_IMPACT_RADIUS, 32);
-    this.meteorRingMat = new THREE.MeshBasicMaterial({
-      color: 0xf97316,
-      transparent: true,
-      opacity: 0,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    });
+    // Тело болида: низкополигональный камень с тёплым свечением (zero-asset).
+    this.meteorBodyGeo = new THREE.DodecahedronGeometry(0.35, 0);
+    this.meteorBodyMat = new THREE.MeshBasicMaterial({ color: 0xff5a1f });
 
     for (let i = 0; i < GameEngine.METEOR_POOL_SIZE; i++) {
-      const mesh = new THREE.Mesh(this.meteorRingGeo, this.meteorRingMat);
+      // Per-mesh клон материала: раньше все 6 колец делили один материал и opacity
+      // последнего страйка перезаписывал остальные (кольца мигали синхронно).
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0xf97316,
+        transparent: true,
+        opacity: 0,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      });
+      const mesh = new THREE.Mesh(this.meteorRingGeo, ringMat);
       mesh.rotation.x = -Math.PI / 2;
       mesh.position.y = 0.04;
       mesh.visible = false;
       mesh.frustumCulled = false;
       this.scene.add(mesh);
       this.meteorRings.push(mesh);
+
+      // Парный болид (индекс совпадает с кольцом): скрыт до спавна страйка.
+      const body = new THREE.Mesh(this.meteorBodyGeo, this.meteorBodyMat);
+      body.visible = false;
+      body.frustumCulled = false;
+      this.scene.add(body);
+      this.meteorBodies.push(body);
     }
   }
 
@@ -2233,6 +2251,7 @@ export class GameEngine {
     this.eventFxAccum = 0;
     for (let i = 0; i < this.meteorRings.length; i++) {
       this.meteorRings[i].visible = false;
+      this.meteorBodies[i].visible = false;
     }
     this.activeMeteorStrikes.length = 0;
     // Сбрасываем one-shot guard засады, иначе ловушки ambush спавнятся лишь раз за сессию.
@@ -2317,12 +2336,18 @@ export class GameEngine {
             freeMesh.position.set(mx, 0.04, mz);
             freeMesh.scale.setScalar(0.2);
             freeMesh.visible = true;
+            // Парный болид поднимается в небо над зоной и падает по ходу телеграфа.
+            const freeBody = this.meteorBodies[this.meteorRings.indexOf(freeMesh)];
+            freeBody.position.set(mx - 3.5, GameEngine.METEOR_FALL_HEIGHT, mz + 5);
+            freeBody.rotation.set(0, 0, 0);
+            freeBody.visible = true;
             this.activeMeteorStrikes.push({
               x: mx,
               z: mz,
               timer: GameEngine.METEOR_TELEGRAPH_TIME,
               totalDuration: GameEngine.METEOR_TELEGRAPH_TIME,
               mesh: freeMesh,
+              body: freeBody,
             });
           }
         }
@@ -2338,13 +2363,23 @@ export class GameEngine {
           strike.mesh.scale.setScalar(0.3 + 0.7 * p);
           (strike.mesh.material as THREE.MeshBasicMaterial).opacity =
             0.35 + 0.55 * Math.abs(Math.sin(p * Math.PI * 3));
+          // Болид летит по дуге в центр зоны: Y падает линейно, XZ дрейфует с хвоста.
+          strike.body.position.set(
+            strike.x - 3.5 * (1 - p),
+            GameEngine.METEOR_FALL_HEIGHT * (1 - p),
+            strike.z + 5 * (1 - p)
+          );
+          strike.body.rotation.x += dt * 9;
+          strike.body.rotation.z += dt * 6;
 
           if (strike.timer <= 0) {
             // Детонация метеора
             strike.mesh.visible = false;
+            strike.body.visible = false;
             soundEngine.playSound('boss_slam');
             eventBus.emit('screenShake', { intensity: 0.25 });
             this.particles.emitBurst(strike.x, 0.5, strike.z, 22, 0xf97316, 7.0);
+            this.particles.emitShockwave(strike.x, strike.z, 0xf97316);
 
             // Честная коллизия: урон только мобам в радиусе падения по координатам XZ
             const alive = this.crowd.getAliveMobs();
@@ -2546,6 +2581,7 @@ export class GameEngine {
     this.eventFxAccum = 0;
     for (let i = 0; i < this.meteorRings.length; i++) {
       this.meteorRings[i].visible = false;
+      this.meteorBodies[i].visible = false;
     }
     this.activeMeteorStrikes.length = 0;
     switch (evt.type) {
@@ -3190,7 +3226,18 @@ export class GameEngine {
     this.finishLine.clear();
     this.particles.dispose();
     this.meteorRingGeo?.dispose();
-    this.meteorRingMat?.dispose();
+    // Кольца: per-mesh материалы + меши выгружаем из сцены (раньше оставались).
+    for (let i = 0; i < this.meteorRings.length; i++) {
+      this.scene.remove(this.meteorRings[i]);
+      (this.meteorRings[i].material as THREE.MeshBasicMaterial).dispose();
+    }
+    this.meteorRings.length = 0;
+    for (let i = 0; i < this.meteorBodies.length; i++) {
+      this.scene.remove(this.meteorBodies[i]);
+    }
+    this.meteorBodies.length = 0;
+    this.meteorBodyGeo?.dispose();
+    this.meteorBodyMat?.dispose();
     this.walls.clear();
     this.bonus.dispose();
     this.disposeTrackMeshes();
