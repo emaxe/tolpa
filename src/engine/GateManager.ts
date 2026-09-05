@@ -473,6 +473,9 @@ export class GateManager {
         }
         this.comboStreak = 0;
         this.lastComboTier = 0;
+        // Гвард празднования капа сбрасывается вместе с серией: иначе повторный
+        // выход на максимум (серия ≥11) в том же забеге проходил молча.
+        this.comboMaxCelebrated = false;
       }
 
       stateManager.runRecordGatePass();

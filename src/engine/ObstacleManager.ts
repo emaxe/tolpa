@@ -73,11 +73,6 @@ interface ObstacleVisual {
   hitAccum?: number;
 }
 
-interface CoinVisual {
-  data: CoinData;
-  mesh: THREE.Mesh;
-}
-
 export class ObstacleManager {
   private static readonly PRUNE_MARGIN = 40;
   private scene: THREE.Scene;

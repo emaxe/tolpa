@@ -37,7 +37,6 @@ export class ParticleSystem {
   private readonly overflowThreshold: number = 0.9;
   private instancedMesh: THREE.InstancedMesh;
   private dummy: THREE.Object3D = new THREE.Object3D();
-  private colorDummy: THREE.Color = new THREE.Color();
   // Пул колец ударных волн (shockwave ring VFX) — 0-GC переиспользование
   private shockwaves: Shockwave[] = [];
   private ringGeometry: THREE.RingGeometry;
@@ -115,7 +114,6 @@ export class ParticleSystem {
     // активному счётчику неограниченно расти — если пул почти забит, новые эмиссии пропускаем.
     if (this.activeCount >= this.maxParticles * this.overflowThreshold) return;
     let emitted = 0;
-    this.colorDummy.setHex(colorHex);
 
     for (let i = 0; i < this.particles.length && emitted < count; i++) {
       const p = this.particles[i];
@@ -188,7 +186,6 @@ export class ParticleSystem {
   public emitLightPillar(x: number, z: number, count: number = 30, colorHex: number = 0x00f0ff): void {
     if (this.activeCount >= this.maxParticles * this.overflowThreshold) return;
     let emitted = 0;
-    this.colorDummy.setHex(colorHex);
 
     for (let i = 0; i < this.particles.length && emitted < count; i++) {
       const p = this.particles[i];
