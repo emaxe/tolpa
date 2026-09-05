@@ -416,7 +416,7 @@ export class BossManager {
       // Тактический бонус Фаланги (circle): толпа в плотном строю наносит боссу больше урона.
       const crowdMult = crowd.getBossDamageMultiplier();
       // Фаланга (circle) пробивает энергетический купол на 20% от урона.
-      this.takeDamage(crowdPower * crowdMult, particles, crowd.formation === 'circle');
+      this.takeDamage(crowdPower * crowdMult, particles, crowd.formation === 'circle', dt);
 
       // Босс погиб в этом же кадре (takeDamage вызвал defeatBoss) — удары возмездия прекращаются немедленно.
       if (this.isDefeated || this.isDefeatCollapsing) return;
@@ -572,7 +572,7 @@ export class BossManager {
     }
   }
 
-  public takeDamage(amount: number, particles: ParticleSystem, pierceShield: boolean = false): void {
+  public takeDamage(amount: number, particles: ParticleSystem, pierceShield: boolean = false, dt: number = 1 / 60): void {
     if (!this.bossData || this.isDefeated || this.isDefeatCollapsing) return;
 
     // Энергетический купол (атака "shield") блокирует урон толпы. Фаланга (circle)
@@ -595,10 +595,10 @@ export class BossManager {
       this.triggerEnrage(particles);
     }
 
-    // Фидбек-фикции гейтим ~6 Гц: меле-урон толпы приходит каждый кадр (60 Гц),
+    // Фидбек-фикции гейтим ~6 Гц (тик ~1/6 сек): меле-урон толпы приходит каждый кадр,
     // спам звука/частиц/событий форсировал бы тяжёлый ре-рендер HUD на 60 Гц.
     // HP при этом списывается непрерывно — тормозим только аудио/визуал/эмит.
-    this.hitFxAccum -= 1;
+    this.hitFxAccum -= dt;
     if (this.hitFxAccum > 0) {
       if (this.bossData.hp <= 0 && !this.isDefeatCollapsing && !this.isDefeated) {
         // Добивающий урон в окне троттлинга: эмитим bossDamaged с hp=0, чтобы
@@ -618,7 +618,7 @@ export class BossManager {
       }
       return;
     }
-    this.hitFxAccum = 10; // ~6 Гц при 60 FPS (60/10)
+    this.hitFxAccum = 1 / 6; // тик фидбека ~6 Гц независимо от FPS
 
     // Гибель в кадре сразу после сброса троттлинга: guard ДО раннего return
     // энергокупола, иначе bossShieldPierced эмитится для уже-мёртвого босса,

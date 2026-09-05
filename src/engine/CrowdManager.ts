@@ -614,8 +614,8 @@ export class CrowdManager {
   // ссылок на MobInstance (объекты стабильны в этом.mobs, поэтому ссылки валидны
   // весь кадр, даже после внутренних getAliveMobs()).
 
-  /** Спавнит count новых мобов в позиции створки (x,z) — для изолированного add. */
-  public addMobsNear(count: number, x: number, z: number): number {
+  /** Спавнит count новых мобов в позиции створки (x,z) без звука и записи рекорда (для батчинга). */
+  private addMobsNearSilent(count: number, x: number, z: number): number {
     const cap = this.maxCapacity - this.getAliveCount();
     const toSpawn = Math.min(count, cap);
     if (toSpawn <= 0) return 0;
@@ -626,8 +626,16 @@ export class CrowdManager {
       else break;
     }
     if (spawned > 0) {
-      soundEngine.playSound('mob_spawn');
       if (this.instancedMesh.instanceColor) this.instancedMesh.instanceColor.needsUpdate = true;
+    }
+    return spawned;
+  }
+
+  /** Публичный спавн с фидбеком: звук + рекорд толпы ровно один раз на вызов. */
+  public addMobsNear(count: number, x: number, z: number): number {
+    const spawned = this.addMobsNearSilent(count, x, z);
+    if (spawned > 0) {
+      soundEngine.playSound('mob_spawn');
       stateManager.runRecordMaxCrowd(this.getAliveCount());
     }
     return spawned;
@@ -652,9 +660,15 @@ export class CrowdManager {
       // Дробная часть: с шансом fracChance добавляем ещё одного (например ×1.5 → 50% шанс +1).
       if (Math.random() < fracChance) extra += 1;
       if (extra <= 0) continue;
-      const n = this.addMobsNear(extra, m.x, z - 1.0);
+      const n = this.addMobsNearSilent(extra, m.x, z - 1.0);
       added += n;
       if (this.getAliveCount() >= this.maxCapacity) break;
+    }
+    if (added > 0) {
+      // Батч-фидбек умножения крыла: ОДИН звук mob_spawn на всю группу вместо
+      // N голосов WebAudio в одном кадре (клиппинг при широком строе).
+      soundEngine.playSound('mob_spawn');
+      stateManager.runRecordMaxCrowd(this.getAliveCount());
     }
     return added;
   }
