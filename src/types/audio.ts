@@ -22,6 +22,7 @@ export type SoundEffect =
   | 'boss_laser'
   | 'boss_minions'
   | 'boss_hit'
+  | 'boss_shield_raise'
   | 'boss_shield_blocked'
   | 'boss_shield_pierced'
   | 'boss_defeat'

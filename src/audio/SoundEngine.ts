@@ -465,6 +465,24 @@ export class SoundEngine {
         break;
       }
 
+      case 'boss_shield_raise': {
+        // Восходящий циановый «всплеск» при поднятии энергокупола босса.
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(120 * pitchShift, t);
+        osc.frequency.exponentialRampToValueAtTime(520, t + 0.18);
+
+        gain.gain.setValueAtTime(0.3, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+
+        osc.connect(gain);
+        gain.connect(outGain);
+        osc.start(t);
+        osc.stop(t + 0.2);
+        break;
+      }
+
       case 'boss_shield_blocked': {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();

@@ -708,8 +708,17 @@ export class GameEngine {
     // Снятие энергокупола босса: раньше купол просто исчезал без звука/VFX.
     // Теперь при спаде щита — циановый бурст + ударная волна + глухой отскок.
     this.unsubBossShieldChanged = eventBus.on('bossShieldChanged', (data: { shielded?: boolean }) => {
-      if (data?.shielded) return; // только снятие купола
       const bz = this.boss.getArenaZ();
+      if (data?.shielded) {
+        // Поднятие энергокупола: босс становится неуязвим — циановый бурст + ударная
+        // волна + восходящий звук. Раньше купол просто появлялся без фидбека.
+        this.particles.emitBurst(0, 1.2, bz, 18, 0x22d3ee, 5.0);
+        this.particles.emitShockwave(0, bz, 0x22d3ee);
+        soundEngine.playSound('boss_shield_raise');
+        return;
+      }
+      // Снятие энергокупола босса: раньше купол просто исчезал без звука/VFX.
+      // Теперь при спаде щита — циановый бурст + ударная волна + глухой отскок.
       this.particles.emitBurst(0, 1.2, bz, 18, 0x22d3ee, 5.0);
       this.particles.emitShockwave(0, bz, 0x22d3ee);
       soundEngine.playSound('boss_shield_blocked');
