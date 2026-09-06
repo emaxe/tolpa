@@ -1095,6 +1095,13 @@ export class StateManager {
     this.updateAchievementProgressSilent('games_played', this.state.stats.gamesPlayed);
     this.updateAchievementProgressSilent('endless_runner_1000', this.state.endlessHighScore);
     this.updateAchievementProgressSilent('endless_runner_5000', this.state.endlessHighScore);
+    // Достижения, не синхронизированные при загрузке/импорте сохранения (иначе сбрасываются в 0/N).
+    if (this.state.stats.levelsCompleted >= 1) this.updateAchievementProgressSilent('first_step', 1);
+    if (this.state.stats.levelsCompleted >= 10) this.updateAchievementProgressSilent('boss_1', 1);
+    if (this.state.stats.levelsCompleted >= 50) this.updateAchievementProgressSilent('boss_5', 1);
+    this.updateAchievementProgressSilent('adrenaline_god', this.state.stats.totalAdrenalineActivations);
+    this.updateAchievementProgressSilent('veteran_25', this.state.stats.levelsCompleted);
+    this.updateAchievementProgressSilent('campaign_50', this.state.stats.levelsCompleted);
   }
 
   public claimAchievement(achId: string): boolean {

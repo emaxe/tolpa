@@ -551,7 +551,7 @@ export class CrowdManager {
     // ссылки в предаллоцированный groupScratch (0-GC) и сортируем его.
     this.groupScratch.length = 0;
     for (let i = 0; i < alive.length; i++) this.groupScratch.push(alive[i]);
-    this.groupScratch.sort((a, b) => b.z - a.z);
+    this.groupScratch.sort(CrowdManager.SORT_BY_Z_DESC);
     for (const mob of this.groupScratch) {
       if (killed >= count) break;
       mob.alive = false;
@@ -695,7 +695,7 @@ export class CrowdManager {
         if (group[i].alive) this.groupScratch.push(group[i]);
       }
     }
-    this.groupScratch.sort((a, b) => b.z - a.z);
+    this.groupScratch.sort(CrowdManager.SORT_BY_Z_DESC);
     let killed = 0;
     let budget = finalCount;
     for (let i = 0; i < this.groupScratch.length; i++) {
@@ -880,8 +880,8 @@ export class CrowdManager {
     // Проигрываем death-анимацию погибших от препятствий/ловушек мобов
     this.updateDeathMobs(dt);
     // Когда вся толпа погибла — прячем модель лидера (нет кого вести).
-    if (this.aliveCount === 0 && this.leaderModel) {
-      this.leaderModel.visible = false;
+    if (this.leaderModel) {
+      this.leaderModel.visible = this.aliveCount > 0;
     }
 
     // Ритмичный топот бегущей толпы: тихий 'footstep', темп растёт со скоростью.
