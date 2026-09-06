@@ -39,6 +39,8 @@ const EMPTY_SNAPSHOT: HudSnapshot = {
   finishNextWallAffordable: false,
   nearMissStreak: 0,
   nearMissMultiplier: 1,
+  activeEventType: null,
+  activeEventTimer: 0,
 };
 
 export const GameCanvas: React.FC<GameCanvasProps> = ({
@@ -173,6 +175,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         finishNextWallAffordable={hud.finishNextWallAffordable}
         nearMissStreak={hud.nearMissStreak}
         nearMissMultiplier={hud.nearMissMultiplier}
+        activeEventType={hud.activeEventType}
+        activeEventTimer={hud.activeEventTimer}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FormationType } from '../types/game';
+import { FormationType, LevelDynamicEvent } from '../types/game';
 import { i18n } from '../core/Localization';
 import { stateManager } from '../core/StateManager';
 import { soundEngine } from '../audio/SoundEngine';
@@ -41,6 +41,9 @@ interface HUDProps {
   // Серия уворотов в упор (Near-Miss Streak) — текущая длина и множитель награды.
   nearMissStreak: number;
   nearMissMultiplier: number;
+  // Активное динамическое событие уровня — тип и оставшееся время (для постоянного индикатора).
+  activeEventType: LevelDynamicEvent['type'] | null;
+  activeEventTimer: number;
 }
 
 const NEAR_MISS_ALERT_KEYS: Record<number, string> = {
@@ -78,6 +81,8 @@ export const HUD: React.FC<HUDProps> = ({
   finishNextWallAffordable = false,
   nearMissStreak,
   nearMissMultiplier,
+  activeEventType,
+  activeEventTimer,
 }) => {
   const [bossInfo, setBossInfo] = useState<{ hp: number; maxHp: number; nameKey: string } | null>(null);
   const [isBossShielded, setIsBossShielded] = useState<boolean>(false);
@@ -378,6 +383,17 @@ export const HUD: React.FC<HUDProps> = ({
           {eventAlert.type === 'nearMissMilestone' && eventAlert.multiplier && eventAlert.multiplier >= 2
             ? i18n.t(NEAR_MISS_ALERT_KEYS[eventAlert.multiplier] || 'nearMissMilestone')
             : i18n.t(EVENT_ALERT_MAP[eventAlert.type].key)}
+        </div>
+      )}
+
+      {/* Постоянный индикатор активного события (speed_boost/ambush/emp_storm/meteor_rain):
+          one-shot баннер гаснет через ~3с, а эффект длится 6–10с — игрок не видел, когда
+          ускорение/замедление закончится. Чип с обратным отсчётом живёт, пока событие активно. */}
+      {activeEventType && activeEventTimer > 0 && EVENT_ALERT_MAP[activeEventType] && (
+        <div
+          className={`absolute right-4 top-24 z-20 pointer-events-none px-3 py-1.5 rounded-lg border-2 bg-slate-100/85 backdrop-blur-md font-orbitron font-bold text-xs tracking-wider shadow-lg ${EVENT_ALERT_MAP[activeEventType].cls}`}
+        >
+          {i18n.t(EVENT_ALERT_MAP[activeEventType].key)} · {Math.ceil(activeEventTimer)}с
         </div>
       )}
 

@@ -43,6 +43,10 @@ export interface HudSnapshot {
   // Серия уворотов в упор (Near-Miss Streak) — текущая длина и множитель награды.
   nearMissStreak: number;
   nearMissMultiplier: number;
+  // Активное динамическое событие уровня (speed_boost/ambush/emp_storm/meteor_rain) —
+  // тип и оставшееся время, чтобы HUD показывал постоянный индикатор, пока эффект длится.
+  activeEventType: LevelDynamicEvent['type'] | null;
+  activeEventTimer: number;
 }
 
 export interface GameEngineCallbacks {
@@ -3274,6 +3278,8 @@ export class GameEngine {
       })(),
       nearMissStreak: this.obstacles.getNearMissStreak(),
       nearMissMultiplier: getNearMissMultiplier(this.obstacles.getNearMissStreak()),
+      activeEventType: this.activeEvent?.event.type ?? null,
+      activeEventTimer: this.activeEvent ? Math.max(0, this.activeEvent.timer) : 0,
     };
   }
 
