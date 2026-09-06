@@ -386,12 +386,12 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
     // раньше не потреблял его — игрок видел только звук + частицы, без текстовой
     // подсказки какой строй активирован.
     const FORMATION_LABELS: Record<string, string> = {
-      wedge: 'КЛИН',
-      wide: 'ШЕРЕНГА',
-      circle: 'ФАЛАНГА',
-      arrow: 'СТРЕЛА',
-      oval: 'ОВАЛ',
-      diamond: 'РОМБ',
+      wedge: i18n.t('formationWedge', 'Клин (Защита)').split(' ')[0].toUpperCase(),
+      wide: i18n.t('formationWide', 'Шеренга (Сбор)').split(' ')[0].toUpperCase(),
+      circle: i18n.t('formationCircle', 'Фаланга (Таран)').split(' ')[0].toUpperCase(),
+      arrow: i18n.t('formationArrow', 'Стрела (Скорость)').split(' ')[0].toUpperCase(),
+      oval: i18n.t('formationOval', 'Овал (Баланс)').split(' ')[0].toUpperCase(),
+      diamond: i18n.t('formationDiamond', 'Ромб (Броня)').split(' ')[0].toUpperCase(),
     };
     const FORMATION_TEXT_COLORS: Record<string, string> = {
       wedge: 'text-purple-400 font-extrabold text-xl drop-shadow-[0_0_8px_rgba(168,85,247,0.9)]',

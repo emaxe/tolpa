@@ -435,7 +435,7 @@ export const HUD: React.FC<HUDProps> = ({
         <div className="absolute bottom-24 left-4 max-sm:hidden pointer-events-none flex items-center gap-3">
           {metersLeft >= 0 && (
             <span className="text-[10px] font-orbitron text-slate-600">
-              {metersLeft} м до финиша
+              {metersLeft} {i18n.t('metersToFinish', 'м до финиша')}
             </span>
           )}
           {nextHazardDistance >= 0 && nextHazardDistance < 25 && (
@@ -548,12 +548,12 @@ export const HUD: React.FC<HUDProps> = ({
           {/* Бейдж активного тактического бонуса формации — показывает, что даёт
               текущий строй, чтобы выбор формации читался как тактический инструмент. */}
           <div className="bg-slate-100/80 backdrop-blur-md border border-slate-300 rounded-lg px-2.5 py-1 text-[10px] font-orbitron font-bold text-teal-700 max-sm:hidden">
-            {currentFormation === 'wedge' && '🛡️ Урон −40%'}
-            {currentFormation === 'wide' && '🧲 Охват +60% · Сложение +50%'}
-            {currentFormation === 'circle' && '💥 Таран боссов ×1.35 · Стен ×2'}
-            {currentFormation === 'arrow' && '⚡ Скорость +15%'}
-            {currentFormation === 'oval' && '⚖️ Баланс · Ворота и сферы +25%'}
-            {currentFormation === 'diamond' && '💎 Броня −25% · Стены ×2 · Таран'}
+            {currentFormation === 'wedge' && i18n.t('formationWedgeBadge', '🛡️ Урон −40%')}
+            {currentFormation === 'wide' && i18n.t('formationWideBadge', '🧲 Охват +60% · Сложение +50%')}
+            {currentFormation === 'circle' && i18n.t('formationCircleBadge', '💥 Таран боссов ×1.35 · Стен ×2')}
+            {currentFormation === 'arrow' && i18n.t('formationArrowBadge', '⚡ Скорость +15%')}
+            {currentFormation === 'oval' && i18n.t('formationOvalBadge', '⚖️ Баланс · Ворота и сферы +25%')}
+            {currentFormation === 'diamond' && i18n.t('formationDiamondBadge', '💎 Броня −25% · Стены ×2 · Таран')}
           </div>
           <div className="pointer-events-auto grid grid-cols-6 gap-2 bg-slate-100/80 backdrop-blur-md p-1.5 rounded-xl border border-slate-300 max-sm:order-1 max-sm:grid-cols-1 max-sm:gap-1 max-sm:p-1 max-sm:rounded-2xl">
           <button
