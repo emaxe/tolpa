@@ -535,7 +535,7 @@ export class CrowdManager {
     }
 
     if (killed > 0) {
-      soundEngine.playSound('mob_death');
+      if (!reason.startsWith('boss')) soundEngine.playSound('mob_death');
       eventBus.emit('mobsKilled', { count: killed, reason, x: this.leaderX, z: this.leaderZ });
     }
 
@@ -725,7 +725,7 @@ export class CrowdManager {
       budget--;
     }
     if (killed > 0) {
-      soundEngine.playSound('mob_death');
+      if (!reason.startsWith('boss')) soundEngine.playSound('mob_death');
       eventBus.emit('mobsKilled', { count: killed, reason, x: this.leaderX, z: this.leaderZ });
     }
     return killed;

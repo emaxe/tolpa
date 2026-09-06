@@ -712,7 +712,7 @@ export class LevelGenerator {
 
   // 3. Шахматная сетка из 4 точечных ловушек (2 ряда по 2 ловушки)
   private static patternCheckerboardHazard(ctx: PatternContext): { count: number; spanZ: number } {
-    const pool: ObstacleType[] = ['spike_trap', 'bomb', 'lava_pit'];
+    const pool: ObstacleType[] = ['spike_trap', 'lava_pit'];
     const idPrefix = ctx.idPrefix;
 
     const r1o1 = pool[Math.floor(ctx.rng() * pool.length)];
