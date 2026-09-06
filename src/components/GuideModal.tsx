@@ -1,5 +1,6 @@
 import React from 'react';
 import { i18n } from '../core/Localization';
+import { soundEngine } from '../audio/SoundEngine';
 import { X, BookOpen, Shield, Sparkles, Cpu, Target } from 'lucide-react';
 
 interface GuideModalProps {
@@ -17,7 +18,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
             <span>{i18n.t('loreTitle')}</span>
           </h2>
           <button
-            onClick={onClose}
+            onClick={() => { soundEngine.playSound('button_click'); onClose(); }}
             className="p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-200 cursor-pointer transition-colors"
           >
             <X className="w-5 h-5" />

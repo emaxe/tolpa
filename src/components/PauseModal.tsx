@@ -1,5 +1,6 @@
 import React from 'react';
 import { i18n } from '../core/Localization';
+import { soundEngine } from '../audio/SoundEngine';
 import { Pause, Play, RotateCcw, Home } from 'lucide-react';
 
 interface PauseModalProps {
@@ -23,7 +24,7 @@ export const PauseModal: React.FC<PauseModalProps> = ({ onResume, onRestart, onH
 
         <div className="space-y-2.5">
           <button
-            onClick={onResume}
+            onClick={() => { soundEngine.playSound('button_click'); onResume(); }}
             className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-zinc-950 font-orbitron font-extrabold text-sm uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/40 flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"
           >
             <Play className="w-4 h-4 fill-current" />
@@ -31,7 +32,7 @@ export const PauseModal: React.FC<PauseModalProps> = ({ onResume, onRestart, onH
           </button>
 
           <button
-            onClick={onRestart}
+            onClick={() => { soundEngine.playSound('button_click'); onRestart(); }}
             className="w-full py-2.5 bg-slate-200/80 hover:bg-slate-300 text-slate-700 rounded-xl font-orbitron text-xs flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -39,7 +40,7 @@ export const PauseModal: React.FC<PauseModalProps> = ({ onResume, onRestart, onH
           </button>
 
           <button
-            onClick={onHome}
+            onClick={() => { soundEngine.playSound('button_click'); onHome(); }}
             className="w-full py-2.5 bg-slate-200/80 hover:bg-slate-300 text-slate-700 rounded-xl font-orbitron text-xs flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <Home className="w-3.5 h-3.5" />

@@ -1,5 +1,6 @@
 import React from 'react';
 import { i18n } from '../core/Localization';
+import { soundEngine } from '../audio/SoundEngine';
 import { RunStats, stateManager } from '../core/StateManager';
 import { Trophy, Skull, Star, Coins, Gem, ArrowRight, RotateCcw, Home, ShoppingCart, Zap, Users, Shield, Swords, DoorOpen, Route, Trophy as RecordIcon } from 'lucide-react';
 
@@ -242,7 +243,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
         <div className="space-y-2.5">
           {isVictory && !isEndless ? (
             <button
-              onClick={onNextLevel}
+              onClick={() => { soundEngine.playSound('button_click'); onNextLevel(); }}
               className="w-full py-3 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-zinc-950 font-orbitron font-extrabold text-sm uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95"
             >
               <span>{i18n.t('nextLevel')}</span>
@@ -251,14 +252,14 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
           ) : (
             <div className="flex gap-2">
               <button
-                onClick={onRetry}
+                onClick={() => { soundEngine.playSound('button_click'); onRetry(); }}
                 className="flex-1 py-3 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-zinc-950 font-orbitron font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/30 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <RotateCcw className="w-4 h-4" />
                 <span>{i18n.t('retry')}</span>
               </button>
               <button
-                onClick={onOpenShop}
+                onClick={() => { soundEngine.playSound('button_click'); onOpenShop(); }}
                 className="flex-1 py-3 bg-slate-200 hover:bg-slate-300 text-amber-800 font-orbitron font-bold text-xs uppercase rounded-xl border border-amber-500/40 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <ShoppingCart className="w-4 h-4" />
@@ -270,7 +271,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
           <div className="flex gap-2">
             {isVictory && !isEndless && (
               <button
-                onClick={onRetry}
+                onClick={() => { soundEngine.playSound('button_click'); onRetry(); }}
                 className="flex-1 py-2 bg-slate-200/80 hover:bg-slate-300 text-slate-700 rounded-xl font-orbitron text-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -278,7 +279,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
               </button>
             )}
             <button
-              onClick={onHome}
+              onClick={() => { soundEngine.playSound('button_click'); onHome(); }}
               className="flex-1 py-2 bg-slate-200/80 hover:bg-slate-300 text-slate-700 rounded-xl font-orbitron text-xs flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <Home className="w-3.5 h-3.5" />
