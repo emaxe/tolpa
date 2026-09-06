@@ -176,8 +176,13 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
     // звук + частицы, без текстового фидбека. Цвет совпадает с взрывом частиц (0xf97316).
     const unsubObstacle = eventBus.on(
       'obstacleSmashed',
-      (data: { type?: string; x?: number; z?: number }) => {
+      (data: { type?: string; x?: number; z?: number; ram?: boolean }) => {
         if (!data) return;
+        // Таран строем (Фаланга/Ромб) — отдельная плашка перка, иначе обычное «СЛОМАНО!».
+        if (data.ram) {
+          spawn(data.x || 0, data.z || 0, i18n.t('perkFormationRam', 'ТАРАН СТРОЕМ!'), 'text-cyan-300');
+          return;
+        }
         spawn(data.x || 0, data.z || 0, i18n.t('obstacleSmashed', 'СЛОМАНО!'), 'text-orange-400');
       }
     );

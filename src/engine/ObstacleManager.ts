@@ -1124,7 +1124,7 @@ export class ObstacleManager {
     const rSq = r * r;
     if (aliveMobs.length === 0) return;
 
-    // Hyper / Танки обезвреживают мину без потерь
+    // Hyper / Танки / таран строем обезвреживают мину без потерь (таран — ценой 1 бойца)
     const isHyper = crowd.isHyperMode;
     let hasTanks = false;
     // Скан на танки нужен только для разрушаемых мин (иначе obs.destructible=false
@@ -1137,7 +1137,8 @@ export class ObstacleManager {
         }
       }
     }
-    if (isHyper || (obs.destructible && hasTanks)) {
+    const canRam = obs.destructible && crowd.canRamObstacles();
+    if (isHyper || (obs.destructible && hasTanks) || canRam) {
       let touched = false;
       for (const m of aliveMobs) {
         if (!m.alive) continue;
@@ -1149,13 +1150,15 @@ export class ObstacleManager {
         }
       }
       if (touched) {
+        // Таран строем (Фаланга/Ромб) сокрушает мину ценой 1 бойца — как в checkObstacleCollision.
+        if (canRam && !isHyper && !hasTanks) crowd.killMobs(1, 'obstacle');
         obs.isDead = true;
         vis.exploded = true;
         this.scene.remove(vis.mesh);
         if (vol > 0) soundEngine.playSound('obstacle_smash', 1, vol);
         particles.emitBurst(obs.x, 1.0, obs.z, 35, 0xf97316, 6.5);
         stateManager.runRecordObstacleSmash();
-        eventBus.emit('obstacleSmashed', { type: obs.type, x: obs.x, z: obs.z });
+        eventBus.emit('obstacleSmashed', { type: obs.type, x: obs.x, z: obs.z, ram: canRam && !isHyper && !hasTanks });
       }
       return;
     }
@@ -1215,7 +1218,7 @@ export class ObstacleManager {
     const rSq = r * r;
     if (aliveMobs.length === 0) return;
 
-    // Танки / гипер уничтожают кибер-собаку
+    // Танки / гипер / таран строем уничтожают кибер-собаку (таран — ценой 1 бойца)
     const isHyper = crowd.isHyperMode;
     let hasTanks = false;
     // Скан на танки нужен только для разрушаемых собак (иначе obs.destructible=false
@@ -1228,7 +1231,8 @@ export class ObstacleManager {
         }
       }
     }
-    if (isHyper || (obs.destructible && hasTanks)) {
+    const canRam = obs.destructible && crowd.canRamObstacles();
+    if (isHyper || (obs.destructible && hasTanks) || canRam) {
       let touched = false;
       for (const m of aliveMobs) {
         if (!m.alive) continue;
@@ -1240,12 +1244,14 @@ export class ObstacleManager {
         }
       }
       if (touched) {
+        // Таран строем (Фаланга/Ромб) сокрушает собаку ценой 1 бойца — как в checkObstacleCollision.
+        if (canRam && !isHyper && !hasTanks) crowd.killMobs(1, 'obstacle');
         obs.isDead = true;
         this.scene.remove(vis.mesh);
         if (vol > 0) soundEngine.playSound('obstacle_smash', 1, vol);
         particles.emitBurst(obs.x, 1.0, obs.z, 30, 0xa855f7, 6.0);
         stateManager.runRecordObstacleSmash();
-        eventBus.emit('obstacleSmashed', { type: obs.type, x: obs.x, z: obs.z });
+        eventBus.emit('obstacleSmashed', { type: obs.type, x: obs.x, z: obs.z, ram: canRam && !isHyper && !hasTanks });
         return;
       }
     }
