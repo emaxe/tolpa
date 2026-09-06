@@ -259,6 +259,8 @@ export class GameEngine {
   private unsubAdrenalineEnded: (() => void) | null = null;
   private unsubBonusCollected: (() => void) | null = null;
   private unsubObstacleSmashed: (() => void) | null = null;
+  private unsubCoinCollected: (() => void) | null = null;
+  private unsubBossDamaged: (() => void) | null = null;
   private unsubLevelCompleted: (() => void) | null = null;
   private unsubFinishLine: (() => void) | null = null;
   private unsubBossDefeated: (() => void) | null = null;
@@ -641,6 +643,22 @@ export class GameEngine {
       this.particles.emitBurst(data.x ?? this.crowd.leaderX, 0.8, data.z ?? this.crowd.leaderZ, 16, 0xff6b6b, 3.5);
       eventBus.emit('screenShake', { intensity: 0.1 });
       this.triggerHaptic([30, 20, 40]);
+    });
+
+    // Тактильный отклик сбора монет: лёгкий одиночный импульс. Событие coinCollected
+    // эмитится ObstacleManager/BonusManager, но раньше не имело haptic-потребителя —
+    // монеты давали звук/частицы/текст, но не вибрацию (комментарий троттлинга на
+    // lastHapticMs уже называл coinCollected частым событием, а потребителя не было).
+    this.unsubCoinCollected = eventBus.on('coinCollected', () => {
+      this.triggerHaptic(8);
+    });
+
+    // Тактильный отклик урона боссу: короткий импульс при каждом попадании.
+    // bossDamaged эмитится BossManager ~6 Гц, но haptic-потребителя не было —
+    // только HUD (полоса HP) и FloatingText (числа урона). Троттлинг 40мс в
+    // triggerHaptic уже гасит частоту, поэтому спама нет.
+    this.unsubBossDamaged = eventBus.on('bossDamaged', () => {
+      this.triggerHaptic(12);
     });
 
     // Праздничный VFX при завершении уровня: световой столб + ударная волна +
@@ -3310,6 +3328,8 @@ export class GameEngine {
     this.unsubAdrenalineEnded?.();
     this.unsubBonusCollected?.();
     this.unsubObstacleSmashed?.();
+    this.unsubCoinCollected?.();
+    this.unsubBossDamaged?.();
     this.unsubLevelCompleted?.();
     this.unsubFinishLine?.();
     this.unsubBossDefeated?.();
