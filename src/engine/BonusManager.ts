@@ -301,12 +301,14 @@ export class BonusManager {
   public clear(): void {
     this.bonuses.forEach((bv) => {
       this.scene.remove(bv.group);
-      bv.group.children.forEach((child) => {
+      bv.group.traverse((child) => {
         if (child instanceof THREE.Mesh) {
           const mat = child.material as THREE.Material | THREE.Material[];
           if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
-          else mat.dispose();
-          if (child.geometry && child !== bv.core && child !== bv.ring && child !== bv.glow) child.geometry.dispose();
+          else mat?.dispose();
+          if (child.geometry && child.geometry !== this.coreGeo && child.geometry !== this.ringGeo && child.geometry !== this.glowGeo) {
+            child.geometry.dispose();
+          }
         }
       });
     });

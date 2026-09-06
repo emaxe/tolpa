@@ -133,6 +133,8 @@ export class GameEngine {
   public isPaused: boolean = false;
   private runEnded: boolean = false;
   private deathGrace: number = 0;
+  private winGrace: number = 0;
+  private pendingWin: { score: number; mult: number; mobs: number } | null = null;
   public currentLevel: LevelConfig | null = null;
   public isEndless: boolean = false;
   public endlessSegmentIndex: number = 0;
@@ -1151,6 +1153,8 @@ export class GameEngine {
     this.onLevelLoseCb = onLose;
     this.runEnded = false;
     this.deathGrace = 0;
+    this.winGrace = 0;
+    this.pendingWin = null;
     this.adrenalineCharge = 0;
     this.wasAdrenalineReady = false;
     this.currentFov = GameEngine.FOV_BASE;
@@ -1230,6 +1234,8 @@ export class GameEngine {
     this.currentLevel = null;
     this.runEnded = false;
     this.deathGrace = 0;
+    this.winGrace = 0;
+    this.pendingWin = null;
     this.adrenalineCharge = 0;
     this.wasAdrenalineReady = false;
     this.currentFov = GameEngine.FOV_BASE;
@@ -2713,17 +2719,31 @@ export class GameEngine {
       this.finishLine.update(dt, this.crowd, this.particles, (finalScore, finalMult, remainingMobs) => {
         // Праздничный VFX (световой столб, волна, конфетти, cheer) централизованно
         // эмитится в обработчике levelCompleted (см. unsubLevelCompleted) — не дублируем здесь.
-        this.endRun(true, finalScore, finalMult, remainingMobs);
+        if (this.winGrace === 0) {
+          this.pendingWin = { score: finalScore, mult: finalMult, mobs: remainingMobs };
+          this.winGrace = 0.001;
+        }
       });
     } else {
       this.updateEndlessStreaming();
+    }
+
+    if (this.winGrace > 0) {
+      this.winGrace += dt;
+      if (this.winGrace >= 1.1) {
+        const w = this.pendingWin!;
+        this.pendingWin = null;
+        this.winGrace = 0;
+        this.endRun(true, w.score, w.mult, w.mobs);
+        return;
+      }
     }
 
     // Check Defeat Condition (all mobs died). Стоит ПОСЛЕ апдейта подсистем и частиц,
     // чтобы партиклы гибели последнего моба реально успели отрисоваться хотя бы кадр,
     // и с небольшой грейс-паузой, чтобы игрок увидел, от чего умер, а не увидел сразу
     // экран поражения на том же кадре.
-    if (this.crowd.getAliveCount() <= 0 && !this.runEnded) {
+    if (this.crowd.getAliveCount() <= 0 && !this.runEnded && this.winGrace === 0) {
       if (this.deathGrace === 0) {
         soundEngine.playSound('level_lose');
         eventBus.emit('screenShake', { intensity: 0.7 });
