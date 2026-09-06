@@ -1095,10 +1095,9 @@ export class ObstacleManager {
         eventBus.emit('coinCollected', { value: coins, x: obsVis.hazardX, z: rz, tier: 2 });
         // Эскалация звука по уровню серии (pitch выше на каждом увороте).
         soundEngine.playSound('near_miss', 1.0 + Math.min(1.0, streak * 0.05));
-        // Эскалация визуального фидбека: больше частиц и ярче цвет на высоких сериях.
-        const count = multiplier >= 10 ? 36 : multiplier >= 5 ? 26 : multiplier >= 2 ? 18 : 10;
-        const color = multiplier >= 10 ? 0xfacc15 : multiplier >= 5 ? 0xa855f7 : multiplier >= 2 ? 0x00f0ff : 0x38bdf8;
-        particles.emitBurst(obsVis.hazardX, 1.2, rz, count, color, 3.0 + multiplier * 0.2);
+        // Визуальный бурст частиц НЕ дублируем здесь — GameEngine уже централизованно
+        // обрабатывает событие nearMiss (бурст + хаптик + тряска). Локальный emitBurst
+        // давал двойной всплеск частиц на каждый уворот.
         eventBus.emit('nearMiss', { x: obsVis.hazardX, z: rz, coins, streak, multiplier });
       } else if (gap > 0.35 && gap <= 2.2) {
         // Безопасный объезд в той же полосе (0.35..2.2 м от хитбокса) — игрок не
