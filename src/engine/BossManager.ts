@@ -857,10 +857,6 @@ export class BossManager {
     this.enrageTelegraphed = false;
   }
 
-  public dispose(): void {
-    this.clear();
-  }
-
   /** Дефолтные веса атак по типу (если не заданы явно в LevelGenerator). */
   private static readonly DEFAULT_ATTACK_WEIGHTS: Record<BossAttack['type'], number> = {
     slam: 30,

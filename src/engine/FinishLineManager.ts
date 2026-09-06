@@ -267,8 +267,4 @@ export class FinishLineManager {
     this.isCelebrating = false;
     this.sacrificedTotal = 0;
   }
-
-  public dispose(): void {
-    this.clear();
-  }
 }

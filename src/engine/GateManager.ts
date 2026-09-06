@@ -497,10 +497,6 @@ export class GateManager {
     }
   }
 
-  public getCombo(): number {
-    return this.comboStreak;
-  }
-
   // ---------------------------------------------------------------------------
   // EMP-шторм: на время события позитивные ворота (add/multiply) превращаются в
   // ÷2 — то есть начинают прореживать толпу. divide остаётся divide. Сброс по clearEmpStorm.
