@@ -221,7 +221,12 @@ export class BonusManager {
             const mat = child.material as THREE.Material | THREE.Material[];
             if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
             else mat?.dispose();
-            if (child.geometry && child.geometry !== this.coreGeo && child.geometry !== this.ringGeo) {
+            if (
+              child.geometry &&
+              child.geometry !== this.coreGeo &&
+              child.geometry !== this.ringGeo &&
+              child.geometry !== this.glowGeo
+            ) {
               child.geometry.dispose();
             }
           }
@@ -244,7 +249,8 @@ export class BonusManager {
       case 'add_mobs': {
         const added = crowd.addMobsNear(Math.round(b.value * ovalMult), b.x, b.z);
         if (added > 0) {
-          soundEngine.playSound('gate_pass_positive');
+          // Звук 'mob_spawn' уже играет addMobsNear() (CrowdManager) — здесь только событие,
+          // иначе подбор аддитивного бонуса даёт сдвоенный клип.
           eventBus.emit('bonusCollected', { type: b.type, value: added, x: b.x, z: b.z });
         } else {
           // Толпа на лимите (200): не усиливаем числом — кратковременно защищаем

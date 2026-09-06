@@ -244,10 +244,10 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
             text = `+♥${v} ${i18n.t('bonusHeal', 'ЛЕЧЕНИЕ!')}`;
             colorClass = 'text-emerald-400 font-bold';
             break;
+          // Сфера гипер-режима: текст рисует единый обработчик adrenalineTriggered ниже
+          // (иначе «ГИПЕР!» дублируется — оба события эмитятся при сборе сферы).
           case 'adrenaline':
-            text = `${i18n.t('bonusHyper', 'ГИПЕР!')} +⚡`;
-            colorClass = 'text-yellow-300 font-extrabold drop-shadow-[0_0_10px_rgba(250,204,21,0.9)]';
-            break;
+            return;
           case 'add_mobs':
           default:
             text = `+${v}`;
