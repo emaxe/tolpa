@@ -410,6 +410,12 @@ export class GameEngine {
         const z = data?.z ?? this.crowd.leaderZ;
         this.particles.emitBurst(x, 1.0, z, 10, 0xa855f7, 3.5);
         soundEngine.playSound('mob_death', 1.2);
+      } else if (data?.reason === 'boss_meteors') {
+        // Метеоритный залп босса: оранжевый бурст + звук с высоким питчем, без двойной тряски
+        const x = data?.x ?? this.crowd.leaderX;
+        const z = data?.z ?? this.crowd.leaderZ;
+        this.particles.emitBurst(x, 1.0, z, 16, 0xf97316, 5.0);
+        soundEngine.playSound('mob_death', 1.1);
       } else if (data?.reason === 'boss_slam' || data?.reason === 'boss_laser') {
         // Мощные удары босса (слэм/лазер): красный бурст + звук с низким питчем + лёгкая тряска экрана
         const x = data?.x ?? this.crowd.leaderX;

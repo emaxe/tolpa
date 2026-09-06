@@ -316,6 +316,11 @@ export class BossManager {
             (this.laserTelegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
           }
           if (this.telegraphMesh) {
+            const color = currentAttack.type === 'meteors' ? 0xf97316
+              : currentAttack.type === 'minions' ? 0xa855f7
+              : currentAttack.type === 'shield' ? 0x00f0ff
+              : 0xef4444;
+            (this.telegraphMesh.material as THREE.MeshBasicMaterial).color.setHex(color);
             this.telegraphMesh.visible = true;
             (this.telegraphMesh.material as THREE.MeshBasicMaterial).opacity = Math.min(0.7, prog * 0.7);
             this.telegraphMesh.scale.set(prog, prog, prog);
@@ -513,7 +518,7 @@ export class BossManager {
       this.minionTickAccum = 0;
     } else if (attack.type === 'meteors') {
       // Метеоритный залп: серия огненных всплесков по арене перед боссом.
-      soundEngine.playSound('boss_slam');
+      soundEngine.playSound('boss_hit');
       eventBus.emit('screenShake', { intensity: 0.5 });
       const strikes = attack.areaRadius ? Math.floor(attack.areaRadius) : 3;
       for (let i = 0; i < strikes; i++) {
@@ -525,7 +530,7 @@ export class BossManager {
       // не выкашивали всю толпу на поздних уровнях.
       const capped = Math.min(attack.damage, Math.floor(crowd.getAliveCount() * 0.2));
       if (capped > 0) {
-        crowd.killMobs(Math.max(1, capped), 'boss_slam');
+        crowd.killMobs(Math.max(1, capped), 'boss_meteors');
       }
     } else if (attack.type === 'shield') {
       // Энергетический купол: на время атаки босс блокирует урон толпы.
