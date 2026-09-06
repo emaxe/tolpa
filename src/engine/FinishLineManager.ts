@@ -260,6 +260,16 @@ export class FinishLineManager {
     this.wallSteps = [];
 
     if (this.chestMesh) {
+      // Сундук создаётся заново в initFinishLine (новые BoxGeometry + материал), но
+      // clear() только убирал его из сцены — геометрия и материал утекали при каждом
+      // пересоздании уровня. Traverse + dispose перед удалением.
+      this.chestMesh.traverse((obj) => {
+        const mesh = obj as THREE.Mesh;
+        mesh.geometry?.dispose();
+        const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
+        if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+        else mat?.dispose();
+      });
       this.scene.remove(this.chestMesh);
       this.chestMesh = null;
     }
