@@ -68,7 +68,12 @@ export class BossManager {
   private telegraphAnnounced: boolean = false;
   // Атака "shield" (энергетический купол): пока активен, босс блокирует урон толпы.
   private isShielded: boolean = false;
+  // Меш купола жив весь бой (создаётся один раз в initBoss) — setShielded() переключает
+  // лишь visible, БЕЗ per-toggle new SphereGeometry/MeshBasicMaterial + dispose() в активном
+  // rAF (0-GC, без WebGL-рекомпиляции дескрипторов в момент пиковой нагрузки боя).
   private shieldMesh: THREE.Mesh | null = null;
+  // Фаза пульсации купола (0..2π), 0-GC через Math.sin без аллокаций.
+  private shieldPulse: number = 0;
   private particles: ParticleSystem;
   // Драматичное появление босса при первом входе толпы в арену (distanceToArena <= 35).
   // Раньше босс молча активировал боевой цикл — звук boss_roar играл на старте уровня
@@ -161,6 +166,24 @@ export class BossManager {
     this.laserBeamMesh.visible = false;
     this.scene.add(this.laserBeamMesh);
 
+    // Create Shield Dome Mesh (энергетический купол) — живёт весь бой, создаётся
+    // ОДИН раз, чтобы setShielded() не делал new SphereGeometry/MeshBasicMaterial
+    // и не dispose() в активном rAF-цикле (0-GC, без WebGL-рекомпиляции).
+    if (!this.shieldMesh) {
+      const shieldGeo = new THREE.SphereGeometry(3.2, 24, 16);
+      const shieldMat = new THREE.MeshBasicMaterial({
+        color: 0x00f0ff,
+        transparent: true,
+        opacity: 0.28,
+        depthWrite: false,
+      });
+      this.shieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+      this.shieldMesh.position.set(0, 2.0, arenaZ);
+      this.shieldMesh.visible = false;
+      this.scene.add(this.shieldMesh);
+    }
+    this.shieldPulse = 0;
+
     soundEngine.playSound('boss_roar');
     soundEngine.playMusic('boss_battle');
   }
@@ -228,6 +251,18 @@ export class BossManager {
     // Boss breathing / idle animation
     this.bossMesh.position.y = Math.sin(Date.now() * 0.003) * 0.2;
     this.bossMesh.position.x = 0;
+
+    // Анимация энергокупола (0-GC, без аллокаций): лёгкая пульсация радиуса-
+    // прозрачности и медленное вращение, пока щит активен. Только visible-меш,
+    // созданный один раз в initBoss — без per-toggle new/dispose.
+    if (this.isShielded && this.shieldMesh && this.shieldMesh.visible) {
+      this.shieldPulse += dt * 6;
+      const s = 1 + 0.08 * Math.sin(this.shieldPulse);
+      this.shieldMesh.scale.set(s, s, s);
+      this.shieldMesh.rotation.y += dt * 0.5;
+      const mat = this.shieldMesh.material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.24 + 0.08 * Math.sin(this.shieldPulse);
+    }
 
     // Хит-флэш реакция на материалах корпуса (0.08с)
     if (this.hitFlashTimer > 0) {
@@ -548,26 +583,11 @@ export class BossManager {
     // bossDamaged эмитится только при уроне, поэтому отдельное событие нужно,
     // чтобы HUD узнавал о щите даже когда игрок не бьёт босса.
     eventBus.emit('bossShieldChanged', { shielded: on });
-    if (on) {
-      if (!this.shieldMesh && this.bossMesh) {
-        const shieldGeo = new THREE.SphereGeometry(3.2, 24, 16);
-        const shieldMat = new THREE.MeshBasicMaterial({
-          color: 0x00f0ff,
-          transparent: true,
-          opacity: 0.28,
-          depthWrite: false,
-        });
-        this.shieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
-        this.shieldMesh.position.set(0, 2.0, this.bossArenaZ);
-        this.scene.add(this.shieldMesh);
-      }
-    } else {
-      if (this.shieldMesh) {
-        this.scene.remove(this.shieldMesh);
-        this.shieldMesh.geometry.dispose();
-        (this.shieldMesh.material as THREE.Material).dispose();
-        this.shieldMesh = null;
-      }
+    // Меш создан один раз в initBoss; здесь только visible-переключатель — без
+    // new SphereGeometry/MeshBasicMaterial и без dispose() в активном rAF (0-GC).
+    if (this.shieldMesh) {
+      this.shieldMesh.visible = on;
+      if (on) this.shieldPulse = 0;
     }
   }
 
