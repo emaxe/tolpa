@@ -451,22 +451,6 @@ export class CrowdManager {
     return null;
   }
 
-  /** Возвращает фактически заспавненное число (может быть меньше count из-за потолка maxCapacity). */
-  public addMobs(count: number): number {
-    const toSpawn = Math.min(count, this.maxCapacity - this.getAliveCount());
-    for (let i = 0; i < toSpawn; i++) {
-      this.spawnMob();
-    }
-    if (toSpawn > 0) {
-      soundEngine.playSound('mob_spawn');
-      if (this.instancedMesh.instanceColor) {
-        this.instancedMesh.instanceColor.needsUpdate = true;
-      }
-      stateManager.runRecordMaxCrowd(this.getAliveCount());
-    }
-    return toSpawn;
-  }
-
   public killMobs(count: number, reason: string = 'obstacle'): number {
     if (this.isHyperMode) return 0; // Invulnerable in hyper mode
     if (count <= 0) return 0;
@@ -589,22 +573,6 @@ export class CrowdManager {
     }
     mob.fallVy = 0;
     return true;
-  }
-
-  /** Возвращает фактический прирост (может быть 0, если толпа уже на потолке). */
-  public multiplyMobs(factor: number): number {
-    const current = this.getAliveCount();
-    const target = Math.min(this.maxCapacity, Math.floor(current * factor));
-    const diff = target - current;
-    return diff > 0 ? this.addMobs(diff) : 0;
-  }
-
-  public divideMobs(divisor: number): void {
-    if (divisor <= 1) return;
-    const current = this.getAliveCount();
-    const target = Math.max(1, Math.floor(current / divisor));
-    const toKill = current - target;
-    if (toKill > 0) this.killMobs(toKill, 'gate');
   }
 
   // ==== Групповые операции (изоляция по створкам ворот) ====
