@@ -44,6 +44,7 @@ export const DialogueModal: React.FC<DialogueModalProps> = ({ dialogues, onCompl
   }, [currentIndex, currentLine, fullText, onComplete]);
 
   const handleNext = () => {
+    soundEngine.playSound('button_click');
     if (isTyping) {
       // Instantly finish typing
       setDisplayedText(fullText);

@@ -216,7 +216,10 @@ export const MainMenu: React.FC<MainMenuProps> = ({
         <div className="max-w-4xl mx-auto w-full bg-white/90 border border-slate-300 rounded-2xl p-4 md:p-6 shadow-2xl my-auto max-h-[75vh] flex flex-col">
           <div className="flex justify-between items-center mb-4">
             <button
-              onClick={() => setShowLevelSelect(false)}
+              onClick={() => {
+                soundEngine.playSound('button_click');
+                setShowLevelSelect(false);
+              }}
               className="flex items-center gap-1.5 text-xs font-orbitron font-bold text-slate-700 hover:text-slate-900 bg-slate-200 px-3 py-1.5 rounded-lg cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FormationType } from '../types/game';
 import { i18n } from '../core/Localization';
 import { stateManager } from '../core/StateManager';
+import { soundEngine } from '../audio/SoundEngine';
 import { eventBus } from '../core/EventBus';
 import { Zap, Users, Coins, Shield, ArrowUp, MoveHorizontal, CircleDot, Pause, Skull, TriangleAlert, Route, Trophy, Focus, Diamond } from 'lucide-react';
 
@@ -357,7 +358,10 @@ export const HUD: React.FC<HUDProps> = ({
 
           {/* Pause Button */}
           <button
-            onClick={onPause}
+            onClick={() => {
+              soundEngine.playSound('button_click');
+              onPause();
+            }}
             className="pointer-events-auto p-2.5 bg-white/80 hover:bg-slate-200 active:scale-95 border border-slate-300 rounded-xl text-slate-700 hover:text-slate-900 transition-all shadow-md cursor-pointer"
           >
             <Pause className="w-5 h-5" />

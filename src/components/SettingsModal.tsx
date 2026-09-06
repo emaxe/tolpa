@@ -93,7 +93,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
             <span>{i18n.t('settingsTitle')}</span>
           </h2>
           <button
-            onClick={onClose}
+            onClick={() => {
+              playTick();
+              onClose();
+            }}
             className="p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-200 cursor-pointer transition-colors"
           >
             <X className="w-5 h-5" />
