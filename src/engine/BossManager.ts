@@ -183,9 +183,6 @@ export class BossManager {
       this.scene.add(this.shieldMesh);
     }
     this.shieldPulse = 0;
-
-    soundEngine.playSound('boss_roar');
-    soundEngine.playMusic('boss_battle');
   }
 
   /** Рассчитывает паузу между атаками по уровню босса (tier = level/10, 1..5).
@@ -286,6 +283,7 @@ export class BossManager {
       this.particles.emitLightPillar(0, this.bossArenaZ, 40, 0xff4444);
       this.particles.emitBurst(0, 2.0, this.bossArenaZ, 30, 0xef4444, 7.0);
       soundEngine.playSound('boss_roar');
+      soundEngine.playMusic('boss_battle');
       eventBus.emit('screenShake', { intensity: 0.5 });
       // Центральный баннер-тост "БОСС ПРОСНУЛСЯ" — раньше появление босса было
       // заметно только по VFX/звуку, без текстового объявления в HUD.
