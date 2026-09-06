@@ -65,10 +65,15 @@ describe('Gate & Math Operations', () => {
     const arrowHighMult = Math.min(4, highMultVal + 0.5);
     expect(arrowHighMult).toBe(4.0);
 
-    // wedge: divide /N -> divisor / 0.9 (меньше потерь)
+    // wedge: divide /N -> делитель ЦЕЛЫЙ, выживание бонусом +10% (Клин) / +15% (Ромб)
+    // Было val/0.9: дробный делитель 2.22 целочисленный счётчик округлял до 3 → ÷2
+    // давал каждый 3-й (потери 67% вместо обещанных меньше). Теперь делитель val=2.
     const divVal = 2;
-    const wedgeDiv = divVal / 0.9;
-    expect(wedgeDiv).toBeGreaterThan(2.2);
+    expect(divVal).toBe(2);
+    const wedgeRetention = 0.10;
+    const diamondRetention = 0.15;
+    expect(wedgeRetention).toBeGreaterThan(0);
+    expect(diamondRetention).toBeGreaterThan(wedgeRetention);
 
     // wide: add +N -> +50% (шеренга прожимает оба крыла ворот)
     const wideAdd = Math.round(baseAdd * 1.5);

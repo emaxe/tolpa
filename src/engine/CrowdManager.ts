@@ -738,7 +738,8 @@ export class CrowdManager {
     group: MobInstance[],
     divisor: number,
     reason: string = 'gate',
-    stepState: { step: number } = { step: 0 }
+    stepState: { step: number } = { step: 0 },
+    retentionBonus: number = 0
   ): number {
     if (divisor < 2) return 0;
     if (this.aliveCount <= 1) return 0;
@@ -755,12 +756,17 @@ export class CrowdManager {
     this.groupScratch.length = 0;
     // Счётчик: 1,2,...,N — когда счётчик достигает N, этот моб ВЫЖИВАЕТ (каждый N-й),
     // все остальные мобы убираются. Счётчик персистентен между кадрами (stepState).
+    // retentionBonus [0,1): синергия формаций — шанс, что «приговорённый» моб всё же
+    // выживет (Клин -10% потерь, Ромб -15%). Делитель остаётся ЦЕЛЫМ — дробный
+    // divisor (val/0.9) целочисленный счётчик округлял ВВЕРХ, делая потери ХУЖЕ.
     for (let i = 0; i < group.length; i++) {
       const mob = group[i];
       if (!mob.alive) continue;
       stepState.step++;
       if (stepState.step >= divisor) {
         stepState.step = 0; // этот моб выживает — сбрасываем отсчёт
+      } else if (retentionBonus > 0 && Math.random() < retentionBonus) {
+        // приговорён, но формация спасает (не сбрасываем счётчик — он про этот шаг)
       } else {
         this.groupScratch.push(mob); // не N-й — умирает
       }

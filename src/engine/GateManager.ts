@@ -437,14 +437,18 @@ export class GateManager {
         if (base > 0) isMageTransmuteSpawn = true;
       } else {
         // ÷N: пропускает каждого N-го по очереди, остальных убирает для каждого нового моба/группы.
-        // Синергии формаций при делении: Клин — потери -10%, Ромб — потери -15% (таран плотным строем).
-        const divArg = crowd.formation === 'wedge' ? val / 0.9 : crowd.formation === 'diamond' ? val / 0.85 : val;
-        netChange = -crowd.divideMobsByStep(wing, divArg, 'gate', gateVisual.divideStep);
+        // Синергии формаций при делении: Клин — выживание +10%, Ромб — выживание +15%
+        // (таран плотным строем). Делитель остаётся ЦЕЛЫМ: дробный divisor (val/0.9)
+        // целочисленный счётчик округлял ВВЕРХ, делая потери ХУЖЕ (÷2 → каждый 3-й).
+        let retentionBonus = 0;
         if (crowd.formation === 'wedge') {
+          retentionBonus = 0.10;
           perk = 'wedge_div';
         } else if (crowd.formation === 'diamond') {
+          retentionBonus = 0.15;
           perk = 'diamond_div';
         }
+        netChange = -crowd.divideMobsByStep(wing, val, 'gate', gateVisual.divideStep, retentionBonus);
         if (isFirstTrigger) soundEngine.playSound('gate_pass_negative');
         if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 20, 0xef4444, 4.0);
         if (isFirstTrigger) eventBus.emit('screenShake', { intensity: 0.3 });
