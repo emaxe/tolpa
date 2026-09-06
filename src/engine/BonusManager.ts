@@ -246,6 +246,20 @@ export class BonusManager {
         if (added > 0) {
           soundEngine.playSound('gate_pass_positive');
           eventBus.emit('bonusCollected', { type: b.type, value: added, x: b.x, z: b.z });
+        } else {
+          // Толпа на лимите (200): не усиливаем числом — кратковременно защищаем
+          // авангард неуязвимостью (как heal-сфера на капе, CrowdManager.healAll).
+          let buffed = 0;
+          for (const mob of crowd.getAliveMobs()) {
+            if (!mob.alive) continue;
+            mob.invulnerableTime = Math.max(mob.invulnerableTime, 1.0);
+            buffed++;
+            if (buffed >= 5) break;
+          }
+          if (buffed > 0) {
+            soundEngine.playSound('gate_pass_positive', 0.85);
+            eventBus.emit('bonusCollected', { type: b.type, value: 0, x: b.x, z: b.z });
+          }
         }
         break;
       }

@@ -585,18 +585,7 @@ export class StateManager {
 
     // Ретроактивная синхронизация lifetime-достижений по уже накопленным статам
     // (игроки со старыми сохранениями сразу видят заработанный прогресс).
-    this.updateAchievementProgressSilent('obstacle_crusher', this.state.stats.totalObstaclesSmashed);
-    this.updateAchievementProgressSilent('gate_master', this.state.stats.totalGatesPassed);
-    this.updateAchievementProgressSilent('mob_cloner', this.state.stats.totalMobsSpawned);
-    this.updateAchievementProgressSilent('gem_collector', this.state.stats.totalGemsEarned);
-    this.updateAchievementProgressSilent('boss_hunter', this.state.stats.totalBossesDefeated);
-    this.updateAchievementProgressSilent('near_miss_50', this.state.stats.totalNearMisses);
-    this.updateAchievementProgressSilent('near_miss_200', this.state.stats.totalNearMisses);
-    this.updateAchievementProgressSilent('near_miss_streak_5', this.state.stats.maxNearMissStreak);
-    this.updateAchievementProgressSilent('near_miss_streak_10', this.state.stats.maxNearMissStreak);
-    this.updateAchievementProgressSilent('games_played', this.state.stats.gamesPlayed);
-    this.updateAchievementProgressSilent('endless_runner_1000', this.state.endlessHighScore);
-    this.updateAchievementProgressSilent('endless_runner_5000', this.state.endlessHighScore);
+    this.syncLifetimeAchievements();
 
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', () => {
@@ -1089,6 +1078,25 @@ export class StateManager {
     this.setAchievementProgress(achId, progressValue);
   }
 
+  private syncLifetimeAchievements(): void {
+    this.updateAchievementProgressSilent('rich_boy', this.state.stats.totalCoinsEarned);
+    this.updateAchievementProgressSilent('combo_10', this.state.stats.highestCombo);
+    this.updateAchievementProgressSilent('obstacle_crusher', this.state.stats.totalObstaclesSmashed);
+    this.updateAchievementProgressSilent('gate_master', this.state.stats.totalGatesPassed);
+    this.updateAchievementProgressSilent('mob_cloner', this.state.stats.totalMobsSpawned);
+    this.updateAchievementProgressSilent('gem_collector', this.state.stats.totalGemsEarned);
+    this.updateAchievementProgressSilent('boss_hunter', this.state.stats.totalBossesDefeated);
+    this.updateAchievementProgressSilent('near_miss_50', this.state.stats.totalNearMisses);
+    this.updateAchievementProgressSilent('near_miss_200', this.state.stats.totalNearMisses);
+    this.updateAchievementProgressSilent('near_miss_streak_5', this.state.stats.maxNearMissStreak);
+    this.updateAchievementProgressSilent('near_miss_streak_10', this.state.stats.maxNearMissStreak);
+    this.updateAchievementProgressSilent('legion_50', this.state.stats.maxCrowdReached);
+    this.updateAchievementProgressSilent('legion_150', this.state.stats.maxCrowdReached);
+    this.updateAchievementProgressSilent('games_played', this.state.stats.gamesPlayed);
+    this.updateAchievementProgressSilent('endless_runner_1000', this.state.endlessHighScore);
+    this.updateAchievementProgressSilent('endless_runner_5000', this.state.endlessHighScore);
+  }
+
   public claimAchievement(achId: string): boolean {
     const achDef = INITIAL_ACHIEVEMENTS.find((a) => a.id === achId);
     if (!achDef) return false;
@@ -1173,6 +1181,7 @@ export class StateManager {
           stats: { ...INITIAL_STATS, ...(parsed.stats || {}) },
         };
         i18n.setLanguage(this.state.settings.language);
+        this.syncLifetimeAchievements();
         this.notify();
         return true;
       }
