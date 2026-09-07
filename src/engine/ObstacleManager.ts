@@ -1383,6 +1383,10 @@ export class ObstacleManager {
       this.coinMesh.count = 0;
     }
     this.coinActiveCount = 0;
+    // Сброс серии сбора монет: иначе цепочка из прошлого уровня «протекает» в новый —
+    // первая монета нового забега играла с завышенным питчем (coinChainCount не сбрасывался).
+    this.coinChainCount = 0;
+    this.coinChainTimer = 0;
   }
 
   /** Текущая длина серии уворотов в упор (для HUD-индикатора). */
