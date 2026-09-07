@@ -803,6 +803,12 @@ export class ObstacleManager {
           } else {
             this.coinChainCount = Math.min(12, this.coinChainCount + 1);
             this.coinChainTimer = 0.55;
+            // Порог серии сбора монет (6/12) — праздничный фидбек: крик толпы, бурст,
+            // хаптик. Раньше серия только повышала питч/число искр, но не отмечала
+            // веху — длинная цепочка подбора ощущалась «плоско» (аналог nearMissMilestone).
+            if (this.coinChainCount === 6 || this.coinChainCount === 12) {
+              eventBus.emit('coinChainMilestone', { count: this.coinChainCount, x: coin.x, z: coin.z });
+            }
             soundEngine.playSound('coin_pickup', 1.0 + this.coinChainCount * 0.055);
             particles.emitBurst(coin.x, coin.y, coin.z, 8 + Math.min(6, this.coinChainCount), 0xfacc15, 3.5);
           }

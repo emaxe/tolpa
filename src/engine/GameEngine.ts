@@ -264,6 +264,7 @@ export class GameEngine {
   private unsubBonusCollected: (() => void) | null = null;
   private unsubObstacleSmashed: (() => void) | null = null;
   private unsubCoinCollected: (() => void) | null = null;
+  private unsubCoinChainMilestone: (() => void) | null = null;
   private unsubBossDamaged: (() => void) | null = null;
   private unsubLevelCompleted: (() => void) | null = null;
   private unsubFinishLine: (() => void) | null = null;
@@ -673,6 +674,21 @@ export class GameEngine {
     this.unsubCoinCollected = eventBus.on('coinCollected', () => {
       this.triggerHaptic(8);
     });
+
+    // Порог серии сбора монет (6/12) — праздничный фидбек: крик толпы, золотой бурст,
+    // хаптик. Событие эмитится ObstacleManager при пересечении вехи цепочки подбора.
+    this.unsubCoinChainMilestone = eventBus.on(
+      'coinChainMilestone',
+      (data: { count?: number; x?: number; z?: number }) => {
+        const count = data?.count ?? 6;
+        const x = data?.x ?? this.crowd.leaderX;
+        const z = data?.z ?? this.crowd.leaderZ;
+        const isApex = count >= 12;
+        this.particles.emitBurst(x, 1.4, z, isApex ? 30 : 20, 0xfacc15, isApex ? 5.0 : 4.0);
+        soundEngine.playCrowdCheer(isApex ? 0.7 : 0.45);
+        this.triggerHaptic(isApex ? [25, 20, 25] : 15);
+      }
+    );
 
     // Тактильный отклик урона боссу: короткий импульс при каждом попадании.
     // bossDamaged эмитится BossManager ~6 Гц, но haptic-потребителя не было —
@@ -3374,6 +3390,7 @@ export class GameEngine {
     this.unsubBonusCollected?.();
     this.unsubObstacleSmashed?.();
     this.unsubCoinCollected?.();
+    this.unsubCoinChainMilestone?.();
     this.unsubBossDamaged?.();
     this.unsubLevelCompleted?.();
     this.unsubFinishLine?.();
