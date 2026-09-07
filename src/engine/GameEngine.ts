@@ -2632,6 +2632,11 @@ export class GameEngine {
         // Золотой караван: кластер монет дугой впереди по текущей полосе.
         soundEngine.playSound('coin_pickup');
         this.triggerHaptic(10);
+        // Праздничный фидбек каравана: золотой бурст + ликование толпы. Раньше
+        // coin_train был единственным событием без стартового VFX — только звук
+        // монеты, тогда как speed_boost/ambush/emp_storm/meteor_rain дают бурст.
+        this.particles.emitBurst(this.crowd.leaderX, 1.2, this.crowd.leaderZ, 18, 0xfacc15, 4.0);
+        soundEngine.playCrowdCheer(0.5);
         const cluster: CoinData[] = [];
         const startZ = this.crowd.leaderZ + 45;
         for (let i = 0; i < 10; i++) {
