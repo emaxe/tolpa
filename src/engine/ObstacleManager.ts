@@ -100,6 +100,9 @@ export class ObstacleManager {
   // Сбрасывается по таймеру, если игрок перестаёт собирать монеты.
   private coinChainCount: number = 0;
   private coinChainTimer: number = 0;
+  // One-shot guard апекса серии (12): coinChainCount клампится на 12, поэтому без
+  // флага веха 12 эмитилась бы на КАЖДОЙ монете, пока серия держится на максимуме.
+  private coinChainApexEmitted: boolean = false;
   private _vUp = new THREE.Vector3(0, 1, 0);
   private _vDir = new THREE.Vector3();
 
@@ -806,7 +809,8 @@ export class ObstacleManager {
             // Порог серии сбора монет (6/12) — праздничный фидбек: крик толпы, бурст,
             // хаптик. Раньше серия только повышала питч/число искр, но не отмечала
             // веху — длинная цепочка подбора ощущалась «плоско» (аналог nearMissMilestone).
-            if (this.coinChainCount === 6 || this.coinChainCount === 12) {
+            if (this.coinChainCount === 6 || (this.coinChainCount === 12 && !this.coinChainApexEmitted)) {
+              if (this.coinChainCount === 12) this.coinChainApexEmitted = true;
               eventBus.emit('coinChainMilestone', { count: this.coinChainCount, x: coin.x, z: coin.z });
             }
             soundEngine.playSound('coin_pickup', 1.0 + this.coinChainCount * 0.055);
@@ -1393,6 +1397,7 @@ export class ObstacleManager {
     // первая монета нового забега играла с завышенным питчем (coinChainCount не сбрасывался).
     this.coinChainCount = 0;
     this.coinChainTimer = 0;
+    this.coinChainApexEmitted = false;
   }
 
   /** Текущая длина серии уворотов в упор (для HUD-индикатора). */
