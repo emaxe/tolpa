@@ -744,7 +744,12 @@ export class ObstacleManager {
     // Сброс серии сбора обычных монет по таймеру (окно 0.55с), если игрок перестал собирать.
     if (this.coinChainTimer > 0) {
       this.coinChainTimer -= dt;
-      if (this.coinChainTimer <= 0) this.coinChainCount = 0;
+      if (this.coinChainTimer <= 0) {
+        this.coinChainCount = 0;
+        // Сброс one-shot guard апекса вместе с серией: иначе вторая цепочка из 12 монет
+        // в том же забеге проходила молча (флаг сбрасывался только в clear()).
+        this.coinChainApexEmitted = false;
+      }
     }
 
     if (this.coinMesh && this.coinActiveCount > 0) {
