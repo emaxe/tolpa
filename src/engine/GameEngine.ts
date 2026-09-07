@@ -2639,7 +2639,10 @@ export class GameEngine {
         soundEngine.playCrowdCheer(0.5);
         const cluster: CoinData[] = [];
         const startZ = this.crowd.leaderZ + 45;
-        for (let i = 0; i < 10; i++) {
+        // Размер каравана растёт с интенсивностью события (кап 3.0): раньше всегда
+        // 10 монет, теперь 12..20 — награда масштабируется с поздними сегментами.
+        const trainCount = Math.round(8 + evt.intensity * 4);
+        for (let i = 0; i < trainCount; i++) {
           cluster.push({
             id: `evt_coin_${this.nextEventIndex}_${i}`,
             x: this.crowd.leaderX + (Math.random() - 0.5) * 3,
