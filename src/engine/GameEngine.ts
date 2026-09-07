@@ -722,6 +722,7 @@ export class GameEngine {
       soundEngine.playSound('boss_shield_blocked');
       // Визуальный отскок: циановый бурст у купола босса (раньше был только текст+звук).
       this.particles.emitBurst(data?.x ?? 0, 1.2, data?.z ?? this.boss.getArenaZ(), 12, 0x22d3ee, 3.5);
+      this.triggerHaptic(15);
     });
     this.unsubBossShieldPierced = eventBus.on('bossShieldPierced', (data: { x?: number; z?: number }) => {
       soundEngine.playSound('boss_shield_pierced');
@@ -730,6 +731,7 @@ export class GameEngine {
       const bz = data?.z ?? this.boss.getArenaZ();
       this.particles.emitBurst(bx, 1.2, bz, 20, 0xf59e0b, 6.0);
       this.particles.emitShockwave(bx, bz, 0xf59e0b);
+      this.triggerHaptic([25, 20]);
     });
     // Снятие энергокупола босса: раньше купол просто исчезал без звука/VFX.
     // Теперь при спаде щита — циановый бурст + ударная волна + глухой отскок.
@@ -741,6 +743,7 @@ export class GameEngine {
         this.particles.emitBurst(0, 1.2, bz, 18, 0x22d3ee, 5.0);
         this.particles.emitShockwave(0, bz, 0x22d3ee);
         soundEngine.playSound('boss_shield_raise');
+        this.triggerHaptic(20);
         return;
       }
       // Снятие энергокупола босса: раньше купол просто исчезал без звука/VFX.
@@ -748,6 +751,7 @@ export class GameEngine {
       this.particles.emitBurst(0, 1.2, bz, 18, 0x22d3ee, 5.0);
       this.particles.emitShockwave(0, bz, 0x22d3ee);
       soundEngine.playSound('boss_shield_blocked');
+      this.triggerHaptic(15);
     });
 
     // Ярость босса: 3D-фидбек движка — второй ударный столб + хаптик. Световой столб
