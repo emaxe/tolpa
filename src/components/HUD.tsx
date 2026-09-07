@@ -98,6 +98,8 @@ export const HUD: React.FC<HUDProps> = ({
     meteor_rain: { key: 'eventMeteorRain', cls: 'border-orange-500 text-orange-600' },
     speed_boost: { key: 'eventSpeedBoost', cls: 'border-teal-500 text-teal-700' },
     nearMissMilestone: { key: 'nearMissMilestone', cls: 'border-fuchsia-500 text-fuchsia-600' },
+    coinChainMilestone: { key: 'coinChainMilestone', cls: 'border-amber-500 text-amber-600' },
+    coinChainMilestoneApex: { key: 'coinChainMilestoneApex', cls: 'border-yellow-400 text-yellow-600' },
     comboMilestone: { key: 'comboMilestone', cls: 'border-amber-500 text-amber-600' },
     comboMax: { key: 'comboMaxBanner', cls: 'border-yellow-400 text-yellow-600' },
     achievementReady: { key: 'achievementReady', cls: 'border-amber-400 text-amber-600' },
@@ -197,6 +199,13 @@ export const HUD: React.FC<HUDProps> = ({
       showAlert('nearMissMilestone', data?.multiplier);
     });
 
+    // Порог серии сбора монет (6/12) — центральный баннер-тост. Событие эмитится
+    // ObstacleManager при пересечении вехи цепочки подбора; VFX/звук/хаптик уже даёт
+    // GameEngine, здесь добавляем недостающий баннер (паритет с nearMissMilestone).
+    const unsubCoinChainMilestone = eventBus.on('coinChainMilestone', (data: { count?: number }) => {
+      showAlert(data?.count && data.count >= 12 ? 'coinChainMilestoneApex' : 'coinChainMilestone');
+    });
+
     // Порог серии ворот (5/10/15...) — центральный баннер-тост.
     const unsubComboMilestone = eventBus.on('comboMilestone', () => {
       showAlert('comboMilestone');
@@ -262,6 +271,7 @@ export const HUD: React.FC<HUDProps> = ({
       unsubMobsKilled();
       unsubEvent();
       unsubNearMissMilestone();
+      unsubCoinChainMilestone();
       unsubComboMilestone();
       unsubComboMax();
       unsubAchReady();
