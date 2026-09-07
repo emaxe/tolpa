@@ -110,6 +110,7 @@ export const HUD: React.FC<HUDProps> = ({
     adrenalineReady: { key: 'hyperModeReady', cls: 'border-amber-400 text-amber-600' },
     endlessRecordBeaten: { key: 'endlessRecordBeaten', cls: 'border-yellow-400 text-yellow-600' },
     finishLineCrossed: { key: 'finishLineCrossed', cls: 'border-cyan-400 text-cyan-600' },
+    finishStepSmashed: { key: 'finishStepSmashed', cls: 'border-cyan-400 text-cyan-600' },
     bossDefeated: { key: 'bossDefeated', cls: 'border-yellow-400 text-yellow-600' },
     bossAppear: { key: 'bossAppear', cls: 'border-red-500 text-red-600' },
     bossEnraged: { key: 'bossEnraged', cls: 'border-rose-600 text-rose-700' },
@@ -261,6 +262,13 @@ export const HUD: React.FC<HUDProps> = ({
       showAlert('finishLineCrossed');
     });
 
+    // Пробита финишная стена множителя — баннер-тост. VFX/звук/хаптик уже даёт
+    // GameEngine, 3D-множитель — FloatingText; здесь добавляем недостающий баннер
+    // (паритет с finishLineCrossed и milestone-событиями).
+    const unsubFinishStep = eventBus.on('finishStepSmashed', () => {
+      showAlert('finishStepSmashed');
+    });
+
     // Новый класс бойца впервые появился в толпе — баннер-тост с именем класса.
     const unsubNewClass = eventBus.on('newClassAppeared', (data: { type?: string }) => {
       if (!data || !data.type) return;
@@ -296,6 +304,7 @@ export const HUD: React.FC<HUDProps> = ({
       unsubAdrenalineReady();
       unsubEndlessRecordBeaten();
       unsubFinishLine();
+      unsubFinishStep();
       unsubNewClass();
       unsubBiomeEntered();
     };
