@@ -98,6 +98,8 @@ export const HUD: React.FC<HUDProps> = ({
     meteor_rain: { key: 'eventMeteorRain', cls: 'border-orange-500 text-orange-600' },
     speed_boost: { key: 'eventSpeedBoost', cls: 'border-teal-500 text-teal-700' },
     nearMissMilestone: { key: 'nearMissMilestone', cls: 'border-fuchsia-500 text-fuchsia-600' },
+    nearMissBreak: { key: 'nearMissBreak', cls: 'border-rose-500 text-rose-600' },
+    comboBreak: { key: 'comboBreak', cls: 'border-red-500 text-red-600' },
     coinChainMilestone: { key: 'coinChainMilestone', cls: 'border-amber-500 text-amber-600' },
     coinChainMilestoneApex: { key: 'coinChainMilestoneApex', cls: 'border-yellow-400 text-yellow-600' },
     comboMilestone: { key: 'comboMilestone', cls: 'border-amber-500 text-amber-600' },
@@ -199,6 +201,18 @@ export const HUD: React.FC<HUDProps> = ({
       showAlert('nearMissMilestone', data?.multiplier);
     });
 
+    // Срыв серии уворотов — баннер-тост. VFX/звук/хаптик уже даёт GameEngine,
+    // здесь добавляем недостающий баннер (паритет с nearMissMilestone).
+    const unsubNearMissBreak = eventBus.on('nearMissBreak', () => {
+      showAlert('nearMissBreak');
+    });
+
+    // Срыв серии ворот — баннер-тост. VFX/звук/хаптик уже даёт GameEngine,
+    // здесь добавляем недостающий баннер (паритет с comboMilestone/comboMax).
+    const unsubComboBreak = eventBus.on('comboBreak', () => {
+      showAlert('comboBreak');
+    });
+
     // Порог серии сбора монет (6/12) — центральный баннер-тост. Событие эмитится
     // ObstacleManager при пересечении вехи цепочки подбора; VFX/звук/хаптик уже даёт
     // GameEngine, здесь добавляем недостающий баннер (паритет с nearMissMilestone).
@@ -271,6 +285,8 @@ export const HUD: React.FC<HUDProps> = ({
       unsubMobsKilled();
       unsubEvent();
       unsubNearMissMilestone();
+      unsubNearMissBreak();
+      unsubComboBreak();
       unsubCoinChainMilestone();
       unsubComboMilestone();
       unsubComboMax();
