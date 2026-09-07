@@ -504,7 +504,7 @@ export class GateManager {
   private empActive: boolean = false;
   private empOriginals: { gate: GateData; op: GateOp; value: number }[] = [];
 
-  public applyEmpStorm(): void {
+  public applyEmpStorm(divisor: number = 2): void {
     if (this.empActive) return;
     this.empActive = true;
     this.empOriginals = [];
@@ -513,7 +513,7 @@ export class GateManager {
       if (gv.triggered) continue;
       this.empOriginals.push({ gate, op: gate.op, value: gate.value });
       gate.op = 'divide';
-      gate.value = 2;
+      gate.value = divisor;
       // Перегенерируем текстуру, чтобы текст операции («+10» → «÷2») совпадал с логикой.
       const newTex = createGateTexture(gate);
       gv.texture.dispose();

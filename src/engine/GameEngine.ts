@@ -2290,11 +2290,6 @@ export class GameEngine {
     }
   }
 
-  /** @deprecated используйте setPaused(true) или dispose() — оставлено для обратной совместимости. */
-  public pause(): void {
-    this.stopLoop();
-  }
-
   /** Настоящая пауза: цикл останавливается, но состояние забега (runEnded/currentLevel) не трогается. */
   public setPaused(paused: boolean): void {
     if (this.runEnded || this.isPaused === paused) return;
@@ -2658,7 +2653,10 @@ export class GameEngine {
         break;
       }
       case 'emp_storm':
-        this.gates.applyEmpStorm();
+        // EMP-шторм: на время события позитивные ворота превращаются в ÷N. Делитель
+        // масштабируется с интенсивностью события (кап 3.0): раньше всегда ÷2, теперь
+        // ÷2..÷4 — поздние сегменты штормят жёстче. intensity уже вычисляется генератором.
+        this.gates.applyEmpStorm(Math.min(4, 2 + Math.floor(evt.intensity)));
         soundEngine.playSound('boss_laser');
         this.particles.emitBurst(this.crowd.leaderX, 2.0, this.crowd.leaderZ, 20, 0xa855f7, 5.0);
         this.triggerHaptic([30, 20, 30]);
