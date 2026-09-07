@@ -108,6 +108,7 @@ export const HUD: React.FC<HUDProps> = ({
     crowdMilestone: { key: 'crowdMilestone', cls: 'border-emerald-500 text-emerald-600' },
     crowdLowWarning: { key: 'crowdLowWarning', cls: 'border-red-500 text-red-400' },
     adrenalineReady: { key: 'hyperModeReady', cls: 'border-amber-400 text-amber-600' },
+    adrenalineEnded: { key: 'hyperModeEnded', cls: 'border-slate-400 text-slate-600' },
     endlessRecordBeaten: { key: 'endlessRecordBeaten', cls: 'border-yellow-400 text-yellow-600' },
     finishLineCrossed: { key: 'finishLineCrossed', cls: 'border-cyan-400 text-cyan-600' },
     finishStepSmashed: { key: 'finishStepSmashed', cls: 'border-cyan-400 text-cyan-600' },
@@ -252,6 +253,12 @@ export const HUD: React.FC<HUDProps> = ({
       showAlert('adrenalineReady', undefined, 2400);
     });
 
+    // Гипер-режим завершился — баннер-тост. VFX/звук/хаптик уже даёт GameEngine
+    // (adrenalineEnded), здесь добавляем недостающий баннер (паритет с adrenalineReady).
+    const unsubAdrenalineEnded = eventBus.on('adrenalineEnded', () => {
+      showAlert('adrenalineEnded', undefined, 2000);
+    });
+
     // Побитие личного рекорда в бесконечном режиме — центральный баннер-тост.
     const unsubEndlessRecordBeaten = eventBus.on('endlessRecordBeaten', () => {
       showAlert('endlessRecordBeaten');
@@ -302,6 +309,7 @@ export const HUD: React.FC<HUDProps> = ({
       unsubCrowdMilestone();
       unsubCrowdLow();
       unsubAdrenalineReady();
+      unsubAdrenalineEnded();
       unsubEndlessRecordBeaten();
       unsubFinishLine();
       unsubFinishStep();
