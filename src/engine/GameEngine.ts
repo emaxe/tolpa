@@ -452,6 +452,11 @@ export class GameEngine {
         // Потери от стены/метеора/бомбы/собаки: визуал и звук уже даёт эмиттер
         // (WallManager/ObstacleManager/метеор), добавляем только тактильный отклик.
         this.triggerHaptic(10);
+      } else {
+        // Остальные причины (ловушки saw/axe/crusher/spike/laser/barrier/lava/
+        // swinging_hammer/rolling_spike_ball, падение с края 'edge'): визуал и звук
+        // уже даёт эмиттер (ObstacleManager/CrowdManager), добавляем только хаптик.
+        this.triggerHaptic(10);
       }
     });
 
