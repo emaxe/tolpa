@@ -72,7 +72,7 @@ export const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose })
             <span>{i18n.t('achievTitle')}</span>
           </h2>
           <button
-            onClick={onClose}
+            onClick={() => { soundEngine.playSound('button_click'); onClose(); }}
             className="p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-200 cursor-pointer transition-colors"
           >
             <X className="w-5 h-5" />
