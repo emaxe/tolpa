@@ -2566,12 +2566,14 @@ export class GameEngine {
         this.eventSpeedMult = Math.min(1.5, 1 + 0.25 * evt.intensity);
         soundEngine.playSound('adrenaline_whoosh');
         this.particles.emitBurst(this.crowd.leaderX, 1.0, this.crowd.leaderZ, 20, 0x00f0ff, 4.0);
+        this.triggerHaptic([20, 15]);
         break;
       case 'ambush':
         this.eventSpeedMult = 0.55;
         soundEngine.playSound('boss_roar');
         eventBus.emit('screenShake', { intensity: 0.25 });
         this.particles.emitBurst(this.crowd.leaderX, 1.0, this.crowd.leaderZ, 20, 0xef4444, 5.0);
+        this.triggerHaptic([40, 30, 40]);
         // Оживляем засаду: спавним реальные препятствия-засадники впереди по трассе.
         // Раньше ambush был «мёртвым» — только замедление и красные вспышки, без угрозы.
         // Теперь при замедлении (0.55×) впереди появляются ловушки, давая игроку время
@@ -2584,6 +2586,7 @@ export class GameEngine {
       case 'coin_train': {
         // Золотой караван: кластер монет дугой впереди по текущей полосе.
         soundEngine.playSound('coin_pickup');
+        this.triggerHaptic(10);
         const cluster: CoinData[] = [];
         const startZ = this.crowd.leaderZ + 45;
         for (let i = 0; i < 10; i++) {
@@ -2605,10 +2608,12 @@ export class GameEngine {
         this.gates.applyEmpStorm();
         soundEngine.playSound('boss_laser');
         this.particles.emitBurst(this.crowd.leaderX, 2.0, this.crowd.leaderZ, 20, 0xa855f7, 5.0);
+        this.triggerHaptic([30, 20, 30]);
         break;
       case 'meteor_rain':
         soundEngine.playSound('boss_slam');
         this.particles.emitBurst(this.crowd.leaderX, 3.0, this.crowd.leaderZ + 10, 16, 0xf97316, 6.0);
+        this.triggerHaptic([25, 20, 25]);
         break;
     }
 
