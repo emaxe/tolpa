@@ -444,6 +444,10 @@ export class GameEngine {
         this.particles.emitBurst(x, 1.0, z, 16, 0xef4444, 5.0);
         soundEngine.playSound('mob_death', 0.9);
         this.triggerHaptic(15);
+      } else if (data?.reason === 'wall' || data?.reason === 'meteor_rain' || data?.reason === 'bomb' || data?.reason === 'guard_dog') {
+        // Потери от стены/метеора/бомбы/собаки: визуал и звук уже даёт эмиттер
+        // (WallManager/ObstacleManager/метеор), добавляем только тактильный отклик.
+        this.triggerHaptic(10);
       }
     });
 
