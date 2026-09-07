@@ -90,7 +90,7 @@ export const DialogueModal: React.FC<DialogueModalProps> = ({ dialogues, onCompl
                 {i18n.t(currentLine.speakerNameKey, currentLine.speaker)}
               </span>
               <button
-                onClick={onComplete}
+                onClick={() => { soundEngine.playSound('button_click'); onComplete(); }}
                 className="text-xs text-slate-600 hover:text-slate-900 flex items-center gap-1 font-orbitron cursor-pointer"
               >
                 <FastForward className="w-3.5 h-3.5" />
