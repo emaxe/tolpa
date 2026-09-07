@@ -272,6 +272,9 @@ export class GameEngine {
   private unsubBossShieldPierced: (() => void) | null = null;
   private unsubBossShieldChanged: (() => void) | null = null;
   private unsubBossEnraged: (() => void) | null = null;
+  private unsubBossAppear: (() => void) | null = null;
+  private unsubBossAttackTelegraph: (() => void) | null = null;
+  private unsubRetaliationTelegraph: (() => void) | null = null;
   private unsubComboBreak: (() => void) | null = null;
   private unsubFinishStep: (() => void) | null = null;
   private unsubCrowdMilestone: (() => void) | null = null;
@@ -770,6 +773,19 @@ export class GameEngine {
     // уже эмитится в BossManager.triggerEnrage; здесь хаптик-эскалация фазы.
     this.unsubBossEnraged = eventBus.on('bossEnraged', () => {
       this.triggerHaptic([60, 40, 60]);
+    });
+
+    // Тактильный отклик появления босса и телеграфов атак/возмездия. Раньше эти
+    // события имели только HUD-баннер (HUD.tsx) и звук/VFX, но не вибрацию —
+    // появление босса и предупреждения об атаке ощущались «плоско» на мобильных.
+    this.unsubBossAppear = eventBus.on('bossAppear', () => {
+      this.triggerHaptic([50, 30, 50]);
+    });
+    this.unsubBossAttackTelegraph = eventBus.on('bossAttackTelegraph', () => {
+      this.triggerHaptic([30, 20, 30]);
+    });
+    this.unsubRetaliationTelegraph = eventBus.on('retaliationTelegraph', () => {
+      this.triggerHaptic([25, 20, 25]);
     });
 
     // Аудиовизуальный фидбек классовых способностей (Уворот Ниндзя, Блок Щита Танка, Трансмутация Мага)
@@ -3366,6 +3382,9 @@ export class GameEngine {
     this.unsubBossShieldPierced?.();
     this.unsubBossShieldChanged?.();
     this.unsubBossEnraged?.();
+    this.unsubBossAppear?.();
+    this.unsubBossAttackTelegraph?.();
+    this.unsubRetaliationTelegraph?.();
     this.unsubSettings?.();
     this.unsubFormation?.();
     this.unsubClassAbility?.();
