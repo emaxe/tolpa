@@ -668,11 +668,11 @@ export class GameEngine {
       this.triggerHaptic(20);
     });
 
-    // VFX при разрушении препятствия: burst искр + лёгкая тряска.
-    // obstacleSmashed эмитится WallManager/ObstacleManager, но не имел слушателя.
-    this.unsubObstacleSmashed = eventBus.on('obstacleSmashed', (data: { type?: string; x?: number; z?: number }) => {
-      this.particles.emitBurst(data.x ?? this.crowd.leaderX, 0.8, data.z ?? this.crowd.leaderZ, 16, 0xff6b6b, 3.5);
-      eventBus.emit('screenShake', { intensity: 0.1 });
+    // Тактильный отклик разрушения препятствия. obstacleSmashed эмитится
+    // WallManager/ObstacleManager, которые УЖЕ дают звук obstacle_smash + бурст
+    // частиц (30 шт) + тряску экрана — здесь только хаптик, иначе каждый слом
+    // давал сдвоенный бурст и двойную тряску (дубль фидбека, как у coinCollected).
+    this.unsubObstacleSmashed = eventBus.on('obstacleSmashed', () => {
       this.triggerHaptic([30, 20, 40]);
     });
 
