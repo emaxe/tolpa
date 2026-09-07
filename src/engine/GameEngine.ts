@@ -2514,6 +2514,10 @@ export class GameEngine {
             eventBus.emit('screenShake', { intensity: 0.25 });
             this.particles.emitBurst(strike.x, 0.5, strike.z, 22, 0xf97316, 7.0);
             this.particles.emitShockwave(strike.x, strike.z, 0xf97316);
+            // Тактильный отклик детонации метеора: у метеоритного дождя был звук/тряска/
+            // частицы, но не вибрация — в отличие от всех прочих моментов урона (слэм,
+            // лазер, стена, бомба, собака). Паритет haptic-фидбека потерь.
+            this.triggerHaptic([30, 20, 30]);
 
             // Честная коллизия: урон только мобам в радиусе падения по координатам XZ
             const alive = this.crowd.getAliveMobs();
