@@ -474,6 +474,7 @@ export class GameEngine {
       this.particles.emitBurst(data.x ?? this.crowd.leaderX, 1.6, data.z ?? this.crowd.leaderZ, count, color, 5.0);
       soundEngine.playCrowdCheer(mult >= 10 ? 1.0 : mult >= 5 ? 0.7 : 0.5);
       if (mult >= 5) eventBus.emit('screenShake', { intensity: mult >= 10 ? 0.25 : 0.15 });
+      this.triggerHaptic(mult >= 10 ? [40, 30, 40] : mult >= 5 ? [25, 20] : 12);
     });
 
     // Серия уворотов сбита препятствием. Эмитится только при потере значимой
@@ -517,6 +518,7 @@ export class GameEngine {
       this.particles.emitBurst(data.x ?? this.crowd.leaderX, 1.6, data.z ?? this.crowd.leaderZ, count, color, 5.0);
       soundEngine.playCrowdCheer(tier >= 3 ? 1.0 : tier >= 2 ? 0.7 : 0.5);
       if (tier >= 2) eventBus.emit('screenShake', { intensity: tier >= 3 ? 0.25 : 0.15 });
+      this.triggerHaptic(tier >= 3 ? [30, 20, 30] : tier >= 2 ? [20, 15] : 10);
     });
 
     // Потолок серии ворот достигнут (×1.8, серия ≥ 11) — праздничный фидбек: золотой
