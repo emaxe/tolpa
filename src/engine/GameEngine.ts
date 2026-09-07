@@ -405,6 +405,7 @@ export class GameEngine {
     this.unsubMobFell = eventBus.on('mobFell', (data: { x: number; z: number }) => {
       this.particles.emitBurst(data.x, 0.6, data.z, 10, 0x94a3b8, 3.0);
       soundEngine.playSound('mob_fall');
+      this.triggerHaptic(10);
     });
 
     // Агрегатный фидбек при гибели мобов (финишная стена, атаки боссов)
@@ -412,18 +413,21 @@ export class GameEngine {
       if (data?.reason === 'finish_wall') {
         // Ударная волна при пробитии финишной стены
         this.particles.emitShockwave(data.x ?? 0, data.z ?? this.crowd.leaderZ, 0xffd700);
+        this.triggerHaptic([30, 20, 40]);
       } else if (data?.reason === 'boss_minions') {
         // Рой миньонов босса грызёт толпу тиками: фиолетовый бурст + звук с высоким питчем
         const x = data?.x ?? this.crowd.leaderX;
         const z = data?.z ?? this.crowd.leaderZ;
         this.particles.emitBurst(x, 1.0, z, 10, 0xa855f7, 3.5);
         soundEngine.playSound('mob_death', 1.2);
+        this.triggerHaptic(12);
       } else if (data?.reason === 'boss_meteors') {
         // Метеоритный залп босса: оранжевый бурст + звук с высоким питчем, без двойной тряски
         const x = data?.x ?? this.crowd.leaderX;
         const z = data?.z ?? this.crowd.leaderZ;
         this.particles.emitBurst(x, 1.0, z, 16, 0xf97316, 5.0);
         soundEngine.playSound('mob_death', 1.1);
+        this.triggerHaptic(15);
       } else if (data?.reason === 'boss_slam' || data?.reason === 'boss_laser') {
         // Мощные удары босса (слэм/лазер): красный бурст + звук с низким питчем.
         // Тряска экрана уже эмитится в BossManager.executeBossAttack (0.6/0.4) — не дублируем.
@@ -431,6 +435,7 @@ export class GameEngine {
         const z = data?.z ?? this.crowd.leaderZ;
         this.particles.emitBurst(x, 1.0, z, 16, 0xef4444, 5.0);
         soundEngine.playSound('mob_death', 0.9);
+        this.triggerHaptic([25, 20]);
       } else if (data?.reason === 'boss') {
         // Retaliation-удар босса (периодический, ~2% толпы): красный бурст + звук с низким
         // питчем. Тряска экрана уже эмитится в BossManager перед killMobs — не дублируем.
@@ -438,6 +443,7 @@ export class GameEngine {
         const z = data?.z ?? this.crowd.leaderZ;
         this.particles.emitBurst(x, 1.0, z, 16, 0xef4444, 5.0);
         soundEngine.playSound('mob_death', 0.9);
+        this.triggerHaptic(15);
       }
     });
 
@@ -447,6 +453,7 @@ export class GameEngine {
         this.particles.emitConfetti(data.x ?? this.crowd.leaderX, 1.5, data.z ?? this.crowd.leaderZ, 20);
         // Толпа на трибунах радуется серии успешных ворот — нарастающий крик.
         soundEngine.playCrowdCheer(Math.min(1, 0.3 + (data.comboStreak ?? 3) * 0.1));
+        this.triggerHaptic(12);
       }
     });
 
@@ -619,6 +626,7 @@ export class GameEngine {
       this.particles.emitShockwave(x, z, 0xfacc15);
       this.particles.emitBurst(x, 1.4, z, 24, 0xfde047, 5.0);
       eventBus.emit('screenShake', { intensity: 0.3 });
+      this.triggerHaptic([40, 30, 50]);
     });
 
     // VFX при окончании гипер-режима: рассеивающаяся волна + искры остывания +
