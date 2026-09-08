@@ -2696,7 +2696,6 @@ export class GameEngine {
     if (bossArenaZ - this.crowd.leaderZ < 50) return;
 
     const playableHalf = trackWidth / 2 - 1.2; // TRACK_RAIL_MARGIN
-    const levelNum = this.currentLevel?.levelNumber ?? 1;
     const count = Math.min(4, 2 + Math.floor(evt.intensity));
     const obsData: ObstacleData[] = [];
     const startZ = this.crowd.leaderZ + 20;
@@ -2718,14 +2717,10 @@ export class GameEngine {
         y: 0,
         z,
         width: type === 'barrier_gate' ? 3.3 : type === 'swinging_hammer' ? 3.2 : 2.0,
-        height: 2,
         depth: 2,
         speed: isHammer ? 1.8 + Math.random() * 0.8 : 0,
         range: 0,
-        damage: type === 'barrier_gate' ? Math.round(12 + levelNum * 0.16) : type === 'swinging_hammer' ? Math.round(20 + levelNum * 0.16) : Math.round(6 + levelNum * 0.16),
         destructible: isHammer,
-        hp: isHammer ? 15 : undefined,
-        maxHp: isHammer ? 15 : undefined,
         initialOffset: Math.random() * Math.PI * 2,
       });
     }

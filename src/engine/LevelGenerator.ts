@@ -501,14 +501,12 @@ export class LevelGenerator {
     levelNum: number,
     index: number,
     trackWidth: number,
-    phaseMult: number,
     rng: () => number
   ): ObstacleData {
     const playableHalf = trackWidth / 2 - TRACK_RAIL_MARGIN;
     let obsWidth: number;
     let x: number;
     let range: number;
-    let baseDmg = 12;
     let speed = 1.5 + rng() * 2.0;
 
     if (type === 'laser_grid') {
@@ -516,7 +514,6 @@ export class LevelGenerator {
       const side = rng() < 0.5 ? -1 : 1;
       x = side * (playableHalf - obsWidth / 2);
       range = 0;
-      baseDmg = 6;
     } else if (type === 'wrecking_ball') {
       obsWidth = 2.4;
       x = (rng() * 2 - 1) * (playableHalf - 1.2);
@@ -533,25 +530,21 @@ export class LevelGenerator {
       obsWidth = 2.4;
       x = (rng() * 2 - 1) * (playableHalf - 1.2);
       range = 3.5;
-      baseDmg = 999;
       speed = 0.8;
     } else if (type === 'guard_dog') {
       obsWidth = 2.0;
       x = (rng() * 2 - 1) * (playableHalf - 1.0);
       range = 2.6;
-      baseDmg = 1;
       speed = 1.6;
     } else if (type === 'swinging_hammer') {
       obsWidth = 3.2;
       x = (rng() * 2 - 1) * (playableHalf - 1.6);
       range = 0;
-      baseDmg = 20;
       speed = 1.8 + rng() * 0.8;
     } else if (type === 'rolling_spike_ball') {
       obsWidth = 2.2;
       x = (rng() * 2 - 1) * (playableHalf - 1.1);
       range = 2.0;
-      baseDmg = 15;
       speed = 2.5;
     } else if (type === 'saw_blade') {
       const bladeHalf = 0.85; // половина диска
@@ -559,21 +552,17 @@ export class LevelGenerator {
       // Полный свип: пила ездит от левого до правого борта.
       x = 0;
       range = Math.max(0, trackWidth / 2 - obsWidth / 2 - 0.6); // ~6.8 при trackWidth 16
-      baseDmg = 6;
     } else if (type === 'spike_trap') {
       obsWidth = 2.0;
       // Шипы статичны: размещаем по лейну, квантовано.
       x = (Math.floor(rng() * 3) - 1) * (trackWidth / 2 - 2.0);
       range = 0;
-      baseDmg = 6;
     } else {
       const maxHalfX = (trackWidth / 2 - 0.6) - 1.0;
       obsWidth = 2.0;
       x = (rng() * 2 - 1) * maxHalfX;
       range = Math.min(3.5, maxHalfX);
     }
-
-    const damage = type === 'bomb' ? 999 : type === 'guard_dog' ? 1 : Math.round((baseDmg + Math.floor(levelNum * 0.16)) * phaseMult);
 
     return {
       id: `obs_${levelNum}_${index}`,
@@ -582,12 +571,10 @@ export class LevelGenerator {
       y: 0,
       z,
       width: obsWidth,
-      height: 2,
       depth: 2,
       speed,
       range,
       initialOffset: rng() * Math.PI * 2,
-      damage,
       attackRate: type === 'guard_dog' ? Math.min(3, 1 + Math.floor(levelNum / 17)) : undefined,
       destructible:
         type === 'crusher' ||
@@ -595,8 +582,6 @@ export class LevelGenerator {
         type === 'wrecking_ball' ||
         type === 'guard_dog' ||
         type === 'swinging_hammer',
-      hp: 15,
-      maxHp: 15,
     };
   }
 
@@ -615,7 +600,7 @@ export class LevelGenerator {
     overrides?: Partial<ObstacleData>
   ): void {
     const index = out.length;
-    const def = this.createObstacleDef(type, z, levelNum, index, trackWidth, phaseMult, rng);
+    const def = this.createObstacleDef(type, z, levelNum, index, trackWidth, rng);
     def.x = x;
     def.z = z;
     if (overrides) {
@@ -915,7 +900,6 @@ export class LevelGenerator {
       range: 2.6,
       attackRate: rate,
       destructible: true,
-      damage: 1,
       speed: 1.6,
       ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
     });
@@ -924,7 +908,6 @@ export class LevelGenerator {
       range: 2.6,
       attackRate: rate,
       destructible: true,
-      damage: 1,
       speed: 1.6,
       ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
     });
@@ -945,7 +928,6 @@ export class LevelGenerator {
       ctx.levelNum,
       ctx.out.length,
       ctx.trackWidth,
-      ctx.phaseMult,
       ctx.rng
     );
     if (idPrefix) {

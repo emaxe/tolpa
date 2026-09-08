@@ -71,15 +71,11 @@ export interface ObstacleData {
   y: number;
   z: number;
   width: number;
-  height: number;
   depth: number;
   speed: number;
   range: number;
   initialOffset?: number;
-  damage: number; // Mob damage count or instant kill
   destructible?: boolean; // Can be smashed by Tanks / Adrenaline
-  hp?: number;
-  maxHp?: number;
   isDead?: boolean;
   /** Киборг-собака: сколько человечков собака может убить в секунду (1..3). */
   attackRate?: number;
