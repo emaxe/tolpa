@@ -686,7 +686,8 @@ export class ObstacleManager {
           const hammerPivot = obsVis.mesh.children[4] as THREE.Group;
           if (hammerPivot) {
             hammerPivot.rotation.x = Math.sin(t * 1.8) * 1.25;
-            const hammerHeadZ = obsVis.mesh.position.z + Math.sin(hammerPivot.rotation.x) * 2.9;
+            // голова болта в pivot-local (0,-2.9,0): world Z = obs.z - 2.9·sin(θ)
+            const hammerHeadZ = obsVis.mesh.position.z - Math.sin(hammerPivot.rotation.x) * 2.9;
             this.setHazard(obsVis, obs.x, hammerHeadZ, obs.width, 1.8);
 
             // Звук удара молота по наковальне: голова в нижней точке, когда rotation.x
