@@ -267,6 +267,7 @@ export class GameEngine {
   private unsubCoinCollected: (() => void) | null = null;
   private unsubCoinChainMilestone: (() => void) | null = null;
   private unsubBossDamaged: (() => void) | null = null;
+  private unsubBossStaggered: (() => void) | null = null;
   private unsubLevelCompleted: (() => void) | null = null;
   private unsubFinishLine: (() => void) | null = null;
   private unsubBossDefeated: (() => void) | null = null;
@@ -709,6 +710,13 @@ export class GameEngine {
     // triggerHaptic уже гасит частоту, поэтому спама нет.
     this.unsubBossDamaged = eventBus.on('bossDamaged', () => {
       this.triggerHaptic(12);
+    });
+
+    // Boss Stagger: тактическая награда за сбитую атаку — заряд адреналина
+    // (с мультипликатором бонуса) + хаптик-паттерн отклика.
+    this.unsubBossStaggered = eventBus.on('bossStaggered', () => {
+      this.adrenalineCharge = Math.min(100, this.adrenalineCharge + Math.round(25 * this.crowd.getAdrenalineMultiplier()));
+      this.triggerHaptic([40, 30, 60]);
     });
 
     // Праздничный VFX при завершении уровня: световой столб + ударная волна +
@@ -3416,6 +3424,7 @@ export class GameEngine {
     this.unsubCoinCollected?.();
     this.unsubCoinChainMilestone?.();
     this.unsubBossDamaged?.();
+    this.unsubBossStaggered?.();
     this.unsubLevelCompleted?.();
     this.unsubFinishLine?.();
     this.unsubBossDefeated?.();

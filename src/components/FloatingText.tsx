@@ -498,6 +498,17 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       }
     );
 
+    // 3D-всплывашка над боссом при сбитой атаке.
+    const unsubBossStaggered = eventBus.on(
+      'bossStaggered',
+      (data: { x?: number; z?: number }) => {
+        if (!data) return;
+        const x = data.x ?? 0;
+        const z = data.z ?? 0;
+        spawn(x, z, i18n.t('bossStaggered', 'АТАКА СБИТА!'), 'text-yellow-300 font-extrabold drop-shadow-[0_0_8px_rgba(250,204,21,0.9)]');
+      }
+    );
+
     // Новый класс бойца впервые появился в толпе — всплывающий 3D-ярлык над точкой спавна.
     const unsubNewClass = eventBus.on(
       'newClassAppeared',
@@ -536,6 +547,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubBossShieldPierced();
       unsubBossAppear();
       unsubBossEnraged();
+      unsubBossStaggered();
       unsubFormation();
       unsubFinishStep();
       unsubClassAbility();

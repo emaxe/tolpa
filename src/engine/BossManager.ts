@@ -66,6 +66,11 @@ export class BossManager {
   private bossLevel: number = 10;
   // Флаг однократного аудио-визуального оповещения о начале telegraph-фазы атаки босса
   private telegraphAnnounced: boolean = false;
+  // Boss Stagger: накопитель урона толпы в окне телеграфа текущей атаки.
+  private staggerAccum: number = 0;
+  private staggerThreshold: number = 0;
+  // Стаггер доступен только на уровнях 10+ (ставится в initBoss).
+  private canStagger: boolean = false;
   // Атака "shield" (энергетический купол): пока активен, босс блокирует урон толпы.
   private isShielded: boolean = false;
   // Меш купола жив весь бой (создаётся один раз в initBoss) — setShielded() переключает
@@ -91,6 +96,10 @@ export class BossManager {
   private static readonly ENRAGE_ATTACK_MULT = 0.62;
   // Множитель сокращения окна телеграфа в фазе ярости (0.75 = на 25% короче).
   private static readonly ENRAGE_TELEGRAPH_MULT = 0.75;
+  // Boss Stagger: порог и длительность оглушения при сбитой атаке.
+  private static readonly STAGGER_HP_PCT = 0.10;
+  private static readonly STAGGER_MIN_DMG = 18;
+  private static readonly STAGGER_COOLDOWN = 1.8;
 
   constructor(scene: THREE.Scene, particles: ParticleSystem) {
     this.scene = scene;
@@ -116,6 +125,12 @@ export class BossManager {
     this.enrageTelegraphed = false;
     this.bossLevel = level;
     this.attackInterval = this.computeAttackInterval(level);
+    this.staggerThreshold = Math.max(
+      BossManager.STAGGER_MIN_DMG,
+      Math.round(bossData.maxHp * BossManager.STAGGER_HP_PCT)
+    );
+    this.canStagger = level >= 10;
+    this.staggerAccum = 0;
     // Грейс-пауза перед первой атакой: даёт игроку время перестроить толпу
     // после входа в арену (distanceToArena <= 35), а не получать удар сразу.
     this.isCoolingDown = true;
@@ -633,6 +648,15 @@ export class BossManager {
     this.bossData.hp = Math.max(0, this.bossData.hp - amount);
     this.hitDamageAccum += amount;
 
+    // Boss Stagger: копят только урон, нанесённый в окне телеграфа (до старта самой
+    // атаки). Кулдаун/атака/не-телеграф — не копим. amount<=0 (блок куполом) — не копим.
+    if (this.canStagger && !this.isCoolingDown && !this.isAttacking && this.telegraphAnnounced && amount > 0) {
+      this.staggerAccum += amount;
+      if (this.staggerAccum >= this.staggerThreshold) {
+        this.staggerBoss(particles);
+      }
+    }
+
     // Фаза ярости: при первом пересечении порога HP <= 45% босс впадает в ярость
     // (ускорение атак + красная аура + баннер-тост). Однократно за бой.
     if (!this.isEnraged && this.bossData.hp <= this.bossData.maxHp * BossManager.ENRAGE_HP_THRESHOLD) {
@@ -743,6 +767,34 @@ export class BossManager {
     }
   }
 
+  /**
+   * Сбитая атака босса: накопленный в окне телеграфа урон превысил порог —
+   * атака отменена, босс в оглушении (пауза STAGGER_COOLDOWN перед следующим телеграфом).
+   */
+  private staggerBoss(particles: ParticleSystem): void {
+    if (!this.bossData) return;
+    this.staggerAccum = 0;
+    this.isCoolingDown = true;
+    this.attackCooldown = BossManager.STAGGER_COOLDOWN;
+    this.attackTimer = 0;
+    this.telegraphAnnounced = false;
+    if (this.telegraphMesh) {
+      this.telegraphMesh.visible = false;
+      (this.telegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+    }
+    if (this.laserTelegraphMesh) {
+      this.laserTelegraphMesh.visible = false;
+      (this.laserTelegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+    }
+    this.particles.emitLightPillar(0, this.bossArenaZ, 40, 0xfacc15);
+    this.particles.emitShockwave(0, this.bossArenaZ, 0xfacc15);
+    particles.emitBurst(0, 2.0, this.bossArenaZ, 30, 0xfacc15, 7.0);
+    soundEngine.playSound('boss_shield_pierced');
+    soundEngine.playCrowdCheer(0.6);
+    eventBus.emit('screenShake', { intensity: 0.4 });
+    eventBus.emit('bossStaggered', { x: 0, z: this.bossArenaZ, nameKey: this.bossData.nameKey });
+  }
+
   /** Включает фазу ярости босса (однократно при HP <= 45%): ускоряет перезарядку
    *  атак, сокращает окно телеграфа и даёт красную ауру возмездия + баннер-тост. */
   private triggerEnrage(particles: ParticleSystem): void {
@@ -833,6 +885,8 @@ export class BossManager {
     this.cachedMaterials = [];
     this.isShielded = false;
     this.bossData = null;
+    this.staggerAccum = 0;
+    this.canStagger = false;
     this.isDefeated = false;
     this.isDefeatCollapsing = false;
     this.defeatTimer = 0;
