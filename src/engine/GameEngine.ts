@@ -620,9 +620,12 @@ export class GameEngine {
         const x = data.x ?? this.crowd.leaderX;
         const z = data.z ?? this.crowd.leaderZ;
         const color = FORMATION_COLORS[data.formation] ?? 0xffffff;
-        // Радиальная ударная волна + всплеск частиц в цвет строя.
+        // Радиальная ударная волна + всплеск частиц в цвет строя + акцентный звук.
+        // Раньше смена строя была «немой» (только VFX + хаптик) — звук formation_change
+        // уже есть в банке и используется newClassAppeared/biomeEntered, здесь его не хватало.
         this.particles.emitShockwave(x, z, color);
         this.particles.emitBurst(x, 1.0, z, 12, color, 2.5);
+        soundEngine.playSound('formation_change', 1.0, 0.9);
         this.triggerHaptic(15);
       }
     );
