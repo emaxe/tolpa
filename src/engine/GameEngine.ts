@@ -147,8 +147,6 @@ export class GameEngine {
   private endlessBiome: BiomeType = 'cyber_city';
   private endlessTrackLength: number = 500;
   private endlessTrackWidth: number = DEFAULT_TRACK_WIDTH;
-  private bossInterval = 5;
-  private lastBossSegment = -1;
 
   // Controls
   private inputEnabled: boolean = true;
@@ -1363,7 +1361,6 @@ export class GameEngine {
     this.crowd.reset(8, 0, DEFAULT_TRACK_WIDTH);
     this.particles.clear();
     this.boss.clear();
-    this.lastBossSegment = -1;
     this.finishLine.clear();
     this.resetEventState();
 
@@ -3319,12 +3316,10 @@ export class GameEngine {
       this.obstacles.prune(this.crowd.leaderZ);
       this.currentEndlessZ += seg.length;
 
-      // Спавн босса в бесконечном режиме — каждые bossInterval сегментов
+      // Спавн босса в бесконечном режиме — каждые 5 сегментов (решает LevelGenerator)
       if (seg.boss && seg.bossArenaZ !== undefined && seg.bossLevel !== undefined) {
         this.boss.initBoss(seg.boss, seg.bossArenaZ, seg.bossLevel);
-        this.lastBossSegment = this.endlessSegmentIndex;
       }
-      // Очистка побеждённого босса после удаления на +50м
       if (this.boss.isDefeated && this.crowd.leaderZ > this.boss.getArenaZ() + 50) {
         this.boss.clear();
       }
