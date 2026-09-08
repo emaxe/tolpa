@@ -345,6 +345,12 @@ export const translations = {
     loreSpecialMobsTitle: 'Специализированные Классы',
     loreGatesTitle: 'Квантовая Математика Ворот',
     loreBossesTitle: 'Тактика против Боссов',
+    loreArchTitle: 'Архитектура & Производительность',
+    loreBossesDesc: 'Боссы встречаются каждые 10 уровней (10, 20, 30, 40, 50). Следите за красными кругами телеграфа атак на земле. Переключайтесь в формацию Клин или Фаланга и активируйте Гипер-режим Адреналина (ПРОБЕЛ) в момент атаки босса!',
+    badgeTank: 'ТАНК',
+    badgeNinja: 'НИНДЗЯ',
+    badgeMage: 'МАГ',
+    skip: 'ПРОПУСК',
   },
 
   en: {
@@ -691,6 +697,12 @@ export const translations = {
     loreSpecialMobsTitle: 'Specialized Mob Classes',
     loreGatesTitle: 'Quantum Multiplier Gates',
     loreBossesTitle: 'Boss Battle Strategy',
+    loreArchTitle: 'Architecture & Performance',
+    loreBossesDesc: 'Bosses appear every 10 levels (10, 20, 30, 40, 50). Watch the red attack telegraph rings on the ground. Switch to Wedge or Phalanx formation and trigger Adrenaline Hyper mode (SPACE) right as the boss attacks!',
+    badgeTank: 'TANK',
+    badgeNinja: 'NINJA',
+    badgeMage: 'MAGE',
+    skip: 'SKIP',
   }
 };
 

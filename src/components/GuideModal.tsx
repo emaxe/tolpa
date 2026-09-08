@@ -31,7 +31,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
           <section className="bg-slate-100/70 p-4 rounded-xl border border-teal-500/30">
             <h3 className="font-orbitron font-bold text-teal-700 text-sm flex items-center gap-2 mb-2">
               <Cpu className="w-4 h-4 text-teal-400" />
-              <span>Архитектура & Производительность</span>
+              <span>{i18n.t('loreArchTitle')}</span>
             </h3>
             <p className="text-xs text-slate-700">
               {i18n.t('loreArchSummary')}
@@ -67,6 +67,14 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
                 <strong className="text-teal-700 font-orbitron">4. Стрела (Arrow) [Клавиша 4]:</strong>
                 <p className="text-slate-600 mt-1">{i18n.t('arrowDesc')}</p>
               </div>
+              <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
+                <strong className="text-teal-700 font-orbitron">5. {i18n.t('formationOval')} [Клавиша 5]:</strong>
+                <p className="text-slate-600 mt-1">{i18n.t('ovalDesc')}</p>
+              </div>
+              <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
+                <strong className="text-teal-700 font-orbitron">6. {i18n.t('formationDiamond')} [Клавиша 6]:</strong>
+                <p className="text-slate-600 mt-1">{i18n.t('diamondDesc')}</p>
+              </div>
             </div>
           </section>
 
@@ -78,7 +86,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
             </h3>
             <div className="space-y-2 text-xs">
               <div className="bg-slate-100/50 p-3 rounded-xl border border-amber-500/30 flex items-start gap-3">
-                <span className="p-1.5 bg-amber-500/20 text-amber-400 rounded-lg font-orbitron font-bold">ТАНК</span>
+                <span className="p-1.5 bg-amber-500/20 text-amber-400 rounded-lg font-orbitron font-bold">{i18n.t('badgeTank')}</span>
                 <div>
                   <h4 className="font-orbitron font-bold text-amber-600">{i18n.t('tankName')}</h4>
                   <p className="text-slate-600 mt-0.5">{i18n.t('tankDesc')}</p>
@@ -86,7 +94,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
               </div>
 
               <div className="bg-slate-100/50 p-3 rounded-xl border border-rose-500/30 flex items-start gap-3">
-                <span className="p-1.5 bg-rose-500/20 text-rose-400 rounded-lg font-orbitron font-bold">НИНДЗЯ</span>
+                <span className="p-1.5 bg-rose-500/20 text-rose-400 rounded-lg font-orbitron font-bold">{i18n.t('badgeNinja')}</span>
                 <div>
                   <h4 className="font-orbitron font-bold text-rose-600">{i18n.t('ninjaName')}</h4>
                   <p className="text-slate-600 mt-0.5">{i18n.t('ninjaDesc')}</p>
@@ -94,7 +102,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
               </div>
 
               <div className="bg-slate-100/50 p-3 rounded-xl border border-emerald-500/30 flex items-start gap-3">
-                <span className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg font-orbitron font-bold">МАГ</span>
+                <span className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg font-orbitron font-bold">{i18n.t('badgeMage')}</span>
                 <div>
                   <h4 className="font-orbitron font-bold text-emerald-700">{i18n.t('mageName')}</h4>
                   <p className="text-slate-600 mt-0.5">{i18n.t('mageDesc')}</p>
@@ -110,7 +118,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
               <span>{i18n.t('loreBossesTitle')}</span>
             </h3>
             <p className="text-xs text-slate-600">
-              Боссы встречаются каждые 10 уровней (10, 20, 30, 40, 50). Следите за красными кругами телеграфа атак на земле. Переключайтесь в формацию Клин или Фаланга и активируйте Гипер-режим Адреналина (ПРОБЕЛ) в момент атаки босса!
+              {i18n.t('loreBossesDesc')}
             </p>
           </section>
         </div>

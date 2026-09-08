@@ -94,7 +94,7 @@ export const DialogueModal: React.FC<DialogueModalProps> = ({ dialogues, onCompl
                 className="text-xs text-slate-600 hover:text-slate-900 flex items-center gap-1 font-orbitron cursor-pointer"
               >
                 <FastForward className="w-3.5 h-3.5" />
-                <span>ПРОПУСК</span>
+                <span>{i18n.t('skip')}</span>
               </button>
             </div>
             <p className="text-slate-800 text-sm md:text-base leading-relaxed font-sans">
