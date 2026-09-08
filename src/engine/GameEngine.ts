@@ -2847,6 +2847,9 @@ export class GameEngine {
         soundEngine.playSound('level_lose');
         eventBus.emit('screenShake', { intensity: 0.7 });
         this.particles.emitBurst(this.crowd.leaderX, 1.0, this.crowd.leaderZ, 40, 0xef4444, 6.0);
+        // Тактильный отклик поражения: самый сильный момент забега (тряска 0.7) не имел
+        // вибрации — в отличие от всех прочих моментов урона. Паритет haptic-фидбека.
+        this.triggerHaptic([60, 40, 60, 40, 100]);
       }
       this.deathGrace += dt;
       if (this.deathGrace >= 0.9) {
