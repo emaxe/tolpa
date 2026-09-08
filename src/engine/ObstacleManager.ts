@@ -1231,10 +1231,14 @@ export class ObstacleManager {
   ): void {
     if (vis.data.isDead) return;
     const obs = vis.data;
-    // Радиус укуса чуть больше длины цепи, чтобы собака реально доставала моба.
-    const r = obs.range + 0.8;
-    const rSq = r * r;
     if (aliveMobs.length === 0) return;
+    // Хитбоксы равны видимой геометрии: контакт считается по телу собаки в её
+    // текущей позиции обхода (не по статичному анкеру цепи) и по столбу у анкера.
+    const dogGroup = vis.mesh.children[2] as THREE.Group | undefined;
+    const dogX = obs.x + (dogGroup ? dogGroup.position.x : 0);
+    const dogZ = obs.z + (dogGroup ? dogGroup.position.z : 0);
+    const hitRSq = 1.4 * 1.4;    // радиус контакта тела собаки (прыжок + морда)
+    const postRSq = 0.8 * 0.8;   // контакт со столбом у анкера
 
     // Танки / гипер / таран строем уничтожают кибер-собаку (таран — ценой 1 бойца)
     const isHyper = crowd.isHyperMode;
@@ -1254,9 +1258,11 @@ export class ObstacleManager {
       let touched = false;
       for (const m of aliveMobs) {
         if (!m.alive) continue;
-        const dx = m.x - obs.x;
-        const dz = m.z - obs.z;
-        if (dx * dx + dz * dz <= rSq) {
+        const mdx = m.x - dogX;
+        const mdz = m.z - dogZ;
+        const pdx = m.x - obs.x;
+        const pdz = m.z - obs.z;
+        if (mdx * mdx + mdz * mdz <= hitRSq || pdx * pdx + pdz * pdz <= postRSq) {
           touched = true;
           break;
         }
@@ -1267,20 +1273,14 @@ export class ObstacleManager {
         obs.isDead = true;
         this.scene.remove(vis.mesh);
         if (vol > 0) soundEngine.playSound('obstacle_smash', 1, vol);
-        particles.emitBurst(obs.x, 1.0, obs.z, 30, 0xa855f7, 6.0);
+        particles.emitBurst(dogX, 1.0, dogZ, 30, 0xa855f7, 6.0);
         stateManager.runRecordObstacleSmash();
-        eventBus.emit('obstacleSmashed', { type: obs.type, x: obs.x, z: obs.z, ram: canRam && !isHyper && !hasTanks });
+        eventBus.emit('obstacleSmashed', { type: obs.type, x: dogX, z: dogZ, ram: canRam && !isHyper && !hasTanks });
         return;
       }
     }
 
     if (vis.attackCooldown && vis.attackCooldown > 0) return;
-
-    // Позиция собаки (смещена от анкера — она гуляет в радиусе). Укус происходит
-    // от текущего местоположения собаки, а не от статичного анкера.
-    const dogGroup = vis.mesh.children[2] as THREE.Group | undefined;
-    const dogX = obs.x + (dogGroup ? dogGroup.position.x : 0);
-    const dogZ = obs.z + (dogGroup ? dogGroup.position.z : 0);
 
     // Поиск ближайшего живого моба в радиусе укуса (вокруг собаки)
     let nearest: MobInstance | null = null;
@@ -1290,7 +1290,7 @@ export class ObstacleManager {
       const dx = m.x - dogX;
       const dz = m.z - dogZ;
       const dSq = dx * dx + dz * dz;
-      if (dSq <= rSq && dSq < bestDistSq) {
+      if (dSq <= hitRSq && dSq < bestDistSq) {
         bestDistSq = dSq;
         nearest = m;
       }
@@ -1306,7 +1306,7 @@ export class ObstacleManager {
     if (vol > 0) soundEngine.playSound('dog_snap', 1, vol);
     eventBus.emit('screenShake', { intensity: 0.25 });
     // Собака укусила моба — серия уворотов сбрасывается.
-    this.breakNearMissStreak(obs.x, obs.z);
+    this.breakNearMissStreak(dogX, dogZ);
     // Фидбек потерь (виньетка + "-N") — собака не эмитила mobsKilled.
     eventBus.emit('mobsKilled', { count: 1, reason: 'guard_dog', x: nearest.x, z: nearest.z });
   }
