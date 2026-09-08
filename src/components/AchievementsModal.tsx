@@ -3,7 +3,7 @@ import confetti from 'canvas-confetti';
 import { INITIAL_ACHIEVEMENTS, stateManager } from '../core/StateManager';
 import { i18n } from '../core/Localization';
 import { soundEngine } from '../audio/SoundEngine';
-import { X, Award, Coins, Gem, Check, Footprints, Users, ShieldAlert, Swords, Crown, Zap, Flame, Hammer, DoorOpen, Trophy } from 'lucide-react';
+import { X, Award, Coins, Gem, Check, Footprints, Users, ShieldAlert, Swords, Crown, Zap, Flame, Hammer, DoorOpen, Trophy, Skull, Star, Gamepad2, Route } from 'lucide-react';
 
 interface AchievementsModalProps {
   onClose: () => void;
@@ -36,6 +36,14 @@ export const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose })
         return <Trophy className="w-5 h-5" />;
       case 'Gem':
         return <Gem className="w-5 h-5" />;
+      case 'Skull':
+        return <Skull className="w-5 h-5" />;
+      case 'Star':
+        return <Star className="w-5 h-5" />;
+      case 'Gamepad2':
+        return <Gamepad2 className="w-5 h-5" />;
+      case 'Route':
+        return <Route className="w-5 h-5" />;
       case 'Coins':
       default:
         return <Coins className="w-5 h-5" />;
