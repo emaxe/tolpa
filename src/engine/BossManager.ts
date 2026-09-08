@@ -10,6 +10,7 @@ import { ParticleSystem } from './ParticleSystem';
 import { soundEngine } from '../audio/SoundEngine';
 import { eventBus } from '../core/EventBus';
 import { stateManager } from '../core/StateManager';
+import { getNearMissMultiplier } from '../utils/math';
 
 // Пауза между атаками босса, масштабируемая по уровню (tier = level/10, 1..5).
 // L10 — заметная пауза (обучающий ритм), к L50 почти исчезает (эскалация).
@@ -506,6 +507,33 @@ export class BossManager {
     }
   }
 
+  // Near-miss на атаке босса: лидер ушёл впритирку (зазор 0..0.75 м от края зоны
+  // поражения) и не получил урон — пополняет существующую серию уворотов (общую с
+  // дорожными препятствиями, те же события/награда/эскалация pitch). Широкий
+  // безопасный уход (0.75..3.0 м) серию сбрасывает, как препятствия. Попадание
+  // (gap <= 0) серию не трогает. Верхняя граница окна сброса — защита от ложных
+  // сбросов, когда толпа ещё далеко от эпицентра атаки.
+  private checkBossNearMiss(gap: number, x: number, z: number): void {
+    if (gap > 0 && gap <= 0.75) {
+      const { streak, multiplier } = stateManager.runRecordNearMissStreak();
+      const prevMult = getNearMissMultiplier(streak - 1);
+      if (multiplier > prevMult) {
+        eventBus.emit('nearMissMilestone', { x, z, streak, multiplier });
+      }
+      const coins = 8 * multiplier;
+      stateManager.runAddCoins(coins);
+      eventBus.emit('coinCollected', { value: coins, x, z, tier: 2 });
+      soundEngine.playSound('near_miss', 1.0 + Math.min(1.0, streak * 0.05));
+      // Бурст/тряска/хаптик — на стороне подписчика 'nearMiss' в GameEngine, не дублируем.
+      eventBus.emit('nearMiss', { x, z, coins, streak, multiplier });
+    } else if (gap > 0.75 && gap <= 3.0) {
+      const brokenStreak = stateManager.runResetNearMissStreak();
+      if (brokenStreak >= 2) {
+        eventBus.emit('nearMissBreak', { streak: brokenStreak, x, z });
+      }
+    }
+  }
+
   private executeBossAttack(
     attack: BossAttack,
     crowd: CrowdManager,
@@ -526,6 +554,10 @@ export class BossManager {
       const radius = attack.areaRadius || 3.5;
       const rSq = radius * radius;
       const centerZ = this.bossArenaZ - 4;
+      // Near-miss лидера у края ударной волны (замер точкой, как у хитбоксов атаки).
+      const slamDx = crowd.leaderX;
+      const slamDz = crowd.leaderZ - centerZ;
+      this.checkBossNearMiss(Math.sqrt(slamDx * slamDx + slamDz * slamDz) - radius, slamDx, crowd.leaderZ);
       const aliveMobs = crowd.getAliveMobs();
       let hitCount = 0;
       for (let i = 0; i < aliveMobs.length; i++) {
@@ -547,6 +579,11 @@ export class BossManager {
       // длина 28 => Z в [arenaZ-28, arenaZ]). Уворот на фланг полностью защищает.
       const halfW = 2.1;
       const zMin = this.bossArenaZ - 28;
+      // Near-miss ухода из створа: только если лидер в Z-окне луча (за его пределами
+      // уворота не было — луч его просто не доставал).
+      if (crowd.leaderZ >= zMin && crowd.leaderZ <= this.bossArenaZ) {
+        this.checkBossNearMiss(Math.abs(crowd.leaderX) - halfW, crowd.leaderX, crowd.leaderZ);
+      }
       const aliveMobs = crowd.getAliveMobs();
       const inBeam = this.laserScratch;
       inBeam.length = 0;

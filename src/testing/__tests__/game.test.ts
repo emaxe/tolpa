@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { LevelGenerator, DEFAULT_TRACK_WIDTH, getTargetMobsToWin, getStarsForFinish } from '../../engine/LevelGenerator';
 import { StateManager } from '../../core/StateManager';
 import { ObjectPool, Poolable } from '../../core/ObjectPool';
+import { BossManager } from '../../engine/BossManager';
 import { calculateFormationOffset, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT } from '../../utils/math';
 
 describe('Gate & Math Operations', () => {
@@ -463,6 +464,23 @@ describe('Save System', () => {
     mgr.runResetNearMissStreak();
     expect(mgr.getRun()?.nearMissStreak).toBe(0);
     expect(mgr.getRun()?.maxNearMissStreak).toBe(5); // рекорд сохраняется
+  });
+
+  it('near-miss атаки босса: уворот впритирку даёт серию и монеты, широкий сбрасывает, попадание не трогает', () => {
+    const mgr = StateManager.getInstance();
+    mgr.beginRun();
+    const boss = new BossManager(null as any, null as any);
+    const check = (gap: number) => (boss as any).checkBossNearMiss(gap, 1, 0);
+    const coinsBase = mgr.getRun()?.coins ?? 0;
+    check(0.4); // уворот x1 → +8
+    check(0.4); // streak=2 → x2 → +16
+    expect(mgr.getRun()?.nearMissStreak).toBe(2);
+    expect((mgr.getRun()?.coins ?? 0) - coinsBase).toBe(24);
+    check(1.5); // широкий безопасный уход → сброс серии
+    expect(mgr.getRun()?.nearMissStreak).toBe(0);
+    expect(mgr.getRun()?.maxNearMissStreak).toBe(2);
+    check(-1.0); // попадание в зону — серию не меняет
+    expect(mgr.getRun()?.nearMissStreak).toBe(0);
   });
 });
 
