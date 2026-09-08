@@ -939,9 +939,11 @@ export class StateManager {
     if (crowdCount >= 150) this.updateAchievementProgress('legion_150', crowdCount);
     if (levelNum >= 10) this.updateAchievementProgress('boss_1', 1);
     if (levelNum >= 50) this.updateAchievementProgress('boss_5', 1);
-    // Прогресс прохождения кампании (dead-статы levelsCompleted были без достижений).
-    this.updateAchievementProgress('veteran_25', this.state.stats.levelsCompleted);
-    this.updateAchievementProgress('campaign_50', this.state.stats.levelsCompleted);
+    // Прогресс прохождения кампании: считаем УНИКАЛЬНЫЕ пройденные уровни (звёзды),
+    // а не levelsCompleted — иначе фарм переигрываний одного уровня открывал ачивки.
+    const distinctCleared = Object.keys(this.state.levelStars).length;
+    this.updateAchievementProgress('veteran_25', distinctCleared);
+    this.updateAchievementProgress('campaign_50', distinctCleared);
 
     // Бонусный скин за прохождение 30 уровня (Босс 3 — Кристальный Змей).
     if (levelNum >= 30 && !this.state.unlockedSkins.includes('dino_rex')) {
@@ -1096,12 +1098,17 @@ export class StateManager {
     this.updateAchievementProgressSilent('endless_runner_1000', this.state.endlessHighScore);
     this.updateAchievementProgressSilent('endless_runner_5000', this.state.endlessHighScore);
     // Достижения, не синхронизированные при загрузке/импорте сохранения (иначе сбрасываются в 0/N).
+    // boss_1/boss_5 привязаны к фактическому прохождению 10/50 уровней (урок с звёздами),
+    // а не к levelsCompleted: тот считает переигрывания, и фарм 1-го уровня открывал босс-ачивки
+    // заодно с 1000/5000 монет без боя (раннер на 940-941 сверяет levelNum корректно).
     if (this.state.stats.levelsCompleted >= 1) this.updateAchievementProgressSilent('first_step', 1);
-    if (this.state.stats.levelsCompleted >= 10) this.updateAchievementProgressSilent('boss_1', 1);
-    if (this.state.stats.levelsCompleted >= 50) this.updateAchievementProgressSilent('boss_5', 1);
+    if (this.state.levelStars[10] || this.state.maxUnlockedLevel > 10) this.updateAchievementProgressSilent('boss_1', 1);
+    if (this.state.levelStars[50]) this.updateAchievementProgressSilent('boss_5', 1);
     this.updateAchievementProgressSilent('adrenaline_god', this.state.stats.totalAdrenalineActivations);
-    this.updateAchievementProgressSilent('veteran_25', this.state.stats.levelsCompleted);
-    this.updateAchievementProgressSilent('campaign_50', this.state.stats.levelsCompleted);
+    // Уникальные пройденные уровни (см. комментарий выше): фарм переигрываний не открывает кампанийные ачивки.
+    const distinctCleared = Object.keys(this.state.levelStars).length;
+    this.updateAchievementProgressSilent('veteran_25', distinctCleared);
+    this.updateAchievementProgressSilent('campaign_50', distinctCleared);
   }
 
   public claimAchievement(achId: string): boolean {
