@@ -36,7 +36,6 @@ export interface GateData {
   motion: GateMotion;
   motionSpeed: number; // скорость движения/вращения
   motionRange: number; // размах движения по X (horizontal) или Y (vertical), для rotate — не используется
-  passed?: boolean;
 }
 
 // Стена со счётчиком: убивает ровно `count` мобов, затем падает.
@@ -98,7 +97,6 @@ export interface BossAttack {
   duration: number;
   damage: number;
   areaRadius?: number;
-  direction?: number;
   /** Относительный вес при случайном выборе атаки (по умолчанию — по типу). */
   weight?: number;
 }
@@ -121,7 +119,6 @@ export interface LevelDynamicEvent {
   type: 'ambush' | 'coin_train' | 'emp_storm' | 'meteor_rain' | 'speed_boost';
   duration: number;
   intensity: number;
-  executed?: boolean;
 }
 
 export interface LevelConfig {
