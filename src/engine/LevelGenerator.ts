@@ -432,7 +432,7 @@ export class LevelGenerator {
     // Данные босса для юбилейных уровней (10, 20, 30, 40, 50)
     let boss: BossData | undefined;
     if (isBossLevel) {
-      boss = this.generateBoss(levelNum, biome);
+      boss = this.generateBoss(levelNum);
     }
 
     return {
@@ -1237,7 +1237,7 @@ export class LevelGenerator {
     return null;
   }
 
-  private static generateBoss(levelNum: number, biome: BiomeType): BossData {
+  private static generateBoss(levelNum: number): BossData {
     const bossMap: Record<number, Partial<BossData>> = {
       10: {
         id: 'boss_10',
@@ -1331,18 +1331,17 @@ export class LevelGenerator {
       titleKey: def.titleKey || 'boss1Title',
       maxHp: def.maxHp || 200,
       hp: def.maxHp || 200,
-      biome,
       modelType: def.modelType || 'iron_golem',
       attacks,
     };
   }
 
-  public static generateEndlessBoss(segmentIndex: number, biome: BiomeType): BossData {
+  public static generateEndlessBoss(segmentIndex: number): BossData {
     const bossInterval = 5;
     const cycle = Math.floor(segmentIndex / bossInterval); // 1, 2, 3, ...
     const tier = Math.min(5, Math.max(1, cycle)); // 1..5
     const levelNum = tier * 10; // 10, 20, 30, 40, 50
-    const boss = this.generateBoss(levelNum, biome);
+    const boss = this.generateBoss(levelNum);
     // Рост HP для циклов после 5 (segmentIndex >= 25): +40% за каждый полный цикл
     const extraCycles = Math.max(0, Math.floor(segmentIndex / (bossInterval * 5)));
     if (extraCycles > 0) {
@@ -1603,7 +1602,7 @@ export class LevelGenerator {
     let bossArenaZ: number | undefined;
     let bossLevel: number | undefined;
     if (isBossSegment) {
-      boss = LevelGenerator.generateEndlessBoss(segmentIndex, LevelGenerator.getEndlessBiome(segmentIndex));
+      boss = LevelGenerator.generateEndlessBoss(segmentIndex);
       bossArenaZ = currentZ + length - 20;
       bossLevel = Math.min(50, Math.floor(segmentIndex / 5) * 10);
     }

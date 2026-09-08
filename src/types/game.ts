@@ -107,7 +107,6 @@ export interface BossData {
   titleKey: string;
   maxHp: number;
   hp: number;
-  biome: BiomeType;
   modelType: 'iron_golem' | 'magma_colossus' | 'crystal_wyrm' | 'titan_nullifier' | 'apex_overlord';
   attacks: BossAttack[];
   dialogueBefore?: DialogueLine[];
