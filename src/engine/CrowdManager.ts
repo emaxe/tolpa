@@ -126,8 +126,6 @@ export class CrowdManager {
         prevZ: 0,
         targetX: 0,
         targetZ: 0,
-        vx: 0,
-        vz: 0,
         alive: false,
         scale: 1.0,
         color: 0x00f0ff,
@@ -399,8 +397,6 @@ export class CrowdManager {
         mob.prevZ = mob.z;
         mob.targetX = mob.x;
         mob.targetZ = mob.z;
-        mob.vx = 0;
-        mob.vz = 0;
         mob.invulnerableTime = 0.5;
 
         // Colors and Stats per type. Масштаб ×0.65 от исходного — дорожка стала шире,

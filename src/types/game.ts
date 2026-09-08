@@ -149,8 +149,6 @@ export interface MobInstance {
   prevZ: number;
   targetX: number;
   targetZ: number;
-  vx: number;
-  vz: number;
   alive: boolean;
   scale: number;
   color: number;
