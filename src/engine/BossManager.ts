@@ -37,6 +37,8 @@ export class BossManager {
   private cachedMaterials: { mat: THREE.MeshStandardMaterial; baseEmissive: number }[] = [];
   // Переиспользуемый буфер мобов в створе лазера: без аллокации массива на каждую атаку босса (0-GC).
   private laserScratch: MobInstance[] = [];
+  // Точки падения метеоров (x,z парами) — предвыделены, 0-GC в ветке meteors.
+  private meteorPts = new Float64Array(16);
   private bossArenaZ: number = 0;
   public isActive(): boolean { return !!this.bossData && !this.isDefeated && !this.isDefeatCollapsing; }
   public getArenaZ(): number { return this.bossArenaZ; }
@@ -496,7 +498,8 @@ export class BossManager {
         this.retaliationTimer = 1.4;
         this.retaliationTelegraphed = false;
         eventBus.emit('screenShake', { intensity: 0.25 });
-        crowd.killMobs(1 + Math.floor(aliveMobs.length * 0.02), 'boss');
+        const killed = crowd.killMobs(1 + Math.floor(aliveMobs.length * 0.02), 'boss');
+        if (killed > 0) this.breakNearMissStreak(0, this.bossArenaZ - 4.5);
       }
     }
 
@@ -531,6 +534,18 @@ export class BossManager {
       if (brokenStreak >= 2) {
         eventBus.emit('nearMissBreak', { streak: brokenStreak, x, z });
       }
+    }
+  }
+
+  /**
+   * Сброс серии уворотов при фактическом уроне от босса — паритет с дорожными
+   * ловушками (ObstacleManager.breakNearMissStreak): раньше серия продолжала
+   * расти даже когда босс выкашивал толпу, что читалось как «проход по трупам».
+   */
+  private breakNearMissStreak(x: number, z: number): void {
+    const brokenStreak = stateManager.runResetNearMissStreak();
+    if (brokenStreak >= 2) {
+      eventBus.emit('nearMissBreak', { streak: brokenStreak, x, z });
     }
   }
 
@@ -569,7 +584,8 @@ export class BossManager {
         }
       }
       if (hitCount > 0) {
-        crowd.killMobs(Math.max(1, Math.round(hitCount * 0.35)), 'boss_slam');
+        const killed = crowd.killMobs(Math.max(1, Math.round(hitCount * 0.35)), 'boss_slam');
+        if (killed > 0) this.breakNearMissStreak(0, centerZ);
       }
     } else if (attack.type === 'laser') {
       soundEngine.playSound('boss_laser');
@@ -594,7 +610,8 @@ export class BossManager {
         }
       }
       if (inBeam.length > 0) {
-        crowd.killMobsFromGroup(inBeam, Math.min(Math.floor(attack.damage / 3), inBeam.length), 'boss_laser');
+        const killed = crowd.killMobsFromGroup(inBeam, Math.min(Math.floor(attack.damage / 3), inBeam.length), 'boss_laser');
+        if (killed > 0) this.breakNearMissStreak(crowd.leaderX, crowd.leaderZ);
       }
     } else if (attack.type === 'minions') {
       // Рой мелких тварей: босс призывает рой, который грызёт толпу в течение всей
@@ -606,19 +623,53 @@ export class BossManager {
       this.minionTickAccum = 0;
     } else if (attack.type === 'meteors') {
       // Метеоритный залп: серия огненных всплесков по арене перед боссом.
-      soundEngine.playSound('boss_hit');
+      // Раньше играл 'boss_hit' (звук ПОЛУЧЕНИЯ боссом урона от толпы) — теперь
+      // удар взрыва (низкий питч boss_slam, чтобы не путать с тараном).
+      soundEngine.playSound('boss_slam', 0.85, 0.9);
       eventBus.emit('screenShake', { intensity: 0.5 });
-      const strikes = attack.areaRadius ? Math.floor(attack.areaRadius) : 3;
+      const strikes = Math.min(8, attack.areaRadius ? Math.floor(attack.areaRadius) : 3);
+      const BLAST_R = 2.0;
+      const blastSq = BLAST_R * BLAST_R;
+      const pts = this.meteorPts;
       for (let i = 0; i < strikes; i++) {
         const sx = (Math.random() - 0.5) * 8;
         const sz = this.bossArenaZ - 4 - Math.random() * 4;
+        pts[i * 2] = sx;
+        pts[i * 2 + 1] = sz;
         particles.emitBurst(sx, 0.6, sz, 22, 0xf97316, 7.0);
       }
-      // Урон ограничен безопасной долей от численности отряда, чтобы метеоры
-      // не выкашивали всю толпу на поздних уровнях.
-      const capped = Math.min(attack.damage, Math.floor(crowd.getAliveCount() * 0.2));
-      if (capped > 0) {
-        crowd.killMobs(Math.max(1, capped), 'boss_meteors');
+      // Near-miss лидера по ближайшему эпицентру (замер от края круга взрыва).
+      let minGap = Infinity;
+      for (let i = 0; i < strikes; i++) {
+        const dx = crowd.leaderX - pts[i * 2];
+        const dz = crowd.leaderZ - pts[i * 2 + 1];
+        const d = Math.sqrt(dx * dx + dz * dz) - BLAST_R;
+        if (d < minGap) minGap = d;
+      }
+      this.checkBossNearMiss(minGap, crowd.leaderX, crowd.leaderZ);
+      // Пространственный урон: гибнут только мобы хотя бы в одном круге взрыва.
+      // Раньше killMobs выкашивал толпу независимо от точек падения — уклонение
+      // на арене не имело смысла (визуал расходился с хитбоксом, как у бойка).
+      // laserScratch переиспользуется: ветки laser и meteors никогда не активны одновременно.
+      const hits = this.laserScratch;
+      hits.length = 0;
+      const aliveMobs = crowd.getAliveMobs();
+      for (let i = 0; i < aliveMobs.length; i++) {
+        const mob = aliveMobs[i];
+        for (let s = 0; s < strikes; s++) {
+          const dx = mob.x - pts[s * 2];
+          const dz = mob.z - pts[s * 2 + 1];
+          if (dx * dx + dz * dz <= blastSq) {
+            hits.push(mob);
+            break; // моб внутри двух пересекающихся кругов считается один раз
+          }
+        }
+      }
+      // Кап потерь (20% отряда) сохранён — метеоры не выкашивают толпу на поздних уровнях.
+      if (hits.length > 0) {
+        const capped = Math.max(1, Math.min(attack.damage, hits.length, Math.floor(crowd.getAliveCount() * 0.2)));
+        const killed = crowd.killMobsFromGroup(hits, capped, 'boss_meteors');
+        if (killed > 0) this.breakNearMissStreak(crowd.leaderX, crowd.leaderZ);
       }
     } else if (attack.type === 'shield') {
       // Энергетический купол: на время атаки босс блокирует урон толпы.
@@ -659,7 +710,8 @@ export class BossManager {
       // Урон за тик — доля от полного урона атаки, чтобы за всю длительность
       // (обычно 2-3с) суммарный урон был сопоставим с slam/laser.
       const perTick = Math.max(1, Math.round((currentAttack.damage / 3) * tickInterval));
-      crowd.killMobs(perTick, 'boss_minions');
+      const killed = crowd.killMobs(perTick, 'boss_minions');
+      if (killed > 0) this.breakNearMissStreak(crowd.leaderX, crowd.leaderZ);
       particles.emitBurst(
         (Math.random() - 0.5) * 4,
         0.8 + Math.random(),

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { LevelGenerator, DEFAULT_TRACK_WIDTH, getTargetMobsToWin, getStarsForFinish } from '../../engine/LevelGenerator';
 import { StateManager } from '../../core/StateManager';
 import { ObjectPool, Poolable } from '../../core/ObjectPool';
@@ -481,6 +481,37 @@ describe('Save System', () => {
     expect(mgr.getRun()?.maxNearMissStreak).toBe(2);
     check(-1.0); // попадание в зону — серию не меняет
     expect(mgr.getRun()?.nearMissStreak).toBe(0);
+  });
+
+  it('meteors босса: урон только мобам внутри круга взрыва (уклонение работает)', () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    try {
+      const boss = new BossManager(null as any, null as any);
+      (boss as any).bossMesh = {}; // единственный guard в executeBossAttack
+      (boss as any).bossArenaZ = 100;
+      // При random=0.5 все 3 эпицентра падают в (0, 94).
+      const mobIn = { x: 0, z: 94 } as any; // в эпицентре → гибнет
+      const mobOut = { x: 0, z: 88 } as any; // 6 м от эпицентра → выживает
+      const killed: any[] = [];
+      const crowd = {
+        leaderX: 9, leaderZ: 78, // далеко от всех эпицентров — near-miss не участвует
+        getAliveMobs: () => [mobIn, mobOut],
+        getAliveCount: () => 2,
+        killMobsFromGroup: (group: any[], count: number) => {
+          killed.push(...group.slice(0, count));
+          return Math.min(count, group.length);
+        },
+      } as any;
+      (boss as any).executeBossAttack(
+        { type: 'meteors', damage: 5, areaRadius: 3, duration: 0.9, telegraphTime: 1 },
+        crowd,
+        { emitBurst: () => {}, emitShockwave: () => {} }
+      );
+      expect(killed.length).toBe(1);
+      expect(killed[0]).toBe(mobIn);
+    } finally {
+      randomSpy.mockRestore();
+    }
   });
 });
 
