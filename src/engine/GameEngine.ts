@@ -2613,7 +2613,10 @@ export class GameEngine {
         this.triggerHaptic([20, 15]);
         break;
       case 'ambush':
-        this.eventSpeedMult = 0.55;
+        // Замедление засады масштабируется с интенсивностью события (кап 3.0): раньше
+        // всегда 0.55×, теперь 0.55..0.39 — поздние сегменты тормозят жёстче. intensity
+        // уже вычисляется генератором (как у speed_boost/coin_train/emp_storm/meteor_rain).
+        this.eventSpeedMult = Math.max(0.4, 0.63 - 0.08 * evt.intensity);
         soundEngine.playSound('boss_roar');
         eventBus.emit('screenShake', { intensity: 0.25 });
         this.particles.emitBurst(this.crowd.leaderX, 1.0, this.crowd.leaderZ, 20, 0xef4444, 5.0);
