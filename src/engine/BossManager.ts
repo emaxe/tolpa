@@ -567,9 +567,11 @@ export class BossManager {
       }
     } else if (attack.type === 'shield') {
       // Энергетический купол: на время атаки босс блокирует урон толпы.
-      soundEngine.playSound('boss_slam');
+      // Дубль фидбека: setShielded(true) → bossShieldChanged → GameEngine уже даёт
+      // boss_shield_raise + бурст + ударную волну + хаптик. Здесь раньше дополнительно
+      // играл boss_slam (копипаста из slam-ветки) и свой бурст — сдвоенный звук и
+      // двойной всплеск частиц при поднятии купола.
       eventBus.emit('screenShake', { intensity: 0.3 });
-      particles.emitBurst(0, 2.0, this.bossArenaZ, 30, 0x00f0ff, 6.0);
       this.setShielded(true);
     }
   }
