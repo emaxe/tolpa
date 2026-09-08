@@ -997,9 +997,12 @@ export class ObstacleManager {
 
       if (hit) {
         if (isHyper || (obs.destructible && (hasTanks || crowd.canRamObstacles()))) {
-          // Сломать препятствие! Фаланга (circle) с достаточной толпой таранит РАЗРУШАЕМЫЕ ловушки
-          // силой массы — теряет лишь 1 бойца вместо уничтожения всех коснувшихся.
-          if (obs.destructible && crowd.canRamObstacles() && !isHyper && !hasTanks) {
+          // Сломать препятствие! Фаланга (circle)/Ромб с достаточной толпой таранит РАЗРУШАЕМЫЕ
+          // ловушки силой массы — теряет лишь 1 бойца вместо уничтожения всех коснувшихся.
+          // Флаг ram прокидывается в obstacleSmashed — FloatingText показывает плашку перка
+          // «ТАРАН СТРОЕМ!» вместо «СЛОМАНО!» (паритет с ветками guard dog / bomb).
+          const isRam = obs.destructible && crowd.canRamObstacles() && !isHyper && !hasTanks;
+          if (isRam) {
             crowd.killMobs(1, 'obstacle');
           }
           obs.isDead = true;
@@ -1007,7 +1010,7 @@ export class ObstacleManager {
           if (vol > 0) soundEngine.playSound('obstacle_smash', 1, vol);
           particles.emitBurst(obs.x, 1.0, obs.z, 30, 0xf97316, 6.0);
           stateManager.runRecordObstacleSmash();
-          eventBus.emit('obstacleSmashed', { type: obs.type, x: obs.x, z: obs.z });
+          eventBus.emit('obstacleSmashed', { type: obs.type, x: obs.x, z: obs.z, ram: isRam });
           break;
         } else {
           // Препятствие уничтожает КАЖДОГО моба, который его касается — в этом же кадре.
