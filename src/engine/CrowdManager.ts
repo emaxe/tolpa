@@ -283,7 +283,8 @@ export class CrowdManager {
   public setFormation(f: FormationType): void {
     if (this.formation !== f) {
       this.formation = f;
-      soundEngine.playSound('formation_change');
+      // Звук смены строя играет единый подписчик 'formationChanged' в GameEngine
+      // (вместе с VFX/хаптикой) — прямой вызов здесь давал двойной клиппинг.
       eventBus.emit('formationChanged', { formation: f, x: this.leaderX, z: this.leaderZ });
     }
   }
