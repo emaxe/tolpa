@@ -215,6 +215,12 @@ export class GameEngine {
   // Флаг «толпа не пробивает следующую финишную стену» — эмитим crowdLowWarning
   // ровно один раз при падении ниже стоимости стены, сбрасываем при восстановлении.
   private crowdLowWarned: boolean = false;
+  // Активное предупреждение о приближении ловушки: звук+хаптика ровно один раз при
+  // входе в опасную зону, пере-арм по гистерезису после выхода из неё.
+  private hazardAlerted: boolean = false;
+  private hazardDistanceCache: number = -1; // считается раз за кадр, оттуда же в HUD-снапшот
+  private static readonly HAZARD_ALERT_RANGE = 25; // порог совпадает с пассивным индикатором HUD
+  private static readonly HAZARD_ALERT_RELEASE = 30; // +5м гистерезис: не пере-тригериться на границе
 
   // Параметры метеоритного дождя (честная телеграф-механика)
   private static readonly METEOR_POOL_SIZE = 6;
@@ -1258,6 +1264,8 @@ export class GameEngine {
     this.trackOffsetZ = 0;
     this.lastCrowdMilestone = 0;
     this.crowdLowWarned = false;
+    this.hazardAlerted = false;
+    this.hazardDistanceCache = -1;
     this.screenShakeIntensity = 0;
     stateManager.beginRun();
 
@@ -1339,6 +1347,8 @@ export class GameEngine {
     this.trackOffsetZ = 0;
     this.lastCrowdMilestone = 0;
     this.crowdLowWarned = false;
+    this.hazardAlerted = false;
+    this.hazardDistanceCache = -1;
     this.screenShakeIntensity = 0;
     stateManager.beginRun();
 
@@ -2815,6 +2825,19 @@ export class GameEngine {
     this.walls.update(dt, this.crowd, this.particles);
     this.bonus.update(dt, this.crowd, this.particles);
     this.obstacles.update(dt, this.crowd, this.particles);
+    // Индикатор ловушек в HUD пассивен и скрыт на мобильных (max-sm:hidden) — сигналим
+    // один раз на момент входа ловушки в опасную зону, иначе игрок узнаёт о ней только
+    // при контакте. Дистанция считается раз за кадр и переиспользуется в HUD-снапшоте.
+    this.hazardDistanceCache = this.obstacles.getNextHazardDistance(this.crowd.leaderZ);
+    if (this.hazardDistanceCache >= 0 && this.hazardDistanceCache < GameEngine.HAZARD_ALERT_RANGE) {
+      if (!this.hazardAlerted) {
+        this.hazardAlerted = true;
+        soundEngine.playSound('boss_attack_telegraph', 1.0, 0.5);
+        this.triggerHaptic(15);
+      }
+    } else if (this.hazardDistanceCache < 0 || this.hazardDistanceCache >= GameEngine.HAZARD_ALERT_RELEASE) {
+      this.hazardAlerted = false;
+    }
     this.boss.update(dt, this.crowd, this.particles);
     this.particles.update(dt);
 
@@ -3350,7 +3373,7 @@ export class GameEngine {
       bossDistance: bossArenaZ > 0 && bossArenaZ !== Infinity
         ? Math.max(0, Math.round(bossArenaZ - this.crowd.leaderZ))
         : -1,
-      nextHazardDistance: this.obstacles.getNextHazardDistance(this.crowd.leaderZ),
+      nextHazardDistance: this.hazardDistanceCache,
       distanceTraveled: Math.max(0, Math.round(this.crowd.leaderZ)),
       fps: perfMonitor.getFPS(),
       drawCalls: perfMonitor.getDrawCalls(),

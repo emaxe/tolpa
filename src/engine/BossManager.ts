@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BossAttack, BossData } from '../types/game';
+import { BossAttack, BossData, MobInstance } from '../types/game';
 import {
   createBossMesh,
   createBossLaserBeamMesh,
@@ -34,6 +34,8 @@ export class BossManager {
   private defeatBurstTimer: number = 0;
   private hitFlashTimer: number = 0;
   private cachedMaterials: { mat: THREE.MeshStandardMaterial; baseEmissive: number }[] = [];
+  // Переиспользуемый буфер мобов в створе лазера: без аллокации массива на каждую атаку босса (0-GC).
+  private laserScratch: MobInstance[] = [];
   private bossArenaZ: number = 0;
   public isActive(): boolean { return !!this.bossData && !this.isDefeated && !this.isDefeatCollapsing; }
   public getArenaZ(): number { return this.bossArenaZ; }
@@ -505,7 +507,7 @@ export class BossManager {
   }
 
   private executeBossAttack(
-    attack: any,
+    attack: BossAttack,
     crowd: CrowdManager,
     particles: ParticleSystem
   ): void {
@@ -546,7 +548,8 @@ export class BossManager {
       const halfW = 2.1;
       const zMin = this.bossArenaZ - 28;
       const aliveMobs = crowd.getAliveMobs();
-      const inBeam: any[] = [];
+      const inBeam = this.laserScratch;
+      inBeam.length = 0;
       for (let i = 0; i < aliveMobs.length; i++) {
         const mob = aliveMobs[i];
         if (Math.abs(mob.x) <= halfW && mob.z >= zMin && mob.z <= this.bossArenaZ) {
