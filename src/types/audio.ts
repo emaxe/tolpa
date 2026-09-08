@@ -25,6 +25,7 @@ export type SoundEffect =
   | 'boss_shield_raise'
   | 'boss_shield_blocked'
   | 'boss_shield_pierced'
+  | 'boss_shield_down'
   | 'boss_defeat'
   | 'formation_change'
   | 'finish_wall_hit'

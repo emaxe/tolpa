@@ -790,7 +790,7 @@ export class GameEngine {
       // Теперь при спаде щита — циановый бурст + ударная волна + глухой отскок.
       this.particles.emitBurst(0, 1.2, bz, 18, 0x22d3ee, 5.0);
       this.particles.emitShockwave(0, bz, 0x22d3ee);
-      soundEngine.playSound('boss_shield_blocked');
+      soundEngine.playSound('boss_shield_down');
       this.triggerHaptic(15);
     });
 

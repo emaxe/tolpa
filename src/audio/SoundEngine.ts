@@ -517,6 +517,24 @@ export class SoundEngine {
         break;
       }
 
+      case 'boss_shield_down': {
+        // Нисходящий «сдувающийся» тон при снятии энергокупола босса.
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520 * pitchShift, t);
+        osc.frequency.exponentialRampToValueAtTime(120, t + 0.22);
+
+        gain.gain.setValueAtTime(0.3, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
+
+        osc.connect(gain);
+        gain.connect(outGain);
+        osc.start(t);
+        osc.stop(t + 0.24);
+        break;
+      }
+
       case 'finish_wall_hit': {
         // Crunch impact
         const osc = this.ctx.createOscillator();
