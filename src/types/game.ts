@@ -35,7 +35,7 @@ export interface GateData {
   value: number;    // целое значение (add:+N, multiply:×N, divide:÷N)
   motion: GateMotion;
   motionSpeed: number; // скорость движения/вращения
-  motionRange: number; // размах движения по X (horizontal) или Y (vertical), для rotate — не используется
+  motionRange: number; // размах движения по X (horizontal) или Y (vertical), для rotate — амплитуда поворота вокруг Y (рад)
 }
 
 // Стена со счётчиком: убивает ровно `count` мобов, затем падает.

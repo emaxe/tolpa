@@ -171,6 +171,10 @@ export class GateManager {
       const cx = gateVisual.group.position.x;
       const cy = gateVisual.group.position.y;
       const halfW = gate.width / 2;
+      // Вращённые вокруг Y ворота (motion='rotate'): проём спроецирован на X уже
+      // физической рамки — без масштаба по cos угла моб «проходит сквозь раму», а
+      // штрафные ворота нечестно срабатывают у визуального края проёма.
+      const halfWHit = halfW * Math.abs(Math.cos(gateVisual.group.rotation.y));
       // Вертикальные ворота, поднятые высоко над полом (основание проёма выше роста
       // мобов), НЕ должны задевать толпу на земле — она честно проходит УЖЕ ПОД ними.
       // Раньше `cy` учитывался только для партиклов, а коллизия всегда била по мобам
@@ -191,8 +195,8 @@ export class GateManager {
         if (!crossed) continue;
         // Ворота, поднятые выше мобов — проходим под ними без срабатывания.
         if (gateUp) continue;
-        // Проверяем попадание в проём по X (вращение ворот учитываем упрощённо — по центру).
-        if (Math.abs(mob.x - cx) > halfW + 0.4) continue;
+        // Проверяем попадание в проём по X с учётом текущего вращения (проекция cos).
+        if (Math.abs(mob.x - cx) > halfWHit + 0.4) continue;
         gateVisual.processedMobs.add(mob.id);
         this.throughScratch.push(mob);
         any = true;
