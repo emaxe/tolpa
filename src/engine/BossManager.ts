@@ -383,6 +383,10 @@ export class BossManager {
         if (this.attackTimer >= telegraphTime) {
           this.isAttacking = true;
           this.attackTimer = 0;
+          // Стаггер задуман как залп в окне одного телеграфа: несокрушённый
+          // остаток не переносится в следующее окно (иначе второй стагг берётся
+          // уже накопленным и срабатывает «сам» на частичном уроне).
+          this.staggerAccum = 0;
           if (this.telegraphMesh) {
             this.telegraphMesh.visible = false;
             (this.telegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
