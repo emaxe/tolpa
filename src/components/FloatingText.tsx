@@ -235,7 +235,15 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
     const unsubBonus = eventBus.on(
       'bonusCollected',
       (data: { type?: string; value?: number; x?: number; z?: number }) => {
-        if (!data || !data.value) return;
+        if (!data) return;
+        // Сфера add_mobs на капе толпы (200): усиление заменяется щитом авангарда,
+        // эмит идёт с value 0 и гас guard'ом ниже — соседняя heal-ветка текст имеет,
+        // здесь паритет: показать «ЗАЩИТА!», иначе исход (бафф вместо прироста) неразличим.
+        if (data.type === 'add_mobs' && !data.value) {
+          spawn(data.x || 0, data.z || 0, i18n.t('bonusCapBuff', '⛨ ЗАЩИТА!'), 'text-emerald-200 font-bold');
+          return;
+        }
+        if (!data.value) return;
         const v = data.value;
         let text: string;
         let colorClass: string;
