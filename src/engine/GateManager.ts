@@ -442,9 +442,11 @@ export class GateManager {
         if (base > 0) isMageTransmuteSpawn = true;
       } else {
         // ÷N: пропускает каждого N-го по очереди, остальных убирает для каждого нового моба/группы.
-        // Синергии формаций при делении: Клин — выживание +10%, Ромб — выживание +15%
-        // (таран плотным строем). Делитель остаётся ЦЕЛЫМ: дробный divisor (val/0.9)
-        // целочисленный счётчик округлял ВВЕРХ, делая потери ХУЖЕ (÷2 → каждый 3-й).
+        // Синергии формаций при делении: Клин — выживание +10%, Ромб — выживание +15%,
+        // Фаланга — +20% (плотный защитный строй, лучший по удержанию). Делитель остаётся
+        // ЦЕЛЫМ: дробный divisor (val/0.9) целочисленный счётчик округлял ВВЕРХ, делая
+        // потери ХУЖЕ (÷2 → каждый 3-й). Стрельчатые/экономические формации (arrow/wide/oval)
+        // дивиденда на делении не имеют — осознанный размен.
         let retentionBonus = 0;
         if (crowd.formation === 'wedge') {
           retentionBonus = 0.10;
@@ -452,6 +454,9 @@ export class GateManager {
         } else if (crowd.formation === 'diamond') {
           retentionBonus = 0.15;
           perk = 'diamond_div';
+        } else if (crowd.formation === 'circle') {
+          retentionBonus = 0.20;
+          perk = 'circle_div';
         }
         netChange = -crowd.divideMobsByStep(wing, val, 'gate', gateVisual.divideStep, retentionBonus);
         if (isFirstTrigger) soundEngine.playSound('gate_pass_negative');
