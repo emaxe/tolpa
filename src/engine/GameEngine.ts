@@ -1165,7 +1165,7 @@ export class GameEngine {
     window.addEventListener('touchmove', this.onTouchMoveHandler, { passive: true });
     window.addEventListener('touchend', this.onTouchEndHandler);
 
-    // Keyboard controls (supports English, Russian, Arrow keys, Space, 1-4, Escape/P for pause)
+    // Keyboard controls (supports English, Russian, Arrow keys, Space, 1-6, Escape/P for pause)
     this.onKeyDownHandler = (e: KeyboardEvent) => {
       // Печать в поле ввода (например, код сохранения в настройках) не должна рулить толпой.
       if (GameEngine.isTypingTarget(e.target)) return;
