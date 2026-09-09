@@ -1131,35 +1131,6 @@ export class StateManager {
   }
 
   // Stats Recording
-  public recordMobSpawn(count: number = 1): void {
-    this.state.stats.totalMobsSpawned += count;
-  }
-
-  public recordGatePass(): void {
-    this.state.stats.totalGatesPassed += 1;
-  }
-
-  public recordObstacleSmash(): void {
-    this.state.stats.totalObstaclesSmashed += 1;
-  }
-
-  public recordBossKill(): void {
-    this.state.stats.totalBossesDefeated += 1;
-  }
-
-  public recordCombo(combo: number): void {
-    if (combo > this.state.stats.highestCombo) {
-      this.state.stats.highestCombo = combo;
-      this.updateAchievementProgress('combo_10', combo);
-    }
-  }
-
-  public recordMaxCrowd(crowd: number): void {
-    if (crowd > this.state.stats.maxCrowdReached) {
-      this.state.stats.maxCrowdReached = crowd;
-    }
-  }
-
   /** Считает активации Гипер-режима и продвигает достижение adrenaline_god. */
   public recordAdrenalineActivation(): void {
     this.state.stats.totalAdrenalineActivations += 1;
