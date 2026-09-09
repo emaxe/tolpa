@@ -14,14 +14,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
   const [settings, setSettings] = useState<GameSettings>(stateManager.getState().settings);
   const [importStr, setImportStr] = useState<string>('');
   const [importMsg, setImportMsg] = useState<string>('');
+  // Статус последнего сообщения импорта/экспорта: false => сообщение об ошибке (красный X)
+  const [importMsgOk, setImportMsgOk] = useState<boolean>(true);
   const [showResetConfirm, setShowResetConfirm] = useState<boolean>(false);
 
   // Единый таймер сообщения импорта/экспорта: старый setTimeout гасил НОВОЕ сообщение
   // раньше срока (экспорт сразу после импорта) и тек после закрытия модалки.
   const msgTimerRef = useRef<number | null>(null);
-  const showImportMsg = (text: string, ms: number = 3000) => {
+  const showImportMsg = (text: string, ms: number = 3000, isOk: boolean = true) => {
     if (msgTimerRef.current !== null) window.clearTimeout(msgTimerRef.current);
     setImportMsg(text);
+    setImportMsgOk(isOk);
     if (text) {
       msgTimerRef.current = window.setTimeout(() => {
         setImportMsg('');
@@ -71,7 +74,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
       showImportMsg(i18n.t('importOk'));
       if (onLanguageChanged) onLanguageChanged();
     } else {
-      showImportMsg(i18n.t('importBad'));
+      showImportMsg(i18n.t('importBad'), 3000, false);
     }
   };
 
@@ -328,8 +331,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
             </div>
 
             {importMsg && (
-              <p className="text-xs text-emerald-400 font-mono flex items-center gap-1">
-                <Check className="w-3.5 h-3.5" />
+              <p className={`text-xs font-mono flex items-center gap-1 ${importMsgOk ? 'text-emerald-400' : 'text-red-400'}`}>
+                {importMsgOk ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
                 <span>{importMsg}</span>
               </p>
             )}
