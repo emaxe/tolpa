@@ -153,7 +153,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             className="w-full py-4 md:py-5 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 hover:from-amber-300 hover:to-orange-400 text-zinc-950 font-orbitron font-black text-lg md:text-xl uppercase tracking-widest rounded-2xl shadow-2xl shadow-amber-500/35 transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3 mb-4 cursor-pointer"
           >
             <Play className="w-6 h-6 fill-current" />
-            <span>{i18n.t('play')} (УР. {state.currentLevel})</span>
+            <span>{i18n.t('play')} ({i18n.t('levelAbbr')} {state.currentLevel})</span>
           </button>
 
           {/* Secondary Action Grid */}

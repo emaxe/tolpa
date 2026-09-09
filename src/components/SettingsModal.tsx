@@ -305,7 +305,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
 
             <div className="flex gap-2">
               <button
-                onClick={handleExport}
+                onClick={() => { playTick(); handleExport(); }}
                 className="flex-1 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl font-orbitron text-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
@@ -322,7 +322,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
                 className="flex-1 bg-slate-100 border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-amber-500"
               />
               <button
-                onClick={handleImport}
+                onClick={() => { playTick(); handleImport(); }}
                 className="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold shadow shadow-amber-500/25 rounded-xl font-orbitron text-xs flex items-center gap-1 cursor-pointer"
               >
                 <Upload className="w-3.5 h-3.5" />
