@@ -217,6 +217,10 @@ export class ObstacleManager {
       case 'laser_grid':
         mesh = createLaserGridMesh(obs.width);
         break;
+      case 'laser_wall':
+        // Полноширинная лазерная стена — тот же меш, что и laser_grid.
+        mesh = createLaserGridMesh(obs.width);
+        break;
       case 'spike_trap':
         mesh = createSpikeTrapMesh();
         break;
@@ -634,6 +638,18 @@ export class ObstacleManager {
           if (!obsVis.staticHazard) this.setHazard(obsVis, obs.x, obs.z, obs.width, obs.depth);
           break;
 
+        case 'laser_wall':
+          // Полноширинная лазерная стена: периодически включается/выключается.
+          // Активна ~половину цикла (sin>0), hazard-бокс — вся ширина трассы.
+          this.setHazard(obsVis, obs.x, obs.z, obs.width, obs.depth);
+          // Визуальный телеграф ровно по тому же условию, что и isHazardActive:
+          // лучи (children 2+, posts = 0/1) гаснут, когда стена не убивает.
+          const wallOn = Math.sin(t * 1.2) > 0;
+          for (let bi = 2; bi < obsVis.mesh.children.length; bi++) {
+            obsVis.mesh.children[bi].visible = wallOn;
+          }
+          break;
+
         case 'wrecking_ball':
           // Шар раскачивается поперёк трассы (по X). Убивает ТОЛЬКО сам шар (child 3)
           // — его фактическая X-координата, узкий хитбокс по ширине шара.
@@ -711,15 +727,17 @@ export class ObstacleManager {
           break;
 
         case 'rolling_spike_ball':
-          // Катится навстречу толпе по -Z
+          // Катится навстречу толпе по -Z, вихляя по X (зигзаг) — сложнее увернуться.
           obs.z -= dt * (obs.speed * 2.2);
           obsVis.mesh.position.z = obs.z;
+          const ballX = obs.x + Math.sin(obsVis.animTime * 1.5) * obs.range;
+          obsVis.mesh.position.x = ballX;
           // Вращение шара (child 0) вокруг оси X
           const ballSpike = obsVis.mesh.children[0] as THREE.Group;
           if (ballSpike) {
             ballSpike.rotation.x -= dt * 8;
           }
-          this.setHazard(obsVis, obs.x, obs.z, 2.0, 2.0);
+          this.setHazard(obsVis, ballX, obs.z, 2.0, 2.0);
           // Звук приближения: единственный снаряд, катящийся НА толпу, был нем —
           // молот (hammer_impact) и пёс (dog_snap) имеют свой фидбек, шар нет.
           // Грохот петлёй ~0.35с, громкость по proximityVolume (0 за 26м).
@@ -882,6 +900,9 @@ export class ObstacleManager {
         return hammerPivot ? Math.abs(hammerPivot.rotation.x) < 0.25 : true;
       case 'rolling_spike_ball':
         return true;
+      case 'laser_wall':
+        // Периодическая лазерная стена: активна ~половину цикла (sin>0).
+        return Math.sin(obsVis.animTime * 1.2) > 0;
       default:
         return true;
     }

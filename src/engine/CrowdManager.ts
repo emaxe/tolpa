@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { MobInstance, MobType, FormationType, PlayerSkin } from '../types/game';
 import { calculateFormationOffset, getFormationScale, FormationOffset, clamp, lerp, TRACK_RAIL_MARGIN } from '../utils/math';
 import { createHumanoidGeometry, createSkinLeaderModel } from '../utils/proceduralMeshes';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { stateManager, INITIAL_SKINS } from '../core/StateManager';
 import { eventBus } from '../core/EventBus';
 import { soundEngine } from '../audio/SoundEngine';
@@ -9,6 +10,10 @@ import { soundEngine } from '../audio/SoundEngine';
 export class CrowdManager {
   private scene: THREE.Scene;
   private instancedMesh: THREE.InstancedMesh;
+  // Базовая геометрия бойца (humanoid) — возвращаемся к ней для humanoid-скинов.
+  private humanoidGeo: THREE.BufferGeometry;
+  // Кэш merged-геометрий экзотических скинов для всей толпы (по modelStyle).
+  private crowdSkinGeometries: Map<string, THREE.BufferGeometry> = new Map();
   private maxCapacity: number;
   private mobs: MobInstance[] = [];
   // Выделенная 3D-модель ЛИДЕРА (персонажа игрока) — меняет ФОРМУ по скину.
@@ -87,6 +92,7 @@ export class CrowdManager {
     this.maxCapacity = maxMobs;
 
     const geo = createHumanoidGeometry();
+    this.humanoidGeo = geo;
     // ВАЖНО: InstancedMesh перемножает material.color × instanceColor в шейдере.
     // Если базовый цвет не белый (например, cyan), любой инстанс, окрашенный в другой
     // цвет скина, получит искажённый (почти чёрный) результат. Поэтому базовый цвет —
@@ -198,6 +204,27 @@ export class CrowdManager {
     }
     // Строим/обновляем выделенную модель лидера по стилю скина (уникальная 3D-форма).
     this.buildLeaderModel(skin);
+
+    // Экзотический скин (не humanoid): вся толпа принимает его 3D-форму.
+    // Мержим геометрию модели скина в один BufferGeometry и подставляем в InstancedMesh.
+    // Кэш по style — переснаряжение не аллоцирует заново. Цвет уже красится instanceColor.
+    if (skin && skin.category !== 'humanoid') {
+      const style = skin.modelStyle || 'cyber';
+      let crowdGeo = this.crowdSkinGeometries.get(style);
+      if (!crowdGeo) {
+        const model = createSkinLeaderModel(style, skin.colorHex, skin.emissiveHex);
+        const geos: THREE.BufferGeometry[] = [];
+        model.traverse((o) => {
+          const m = o as THREE.Mesh;
+          if (m.geometry) geos.push(m.geometry);
+        });
+        crowdGeo = (geos.length ? mergeGeometries(geos) : null) ?? createHumanoidGeometry();
+        this.crowdSkinGeometries.set(style, crowdGeo);
+      }
+      this.instancedMesh.geometry = crowdGeo;
+    } else if (this.instancedMesh.geometry !== this.humanoidGeo) {
+      this.instancedMesh.geometry = this.humanoidGeo;
+    }
 
     this.leaderX = 0;
     this.leaderZ = startZ;
@@ -421,12 +448,21 @@ export class CrowdManager {
           mob.shieldHp = 1;
           mob.color = 0x10b981; // Emerald
         } else {
-          // Regular mob: equip skin color из снаряжённого скина игрока
-          mob.scale = 0.65;
+          // Regular mob: equip skin color из снаряжённого скина игрока.
+          // Лёгкая вариация размера/пропорций/цвета — толпа не должна быть клоном.
+          mob.scale = 0.65 * (0.92 + Math.random() * 0.16);
+          mob.heightScale = 0.9 + Math.random() * 0.2;
           mob.hp = 1;
           mob.maxHp = 1;
           mob.shieldHp = 0;
-          mob.color = this.currentSkinColor;
+          // Чуть-чуть варьируем цвет скина (осветление/затемнение), чтобы толпа
+          // выглядела живой, но сохраняла общий облик.
+          const c = new THREE.Color(this.currentSkinColor);
+          const hsl = { h: 0, s: 0, l: 0 };
+          c.getHSL(hsl);
+          hsl.l = Math.max(0.15, Math.min(0.9, hsl.l + (Math.random() - 0.5) * 0.12));
+          c.setHSL(hsl.h, hsl.s, hsl.l);
+          mob.color = c.getHex();
         }
 
         this.colorDummy.setHex(mob.color);
@@ -1035,6 +1071,8 @@ export class CrowdManager {
       // Лёгкий squash при приземлении (ZERO-alloc: dummy.scale переиспользуется)
       const sq = 1.0 - bounce * 0.12;
       const s = mob.scale * hyperScale;
+      // Пропорции: heightScale растягивает/сжимает по Y (вариация роста в толпе).
+      const h = (mob.heightScale ?? 1) * sq;
 
       // Лидер (слот #0) визуально представлен отдельной моделью скина.
       if (isLeaderSlot && this.leaderModel) {
@@ -1049,7 +1087,7 @@ export class CrowdManager {
         this.leaderModel.scale.set(s, s * sq, s);
       } else {
         this.dummy.rotation.set(lean, yaw, sway);
-        this.dummy.scale.set(s, s * sq, s);
+        this.dummy.scale.set(s, s * h, s);
         this.dummy.updateMatrix();
         this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
       }

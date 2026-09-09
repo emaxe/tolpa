@@ -466,6 +466,7 @@ export class LevelGenerator {
         'crusher',
         'axe_pendulum',
         'laser_grid',
+        'laser_wall',
         'barrier_gate',
         'bomb',
         'guard_dog',
@@ -481,6 +482,7 @@ export class LevelGenerator {
         'crusher',
         'spike_trap',
         'laser_grid',
+        'laser_wall',
         'wrecking_ball',
         'lava_pit',
         'barrier_gate',
@@ -511,6 +513,11 @@ export class LevelGenerator {
       obsWidth = 4.0;
       const side = rng() < 0.5 ? -1 : 1;
       x = side * (playableHalf - obsWidth / 2);
+      range = 0;
+    } else if (type === 'laser_wall') {
+      // Полноширинная лазерная стена: занимает почти всю дорожку, периодически включается.
+      obsWidth = trackWidth - 1.2;
+      x = 0;
       range = 0;
     } else if (type === 'wrecking_ball') {
       obsWidth = 2.4;

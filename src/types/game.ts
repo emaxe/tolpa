@@ -61,7 +61,8 @@ export type ObstacleType =
   | 'bomb'
   | 'guard_dog'
   | 'swinging_hammer'
-  | 'rolling_spike_ball';
+  | 'rolling_spike_ball'
+  | 'laser_wall';
 
 export interface ObstacleData {
   id: string;
@@ -148,6 +149,8 @@ export interface MobInstance {
   targetZ: number;
   alive: boolean;
   scale: number;
+  /** Вариация высоты (пропорции) — лёгкий разброс, чтобы толпа не была одинаковой. */
+  heightScale?: number;
   color: number;
   hp: number;
   maxHp: number;
