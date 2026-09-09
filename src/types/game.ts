@@ -109,8 +109,6 @@ export interface BossData {
   hp: number;
   modelType: 'iron_golem' | 'magma_colossus' | 'crystal_wyrm' | 'titan_nullifier' | 'apex_overlord';
   attacks: BossAttack[];
-  dialogueBefore?: DialogueLine[];
-  dialogueAfter?: DialogueLine[];
 }
 
 export interface LevelDynamicEvent {
@@ -176,19 +174,6 @@ export interface DialogueLine {
   avatar: string; // procedural / icon tag
   textKey: string;
   fallbackText: string;
-  soundCue?: string;
-}
-
-export interface UpgradeConfig {
-  id: string;
-  nameKey: string;
-  descKey: string;
-  level: number;
-  maxLevel: number;
-  baseCost: number;
-  costMultiplier: number;
-  currency: 'coins' | 'gems';
-  icon: string;
 }
 
 /** Стиль 3D-модели скина: определяет ФОРМУ/силуэт лидера (не только цвет). */
@@ -227,10 +212,6 @@ export interface PlayerSkin {
   category: SkinCategory;
   /** Метка бонусного скина: как получить (покупка | награда за уровень | награда за достижение). */
   reward?: 'shop' | 'level' | 'achievement';
-  /** Для reward='level' — номер уровня-босс, после которого скин открывается автоматически. */
-  rewardLevel?: number;
-  /** Для reward='achievement' — id достижения, дающего скин. */
-  rewardAchievement?: string;
 }
 
 export interface AchievementItem {

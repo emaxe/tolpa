@@ -165,7 +165,6 @@ export const INITIAL_SKINS: PlayerSkin[] = [
     currency: 'coins',
     unlocked: false,
     reward: 'level',
-    rewardLevel: 30,
   },
   {
     id: 'glitch_zombie',
@@ -180,7 +179,6 @@ export const INITIAL_SKINS: PlayerSkin[] = [
     currency: 'coins',
     unlocked: false,
     reward: 'achievement',
-    rewardAchievement: 'legion_150',
   },
   {
     id: 'cyber_duck',
