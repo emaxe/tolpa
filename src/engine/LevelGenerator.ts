@@ -586,6 +586,10 @@ export class LevelGenerator {
         type === 'axe_pendulum' ||
         type === 'wrecking_ball' ||
         type === 'guard_dog' ||
+        // Лазерная стена полноширинная и периодическая: бокового уклонения нет,
+        // проход зависит от фазы — единственный источник агентности игрока,
+        // таран (Круг≥8/Ромб≥10), танк или Hyper, как у остальных ловушек.
+        type === 'laser_wall' ||
         type === 'swinging_hammer',
     };
   }
