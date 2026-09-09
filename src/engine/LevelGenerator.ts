@@ -135,7 +135,6 @@ export class LevelGenerator {
     const events: LevelDynamicEvent[] = [];
 
     const startingMobs = 8;
-    const targetMobsToWin = getTargetMobsToWin(levelNum);
 
     // -------------------------------------------------------------
     // ЭТАП 3: НЕЗАВИСИМЫЕ ВОРОТА (add/divide) и СТЕНЫ (−N со счётчиком)
@@ -441,7 +440,6 @@ export class LevelGenerator {
       trackLength,
       trackWidth,
       startingMobs,
-      targetMobsToWin,
       gates,
       walls: rawWalls,
       bonuses,

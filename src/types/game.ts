@@ -124,7 +124,6 @@ export interface LevelConfig {
   trackLength: number;
   trackWidth: number;
   startingMobs: number;
-  targetMobsToWin: number;
   gates: GateData[];
   walls: WallData[];
   bonuses: BonusData[];
