@@ -76,7 +76,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
           </h2>
           <p className="text-xs text-slate-600 font-orbitron mt-1">
             {isEndless
-              ? `${endless?.distance?.toLocaleString() ?? 0} м`
+              ? `${endless?.distance?.toLocaleString() ?? 0} ${i18n.t('unitM')}`
               : isVictory
               ? `${i18n.t('levelCompleted')} (${levelNumber})`
               : i18n.t('crowdDepleted')}
@@ -135,7 +135,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
                 <Route className="w-4 h-4 text-teal-700" /> {i18n.t('endlessDistance')}
               </span>
               <span className="font-orbitron font-bold text-teal-700">
-                {endless?.distance?.toLocaleString() ?? 0} м
+                {endless?.distance?.toLocaleString() ?? 0} {i18n.t('unitM')}
               </span>
             </div>
           )}

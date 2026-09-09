@@ -355,7 +355,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
                       onClick={handleReset}
                       className="flex-1 py-1.5 bg-red-600 hover:bg-red-500 text-slate-900 font-orbitron font-bold text-xs rounded-lg cursor-pointer"
                     >
-                      ДА, СБРОСИТЬ
+                      {i18n.t('resetYes')}
                     </button>
                     <button
                       onClick={() => {
@@ -364,7 +364,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
                       }}
                       className="flex-1 py-1.5 bg-slate-200 text-slate-700 font-orbitron text-xs rounded-lg cursor-pointer"
                     >
-                      ОТМЕНА
+                      {i18n.t('resetNo')}
                     </button>
                   </div>
                 </div>

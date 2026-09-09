@@ -280,7 +280,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
 
       {/* Footer controls hint */}
       <div className="text-center text-xs text-slate-700 font-sans tracking-wide">
-        <span>Управление: Мышь/Свайпы для маневров • Клавиши 1-4 для смены формаций • ПРОБЕЛ для Гипер-режима</span>
+        <span>{i18n.t('controlsHint')}</span>
       </div>
     </div>
 

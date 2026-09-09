@@ -37,10 +37,10 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
               {i18n.t('loreArchSummary')}
             </p>
             <ul className="list-disc list-inside mt-2 text-xs text-slate-600 space-y-1 font-mono">
-              <li>InstancedMesh для толпы из 400+ юнитов с 1 draw call</li>
-              <li>Процедурный синтез Web Audio API (без внешних MP3/OGG)</li>
-              <li>ObjectPool для частиц и векторов без сборщика мусора (0-GC)</li>
-              <li>Сохранение состояния в localStorage с миграцией версий</li>
+              <li>{i18n.t('guideFeat1')}</li>
+              <li>{i18n.t('guideFeat2')}</li>
+              <li>{i18n.t('guideFeat3')}</li>
+              <li>{i18n.t('guideFeat4')}</li>
             </ul>
           </section>
 
@@ -52,27 +52,27 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
-                <strong className="text-teal-700 font-orbitron">1. Клин (Wedge) [Клавиша 1]:</strong>
+                <strong className="text-teal-700 font-orbitron">1. {i18n.t('formationWedge')} [{i18n.t('guideKeyWord')} 1]:</strong>
                 <p className="text-slate-600 mt-1">{i18n.t('wedgeDesc')}</p>
               </div>
               <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
-                <strong className="text-teal-700 font-orbitron">2. Шеренга (Wide Line) [Клавиша 2]:</strong>
+                <strong className="text-teal-700 font-orbitron">2. {i18n.t('formationWide')} [{i18n.t('guideKeyWord')} 2]:</strong>
                 <p className="text-slate-600 mt-1">{i18n.t('wideDesc')}</p>
               </div>
               <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
-                <strong className="text-teal-700 font-orbitron">3. Фаланга (Circle) [Клавиша 3]:</strong>
+                <strong className="text-teal-700 font-orbitron">3. {i18n.t('formationCircle')} [{i18n.t('guideKeyWord')} 3]:</strong>
                 <p className="text-slate-600 mt-1">{i18n.t('circleDesc')}</p>
               </div>
               <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
-                <strong className="text-teal-700 font-orbitron">4. Стрела (Arrow) [Клавиша 4]:</strong>
+                <strong className="text-teal-700 font-orbitron">4. {i18n.t('formationArrow')} [{i18n.t('guideKeyWord')} 4]:</strong>
                 <p className="text-slate-600 mt-1">{i18n.t('arrowDesc')}</p>
               </div>
               <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
-                <strong className="text-teal-700 font-orbitron">5. {i18n.t('formationOval')} [Клавиша 5]:</strong>
+                <strong className="text-teal-700 font-orbitron">5. {i18n.t('formationOval')} [{i18n.t('guideKeyWord')} 5]:</strong>
                 <p className="text-slate-600 mt-1">{i18n.t('ovalDesc')}</p>
               </div>
               <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
-                <strong className="text-teal-700 font-orbitron">6. {i18n.t('formationDiamond')} [Клавиша 6]:</strong>
+                <strong className="text-teal-700 font-orbitron">6. {i18n.t('formationDiamond')} [{i18n.t('guideKeyWord')} 6]:</strong>
                 <p className="text-slate-600 mt-1">{i18n.t('diamondDesc')}</p>
               </div>
             </div>

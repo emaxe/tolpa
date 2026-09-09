@@ -109,7 +109,7 @@ export const DialogueModal: React.FC<DialogueModalProps> = ({ dialogues, onCompl
               onClick={handleNext}
               className="px-5 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-zinc-950 font-orbitron font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-amber-500/30 transition-transform active:scale-95 cursor-pointer flex items-center gap-1.5"
             >
-              <span>{isTyping ? 'ДАЛЕЕ' : currentIndex + 1 < dialogues.length ? 'СЛЕДУЮЩИЙ' : 'В БОЙ'}</span>
+              <span>{isTyping ? i18n.t('dialogueSkip') : currentIndex + 1 < dialogues.length ? i18n.t('dialogueNext') : i18n.t('dialogueFight')}</span>
               <MessageSquare className="w-4 h-4" />
             </button>
           </div>

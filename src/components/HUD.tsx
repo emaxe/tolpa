@@ -511,7 +511,7 @@ export const HUD: React.FC<HUDProps> = ({
           {nextHazardDistance >= 0 && nextHazardDistance < 25 && (
             <span className="text-[10px] font-orbitron text-amber-400 flex items-center gap-1 animate-pulse">
               <TriangleAlert className="w-3 h-3" />
-              {Math.round(nextHazardDistance)} м
+              {Math.round(nextHazardDistance)} {i18n.t('unitM')}
             </span>
           )}
           {!bossInfo && bossDistance >= 0 && bossDistance > 35 && bossDistance <= 400 && (
@@ -530,7 +530,7 @@ export const HUD: React.FC<HUDProps> = ({
         <div className="absolute bottom-24 left-4 max-sm:hidden pointer-events-none flex items-center gap-3">
           <span className="text-[11px] font-orbitron text-teal-700 flex items-center gap-1">
             <Route className="w-3 h-3" />
-            {distanceTraveled.toLocaleString()} м
+            {distanceTraveled.toLocaleString()} {i18n.t('unitM')}
           </span>
           {stateManager.getState().endlessHighScore > 0 && (
             <span className="text-[10px] font-orbitron text-slate-600">
