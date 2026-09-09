@@ -957,6 +957,49 @@ export class SoundEngine {
         break;
       }
 
+      case 'rolling_approach': {
+        // Нарастающий грохот катящегося шипастого шара: низкий saw-гул +
+        // низкочастотный шум (перекат), короткая петля ~0.35с через таймер-троттлинг.
+        const dur = 0.34;
+        const osc = this.ctx.createOscillator();
+        const oscGain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(58 * pitchShift, t);
+        osc.frequency.linearRampToValueAtTime(44 * pitchShift, t + dur);
+        oscGain.gain.setValueAtTime(0.001, t);
+        oscGain.gain.linearRampToValueAtTime(0.22, t + 0.04);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        osc.connect(oscGain);
+        oscGain.connect(outGain);
+        osc.start(t);
+        osc.stop(t + dur);
+
+        const noiseBuffer = this.ctx.createBuffer(
+          1,
+          Math.floor(this.ctx.sampleRate * dur),
+          this.ctx.sampleRate
+        );
+        const noiseData = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < noiseData.length; i++) {
+          noiseData[i] = Math.random() * 2 - 1;
+        }
+        const noiseSrc = this.ctx.createBufferSource();
+        noiseSrc.buffer = noiseBuffer;
+        const noiseFilter = this.ctx.createBiquadFilter();
+        noiseFilter.type = 'lowpass';
+        noiseFilter.frequency.setValueAtTime(220 * pitchShift, t);
+        const noiseGain = this.ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.001, t);
+        noiseGain.gain.linearRampToValueAtTime(0.16, t + 0.05);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        noiseSrc.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(outGain);
+        noiseSrc.start(t);
+        noiseSrc.stop(t + dur);
+        break;
+      }
+
       case 'crowd_cheer': {
         // Радостный победный возглас толпы — одноразовый всплеск (в отличие от
         // непрерывного фонового playCrowdCheer). Два слоя:

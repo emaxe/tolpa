@@ -71,6 +71,9 @@ interface ObstacleVisual {
   // Накопитель убитых мобов между тиками фидбека (по аналогии с BossManager.hitDamageAccum).
   // Пока активен feedbackCooldown, потери суммируются сюда и эмитируются пачкой при истечении.
   hitAccum?: number;
+  // Троттлинг звука приближения катящегося шара (rolling_approach): обратный отсчёт
+  // в hot-path update(), чтобы грохот играл петлёй ~раз в 0.35с, а не каждый кадр.
+  rollSoundTimer?: number;
 }
 
 export class ObstacleManager {
@@ -717,6 +720,18 @@ export class ObstacleManager {
             ballSpike.rotation.x -= dt * 8;
           }
           this.setHazard(obsVis, obs.x, obs.z, 2.0, 2.0);
+          // Звук приближения: единственный снаряд, катящийся НА толпу, был нем —
+          // молот (hammer_impact) и пёс (dog_snap) имеют свой фидбек, шар нет.
+          // Грохот петлёй ~0.35с, громкость по proximityVolume (0 за 26м).
+          const dzBall = obs.z - crowd.leaderZ;
+          if (dzBall >= 0 && dzBall <= 18) {
+            obsVis.rollSoundTimer = (obsVis.rollSoundTimer ?? 0) - dt;
+            if (obsVis.rollSoundTimer <= 0) {
+              obsVis.rollSoundTimer = 0.35;
+              const vol = this.proximityVolume(obs.z, crowd.leaderZ);
+              if (vol > 0) soundEngine.playSound('rolling_approach', 1, vol);
+            }
+          }
           // Если шар укатился далеко позади толпы — убираем
           if (obs.z < crowd.leaderZ - 25) {
             obs.isDead = true;
