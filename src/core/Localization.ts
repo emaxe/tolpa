@@ -256,6 +256,11 @@ export const translations = {
     resetConfirm: 'Вы уверены? Весь прогресс, монеты и скины будут стёрты.',
     exportSave: 'Экспорт Сохранения',
     importSave: 'Импорт Сохранения',
+    // Сообщения управления сохранениями (были захардкожены кириллицей в SettingsModal)
+    exportCopied: 'Сохранение скопировано в буфер обмена!',
+    importOk: 'Сохранение успешно загружено!',
+    importBad: 'Ошибка: неверный формат данных сохранения.',
+    importPlaceholder: 'Вставьте код сохранения...',
 
     // Achievements
     achievTitle: 'ДОСТИЖЕНИЯ И НАГРАДЫ',
@@ -609,6 +614,10 @@ export const translations = {
     resetConfirm: 'Are you sure? All unlocked levels, skins and upgrades will be reset.',
     exportSave: 'Export Save',
     importSave: 'Import Save',
+    exportCopied: 'Save copied to clipboard!',
+    importOk: 'Save loaded successfully!',
+    importBad: 'Error: invalid save data format.',
+    importPlaceholder: 'Paste save code...',
 
     // Achievements
     achievTitle: 'ACHIEVEMENTS & BADGES',

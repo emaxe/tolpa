@@ -59,7 +59,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
     playTick();
     const b64 = stateManager.exportSave();
     navigator.clipboard.writeText(b64);
-    showImportMsg('Сохранение скопировано в буфер обмена!');
+    showImportMsg(i18n.t('exportCopied'));
   };
 
   const handleImport = () => {
@@ -68,10 +68,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
     const ok = stateManager.importSave(importStr.trim());
     if (ok) {
       setSettings(stateManager.getState().settings);
-      showImportMsg('Сохранение успешно загружено!');
+      showImportMsg(i18n.t('importOk'));
       if (onLanguageChanged) onLanguageChanged();
     } else {
-      showImportMsg('Ошибка: неверный формат данных сохранения.');
+      showImportMsg(i18n.t('importBad'));
     }
   };
 
@@ -313,7 +313,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
             <div className="flex gap-2">
               <input
                 type="text"
-                placeholder="Вставьте код сохранения..."
+                placeholder={i18n.t('importPlaceholder')}
                 value={importStr}
                 onChange={(e) => setImportStr(e.target.value)}
                 className="flex-1 bg-slate-100 border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-amber-500"
