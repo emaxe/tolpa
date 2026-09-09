@@ -956,6 +956,11 @@ export class ObstacleManager {
         // Катящийся шар — оранжево-металлические искры
         particles.emitBurst(x, y, z, 16, 0xf59e0b, 6.0, 1.0);
         break;
+      case 'laser_wall':
+        // Лазерная стена — цвет лучей (тот же меш, что laser_grid), но залп шире:
+        // мёртвая стена бьёт искрами по всей ширине трассы.
+        particles.emitBurst(x, y, z, 16, 0x22d3ee, 6.5, 3.4);
+        break;
       case 'barrier_gate':
       default:
         // Барьер — белые/желтоватые искры
