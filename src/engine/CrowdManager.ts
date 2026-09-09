@@ -35,7 +35,7 @@ export class CrowdManager {
   private aliveSnapshotValid = false;
   // Переиспользуемый буфер для групповых операций killMobsFromGroup/divideMobsByStep (0-GC).
   private groupScratch: MobInstance[] = [];
-  // Таймер шагов толпы — ритмичный топот при беге (dead sound 'footstep').
+  // Таймер шагов толпы — ритмичный топот при беге ('footstep' синтезирован в SoundEngine).
   private footstepTimer: number = 0;
   // Троттлинг визуально-звукового фидбека classAbility (ninja-dodge/tank-shield).
   // При массовой гибели толпы за один кадр (деление ворот, коллапс стен, АОЕ босса)
@@ -721,7 +721,7 @@ export class CrowdManager {
     // Счётчик: 1,2,...,N — когда счётчик достигает N, этот моб ВЫЖИВАЕТ (каждый N-й),
     // все остальные мобы убираются. Счётчик персистентен между кадрами (stepState).
     // retentionBonus [0,1): синергия формаций — шанс, что «приговорённый» моб всё же
-    // выживет (Клин -10% потерь, Ромб -15%). Делитель остаётся ЦЕЛЫМ — дробный
+    // выживет (Клин -10%, Ромб -15%, Фаланга -20%). Делитель остаётся ЦЕЛЫМ — дробный
     // divisor (val/0.9) целочисленный счётчик округлял ВВЕРХ, делая потери ХУЖЕ.
     for (let i = 0; i < group.length; i++) {
       const mob = group[i];
