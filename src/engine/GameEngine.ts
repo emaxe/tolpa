@@ -206,10 +206,10 @@ export class GameEngine {
   // Speed-trail particle accumulator (hyper mode / arrow formation)
   private trailAccum: number = 0;
   // Crowd size milestone — последний пройденный порог численности толпы (0 = ни один).
-  // Эмитит crowdMilestone при пересечении порогов 50…400 бойцов — ключевой момент в crowd evolution.
-  // Вехи после 200 празднуют кульминацию роста легиона в Endless (cap 400).
+  // Эмитит crowdMilestone при пересечении порогов 50…200 бойцов — ключевой момент в crowd evolution.
+  // Потолок толпы — 200 (см. new CrowdManager(scene, 200)), вехи выше недостижимы.
   private lastCrowdMilestone: number = 0;
-  private static readonly CROWD_MILESTONES = [50, 100, 150, 200, 250, 300, 350, 400];
+  private static readonly CROWD_MILESTONES = [50, 100, 150, 200];
   // Флаг «толпа не пробивает следующую финишную стену» — эмитим crowdLowWarning
   // ровно один раз при падении ниже стоимости стены, сбрасываем при восстановлении.
   private crowdLowWarned: boolean = false;

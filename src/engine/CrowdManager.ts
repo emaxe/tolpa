@@ -9,7 +9,7 @@ import { soundEngine } from '../audio/SoundEngine';
 export class CrowdManager {
   private scene: THREE.Scene;
   private instancedMesh: THREE.InstancedMesh;
-  private maxCapacity: number = 400;
+  private maxCapacity: number;
   private mobs: MobInstance[] = [];
   // Выделенная 3D-модель ЛИДЕРА (персонажа игрока) — меняет ФОРМУ по скину.
   // Толпа остаётся на базовой humanoid-геометрии (InstancedMesh, 1 draw call),
@@ -82,7 +82,7 @@ export class CrowdManager {
   // Физическая половина ширины трассы (trackWidth/2) — за этим краем бойцы падают.
   private trackHalfWidth: number = 8;
 
-  constructor(scene: THREE.Scene, maxMobs: number = 400) {
+  constructor(scene: THREE.Scene, maxMobs: number = 200) {
     this.scene = scene;
     this.maxCapacity = maxMobs;
 
@@ -562,7 +562,6 @@ export class CrowdManager {
     mob.deathT = 0;
     mob.deathRotX = (Math.random() - 0.5) * 2.2;
     mob.deathRotZ = (Math.random() - 0.5) * 2.2;
-    mob.deathScale = 1.0;
     // Сбрасываем падение с края, если моб успел улететь
     if (mob.falling) {
       mob.falling = false;

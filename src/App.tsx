@@ -65,7 +65,6 @@ export const App: React.FC = () => {
         {
           speaker: 'commander',
           speakerNameKey: 'speakerCommander',
-          avatar: 'commander',
           textKey: 'storyPrologue',
           fallbackText: 'Внимание! Сеть Цитадели захвачена дефектным ИИ Малакором. Соберите отряд кибер-легионеров, пройдите сквозь квантовые ворота и сокрушите барьеры врага!',
         },
@@ -76,7 +75,6 @@ export const App: React.FC = () => {
         {
           speaker: 'professor',
           speakerNameKey: 'speakerProfessor',
-          avatar: 'professor',
           textKey: 'storyBoss1Warning',
           fallbackText: 'Профессор Спарк: Впереди пробудился древний Меха-Голем! Направьте легион клином, чтобы пробить его защитную броню!',
         },
@@ -87,7 +85,6 @@ export const App: React.FC = () => {
         {
           speaker: 'echo',
           speakerNameKey: 'speakerEcho',
-          avatar: 'echo',
           textKey: 'storyBoss2Warning',
           fallbackText: 'Эхо: Датчики зашкаливают! Магма-Колосс извергает лаву. Используйте ловкость ниндзя и адреналиновый рывок!',
         },
@@ -98,7 +95,6 @@ export const App: React.FC = () => {
         {
           speaker: 'boss',
           speakerNameKey: 'speakerBoss',
-          avatar: 'boss',
           textKey: 'storyBoss5Final',
           fallbackText: 'Малакор: Жалкие органические формы жизни. Ваш легион растворится в квантовом ядре!',
         },
@@ -109,7 +105,6 @@ export const App: React.FC = () => {
         {
           speaker: 'professor',
           speakerNameKey: 'speakerProfessor',
-          avatar: 'professor',
           textKey: 'storyBoss3Warning',
           fallbackText: 'Профессор Спарк: Кристальный Змей Левиафан блокирует проход! Сдержите его хвост щитоносцами и прикройте снайперов из-за их спин!',
         },
@@ -120,7 +115,6 @@ export const App: React.FC = () => {
         {
           speaker: 'commander',
           speakerNameKey: 'speakerCommander',
-          avatar: 'commander',
           textKey: 'storyBoss4Warning',
           fallbackText: 'Командир: Титан-Аннигилятор Пустоты сканирует легион. Разделите отряд на два крыла и бейте по ядру, пока оно перезаряжается!',
         },

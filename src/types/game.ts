@@ -164,13 +164,11 @@ export interface MobInstance {
   deathT?: number;
   deathRotX?: number;
   deathRotZ?: number;
-  deathScale?: number;
 }
 
 export interface DialogueLine {
   speaker: 'commander' | 'professor' | 'echo' | 'boss';
   speakerNameKey: string;
-  avatar: string; // procedural / icon tag
   textKey: string;
   fallbackText: string;
 }
