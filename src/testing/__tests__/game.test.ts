@@ -5,7 +5,7 @@ import { LevelGenerator, DEFAULT_TRACK_WIDTH, getTargetMobsToWin, getStarsForFin
 import { StateManager } from '../../core/StateManager';
 import { ObjectPool, Poolable } from '../../core/ObjectPool';
 import { BossManager } from '../../engine/BossManager';
-import { calculateFormationOffset, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT } from '../../utils/math';
+import { calculateFormationOffset, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT, getMobFinishPower } from '../../utils/math';
 
 describe('Gate & Math Operations', () => {
   it('выполняет сложение мобов (+15 к 10 = 25)', () => {
@@ -1119,6 +1119,15 @@ describe('Finish Line & Multiplier Wall Perks', () => {
     expect(getFinishWallCost(0, 'wide')).toBe(0);
     expect(getFinishWallCost(-5, 'wide')).toBe(0);
     expect(getFinishWallCost(1, 'wide')).toBe(1);
+  });
+});
+
+describe('getMobFinishPower (кинетический вес при финишном прорыве)', () => {
+  it('Танк весит 2, остальные классы — 1', () => {
+    expect(getMobFinishPower('tank')).toBe(2);
+    expect(getMobFinishPower('regular')).toBe(1);
+    expect(getMobFinishPower('ninja')).toBe(1);
+    expect(getMobFinishPower('mage')).toBe(1);
   });
 });
 

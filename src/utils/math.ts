@@ -1,4 +1,4 @@
-import { FormationType } from '../types/game';
+import { FormationType, MobType } from '../types/game';
 
 export interface FormationOffset {
   x: number;
@@ -322,4 +322,13 @@ export function getFinishWallCost(baseCost: number, formation: FormationType = '
     return Math.max(1, Math.round(baseCost * WIDE_FINISH_DISCOUNT));
   }
   return baseCost;
+}
+
+/**
+ * Кинетический вес моба при прорыве финишной стены множителей: Танк — тяжёлый
+ * легионер, гасит 2 единицы стоимости жертвы (остальные классы — 1). Симметрия
+ * с computeWallImpact по ходу забега, где Танк бьёт стены втрое сильнее.
+ */
+export function getMobFinishPower(type: MobType): number {
+  return type === 'tank' ? 2 : 1;
 }

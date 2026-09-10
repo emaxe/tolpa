@@ -145,7 +145,8 @@ export class FinishLineManager {
     }
 
     if (this.hasCrossedFinish && !this.isCelebrating) {
-      const mobCount = crowd.getAliveCount();
+      // Проверка прорыва — по кинетической массе отряда (getFinishBreakingPower), а не
+      // по числу мобов: Танк весит 2 единицы.
 
       // Check step collisions
       if (this.finalStepIndex < this.wallSteps.length) {
@@ -154,10 +155,11 @@ export class FinishLineManager {
         if (crowdZ >= step.z - 1.0 && !step.smashed) {
           // Перк Шеренги (wide): прорыв широким фронтом — жертвует на 20% меньше.
           const effectiveCost = getFinishWallCost(step.costMobs, crowd.formation);
-          if (mobCount > effectiveCost) {
-            // Жертвуем легионеров на кинетический прорыв стены — толпа реально редеет.
+          if (crowd.getFinishBreakingPower() > effectiveCost) {
+            // Жертвуем легионеров на кинетический прорыв стены (Танк = вес ×2) — толпа реально редеет.
             // Строгое условие > гарантирует, что после жертвы останется минимум 1 живой.
-            const sacrificed = crowd.consumeMobs(effectiveCost);
+            const finish = crowd.consumeMobsForFinish(effectiveCost);
+            const sacrificed = finish.sacrificed;
             this.sacrificedTotal += sacrificed;
 
             // Smash wall!
@@ -175,6 +177,7 @@ export class FinishLineManager {
               x: 0,
               z: step.z,
               perk: crowd.formation === 'wide' ? 'wide_finish' : null,
+              tankBonus: finish.tankBonusUsed,
             });
 
             // Красная вспышка урона + плавающий текст потерь при жертве.

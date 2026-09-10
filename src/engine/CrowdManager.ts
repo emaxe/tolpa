@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { MobInstance, MobType, FormationType, PlayerSkin } from '../types/game';
-import { calculateFormationOffset, getFormationScale, FormationOffset, clamp, lerp, TRACK_RAIL_MARGIN } from '../utils/math';
+import { calculateFormationOffset, getFormationScale, FormationOffset, clamp, lerp, TRACK_RAIL_MARGIN, getMobFinishPower } from '../utils/math';
 import { createHumanoidGeometry, createSkinLeaderModel } from '../utils/proceduralMeshes';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { stateManager, INITIAL_SKINS } from '../core/StateManager';
@@ -586,6 +586,50 @@ export class CrowdManager {
       killed++;
     }
     return killed;
+  }
+
+  /** Суммарная кинетическая масса прорыва живого отряда (Танк = 2). 0-GC, для финишной стены. */
+  public getFinishBreakingPower(): number {
+    const alive = this.getAliveMobs();
+    let power = 0;
+    for (let i = 0; i < alive.length; i++) power += getMobFinishPower(alive[i].type);
+    return power;
+  }
+
+  /**
+   * Прорыв финишной стены с учётом кинетического веса: списывает мобов (сорт по z
+   * DESC, как consumeMobs), пока суммарный поглощённый вес >= requiredCost.
+   * Танк гасит 2 единицы — гибнет, но экономит лёгкого легионера.
+   * Возвращает число жертв и флаг, что Танк реально сэкономил моба.
+   */
+  public consumeMobsForFinish(requiredCost: number): { sacrificed: number; tankBonusUsed: boolean } {
+    if (requiredCost <= 0) return { sacrificed: 0, tankBonusUsed: false };
+    let absorbed = 0;
+    let killed = 0;
+    let tanksKilled = 0;
+    const alive = this.getAliveMobs();
+    // НЕ мутируем разделяемый кэш-буфер aliveSnapshot — копируем в groupScratch (0-GC).
+    this.groupScratch.length = 0;
+    for (let i = 0; i < alive.length; i++) this.groupScratch.push(alive[i]);
+    this.groupScratch.sort(CrowdManager.SORT_BY_Z_DESC);
+    for (const mob of this.groupScratch) {
+      if (absorbed >= requiredCost) break;
+      // Гварда минимума одного живого (как строгое > в вызывающей проверке): последнего
+      // моба не списываем никогда — иначе Танк с весом 2 мог бы выжрать всю толпу.
+      if (killed >= this.groupScratch.length - 1) break;
+      mob.alive = false;
+      this.aliveCount--;
+      this.invalidateAliveSnapshot();
+      mob.y = -100;
+      this.dummy.position.set(0, -100, 0);
+      this.dummy.updateMatrix();
+      this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
+      absorbed += getMobFinishPower(mob.type);
+      if (mob.type === 'tank') tanksKilled++;
+      killed++;
+    }
+    // Бонус засчитан, только если тяжёлые жертвы реально сократили потери отряда.
+    return { sacrificed: killed, tankBonusUsed: tanksKilled > 0 && killed < requiredCost };
   }
 
   /** Убивает конкретного моба по id, игнорируя броню/уклонение/гипер-режим. Возвращает true, если убит. */

@@ -452,7 +452,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
     // Финишная дорожка множителей: всплывающий яркий 3D-множитель при пробитии стены
     const unsubFinishStep = eventBus.on(
       'finishStepSmashed',
-      (data: { multiplier?: number; x?: number; z?: number; perk?: string | null }) => {
+      (data: { multiplier?: number; x?: number; z?: number; perk?: string | null; tankBonus?: boolean }) => {
         if (!data || typeof data.multiplier !== 'number') return;
         const mult = data.multiplier;
         const isMax = mult >= 10;
@@ -471,6 +471,16 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
             (data.z ?? 0) - 1.0,
             i18n.t('perkWideFinish', 'ШЕРЕНГА: -20% ЖЕРТВ'),
             'text-teal-300 font-bold drop-shadow-[0_0_8px_rgba(45,212,191,0.8)]'
+          );
+        }
+
+        // Золотой тост: Танк сэкономил легионеров кинетическим весом при прорыве
+        if (data.tankBonus === true) {
+          spawn(
+            (data.x ?? 0) + 0.6,
+            (data.z ?? 0) - 1.6,
+            i18n.t('perkTankFinish', 'ТАНК: ПРОБОЙ ×2'),
+            'text-amber-300 font-bold drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]'
           );
         }
       }
