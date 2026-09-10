@@ -884,6 +884,8 @@ export class GameEngine {
         this.particles.emitBurst(x, 1.0, z, 14, data.formation === 'wedge' ? 0xa855f7 : 0x94a3b8, 3.5);
         soundEngine.playSound('hammer_impact', 1.45);
         this.triggerHaptic(15);
+        // Накопление lifetime-статистики спасённых броней строя (ачивка «Щит Легиона»).
+        stateManager.runAddMobsSaved(data.saved ?? 0);
       }
     );
 
@@ -2392,7 +2394,7 @@ export class GameEngine {
       coins: 0, mobsSpawned: 0, gatesPassed: 0, obstaclesSmashed: 0,
       bossesDefeated: 0, bossCoins: 0, bossGems: 0, maxCombo: 0, maxCrowd: 0,
       distance: 0, recordBeaten: false, nearMisses: 0, nearMissStreak: 0, maxNearMissStreak: 0,
-      coinChainApexes: 0,
+      coinChainApexes: 0, mobsSavedByFormation: 0,
     };
     // Откатываем активные эффекты событий (ЭМИ-шторм, множители скорости), чтобы они
     // не протекли в следующий забег.

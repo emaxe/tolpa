@@ -42,6 +42,7 @@ export const INITIAL_STATS: GameStats = {
   totalNearMisses: 0, // Начальное значение счётчика уворотов в упор
   maxNearMissStreak: 0, // Максимальная серия уворотов в упор (для достижений)
   coinChainApexes: 0, // Апексы серий из 12 монет (для достижений)
+  totalMobsSavedByFormation: 0, // Спасённые броней формаций бойцы (для достижений)
   gamesPlayed: 0,
   levelsCompleted: 0,
 };
@@ -484,6 +485,18 @@ export const INITIAL_ACHIEVEMENTS: AchievementItem[] = [
     category: 'economy',
   },
   {
+    id: 'shield_wall',
+    titleKey: 'achShieldWall',
+    descKey: 'achShieldWallDesc',
+    icon: 'ShieldAlert',
+    progress: 0,
+    goal: 100,
+    rewardCoins: 1500,
+    rewardGems: 20,
+    claimed: false,
+    category: 'combat',
+  },
+  {
     id: 'veteran_25',
     titleKey: 'achVeteran25',
     descKey: 'achVeteran25Desc',
@@ -567,6 +580,8 @@ export interface RunStats {
   maxNearMissStreak: number;
   /** Число апексов серии из 12 монет за текущий забег. */
   coinChainApexes: number;
+  /** Сколько бойцов за текущий забег спасла броня формаций. */
+  mobsSavedByFormation: number;
 }
 
 function createEmptyRun(): RunStats {
@@ -586,6 +601,7 @@ function createEmptyRun(): RunStats {
     nearMissStreak: 0,
     maxNearMissStreak: 0,
     coinChainApexes: 0,
+    mobsSavedByFormation: 0,
   };
 }
 
@@ -730,6 +746,14 @@ export class StateManager {
   }
 
   /**
+   * Фиксирует бойцов, спасённых броней формаций (Щит Клина / Броня Ромба).
+   * В lifetime-статистику и достижения попадает пакетом в commitRun().
+   */
+  public runAddMobsSaved(n: number): void {
+    if (this.run && n > 0) this.run.mobsSavedByFormation += n;
+  }
+
+  /**
    * Фиксирует успешный уворот в упор: инкрементирует общий счётчик, наращивает
    * текущую серию, обновляет рекорд maxNearMissStreak и возвращает множитель награды.
    * Без notify() — серия накапливается в RunStats и попадает в сейв только в commitRun().
@@ -806,6 +830,7 @@ export class StateManager {
     this.state.stats.totalBossesDefeated += r.bossesDefeated;
     this.state.stats.totalNearMisses += r.nearMisses;
     this.state.stats.coinChainApexes += r.coinChainApexes;
+    this.state.stats.totalMobsSavedByFormation += r.mobsSavedByFormation;
     if (r.maxNearMissStreak > this.state.stats.maxNearMissStreak) this.state.stats.maxNearMissStreak = r.maxNearMissStreak;
     if (r.maxCombo > this.state.stats.highestCombo) this.state.stats.highestCombo = r.maxCombo;
     if (r.maxCrowd > this.state.stats.maxCrowdReached) this.state.stats.maxCrowdReached = r.maxCrowd;
@@ -831,6 +856,8 @@ export class StateManager {
     // Достижения апексов серии из 12 монет — по lifetime-числу завершённых серий.
     this.updateAchievementProgressSilent('coin_chain_3', this.state.stats.coinChainApexes);
     this.updateAchievementProgressSilent('coin_chain_25', this.state.stats.coinChainApexes);
+    // Броня формаций спасла N бойцов за всё время — «Щит Легиона».
+    this.updateAchievementProgressSilent('shield_wall', this.state.stats.totalMobsSavedByFormation);
     // Достижения легиона в Бесконечном режиме: completeLevel() не вызывается в эндлессе,
     // поэтому прогресс legion_50/150 привязываем к lifetime-максимуму толпы.
     this.updateAchievementProgressSilent('legion_50', this.state.stats.maxCrowdReached);
@@ -1139,6 +1166,7 @@ export class StateManager {
     this.updateAchievementProgressSilent('near_miss_streak_10', this.state.stats.maxNearMissStreak);
     this.updateAchievementProgressSilent('coin_chain_3', this.state.stats.coinChainApexes);
     this.updateAchievementProgressSilent('coin_chain_25', this.state.stats.coinChainApexes);
+    this.updateAchievementProgressSilent('shield_wall', this.state.stats.totalMobsSavedByFormation);
     this.updateAchievementProgressSilent('legion_50', this.state.stats.maxCrowdReached);
     this.updateAchievementProgressSilent('legion_150', this.state.stats.maxCrowdReached);
     this.updateAchievementProgressSilent('games_played', this.state.stats.gamesPlayed);

@@ -245,6 +245,8 @@ export interface GameStats {
   maxNearMissStreak: number;
   /** Число доведённых до апекса серий из 12 монет за всё время (для достижений). */
   coinChainApexes: number;
+  /** Сколько бойцов за всё время спасла броня формаций (для достижений). */
+  totalMobsSavedByFormation: number;
   gamesPlayed: number;
   levelsCompleted: number;
 }
