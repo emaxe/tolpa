@@ -186,7 +186,9 @@ export class WallManager {
         if (impact.damageDealt <= 0) continue;  // инвул/гипер/мёртвый
         totalDamage += impact.damageDealt;
         if (impact.killed) killedCount++;
-        wall.killsRemaining -= impact.damageDealt;
+        // Инвариант счётчика: всегда >= 0 (перерасход урона батча не должен
+        // ронять killsRemaining в минус — тест walls ждёт >= 1 на старте).
+        wall.killsRemaining = Math.max(0, wall.killsRemaining - impact.damageDealt);
         if (wall.killsRemaining <= 0) break;    // стена сокрушена — остальные мобы проходят без урона
       }
       if (totalDamage > 0) {

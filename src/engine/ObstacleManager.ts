@@ -1469,6 +1469,13 @@ export class ObstacleManager {
       const obsVis = this.obstacles[i];
       const obs = obsVis.data;
       if (obs.isDead || obs.z < threshold) {
+        // Флеш смертей, не успевших выйти в окне кулдауна фидбека: за границей
+        // зоны коллизий (dz < -25) ветка сброса hitAccum в update() больше не
+        // выполняется, и без этого эмита накопленные "-N" терялись бы молча.
+        if ((obsVis.hitAccum ?? 0) > 0) {
+          eventBus.emit('mobsKilled', { count: obsVis.hitAccum, reason: obs.type, x: obsVis.hazardX, z: obsVis.hazardZ });
+          obsVis.hitAccum = 0;
+        }
         if (!obs.isDead) {
           this.scene.remove(obsVis.mesh);
         }
