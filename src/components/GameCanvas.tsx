@@ -22,6 +22,7 @@ const EMPTY_SNAPSHOT: HudSnapshot = {
   crowd: 1,
   coins: 0,
   isHyper: false,
+  hyperTimeLeft: 0,
   adrenalineCharge: 0,
   progress: 0,
   metersLeft: -1,
@@ -156,6 +157,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         currentFormation={formation}
         onActivateAdrenaline={handleActivateAdrenaline}
         isHyperActive={hud.isHyper}
+        hyperTimeLeft={hud.hyperTimeLeft}
         comboStreak={combo}
         comboFactor={comboFactor}
         adrenalineCharge={hud.adrenalineCharge}

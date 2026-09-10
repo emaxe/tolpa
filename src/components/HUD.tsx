@@ -16,6 +16,7 @@ interface HUDProps {
   currentFormation: FormationType;
   onActivateAdrenaline: () => void;
   isHyperActive: boolean;
+  hyperTimeLeft: number; // Секунды до конца ярости (обратный отсчёт на кнопке)
   comboStreak: number;
   comboFactor: number; // Множитель бонуса толпы за серию позитивных ворот (1.0..1.8)
   // Снимок состояния движка — раньше адреналин заряжался собственным таймером HUD
@@ -62,6 +63,7 @@ export const HUD: React.FC<HUDProps> = ({
   currentFormation,
   onActivateAdrenaline,
   isHyperActive,
+  hyperTimeLeft,
   comboStreak,
   comboFactor = 1.0,
   adrenalineCharge,
@@ -594,7 +596,7 @@ export const HUD: React.FC<HUDProps> = ({
               <Zap className={`w-5 h-5 ${isHyperActive || adrenalineCharge >= 100 ? 'fill-zinc-950' : 'fill-amber-400'}`} />
               <span>
                 {isHyperActive
-                  ? i18n.t('hyperActive')
+                  ? `${i18n.t('hyperActive')} · ${Math.max(0, hyperTimeLeft).toFixed(1)}s`
                   : adrenalineCharge >= 100
                   ? i18n.t('hyperModeReady')
                   : `${i18n.t('adrenaline')} (${Math.round(adrenalineCharge)}%)`}

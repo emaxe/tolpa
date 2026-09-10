@@ -22,6 +22,7 @@ export interface HudSnapshot {
   crowd: number;
   coins: number; // Собранные за текущий забег монеты (трасса + боссы), сырое значение
   isHyper: boolean;
+  hyperTimeLeft: number; // Секунды до конца ярости (0 вне гипер-режима)
   adrenalineCharge: number; // 0..100
   progress: number; // 0..1 дистанции до финиша
   metersLeft: number;
@@ -3374,6 +3375,9 @@ export class GameEngine {
       crowd: this.crowd.getAliveCount(),
       coins: stateManager.getRunCoins(),
       isHyper: this.crowd.isHyperMode,
+      // Остаток ярости для HUD: раньше гипер-режим был без таймера — игрок не
+      // знал, сколько секунд ещё неуязвим (решение «таранить или переждать»).
+      hyperTimeLeft: this.crowd.isHyperMode ? this.crowd.hyperTimer : 0,
       adrenalineCharge: this.adrenalineCharge,
       progress: this.isEndless ? 0 : clamp(this.crowd.leaderZ / len, 0, 1),
       metersLeft: this.isEndless ? -1 : Math.max(0, Math.round(len - this.crowd.leaderZ)),
