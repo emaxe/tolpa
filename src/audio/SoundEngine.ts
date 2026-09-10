@@ -122,6 +122,18 @@ export class SoundEngine {
   }
 
   public playSound(effect: SoundEffect, pitchShift: number = 1.0, volume: number = 1.0): void {
+    // UI-гаптика: ВСЕ клики по кнопкам (~40 мест) проходят через единую точку — одна
+    // вибрация покрывает весь интерфейс. До проверки ctx/isMuted: виброотклик не должен
+    // зависеть от звука. Уважает настройку enableHaptics; no-op на desktop/iOS (feature
+    // detection), как GameEngine.triggerHaptic.
+    if (
+      effect === 'button_click' &&
+      stateManager.getState().settings.enableHaptics &&
+      typeof navigator !== 'undefined' &&
+      typeof navigator.vibrate === 'function'
+    ) {
+      try { navigator.vibrate(12); } catch { /* no-op */ }
+    }
     if (!this.ctx || this.isMuted) return;
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
