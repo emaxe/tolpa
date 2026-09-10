@@ -39,7 +39,10 @@ export interface HudSnapshot {
   isFinishActive: boolean;
   // Стоимость следующей финишной стены в легионерах (-1 если финиш не активен или все стены пробиты).
   finishNextWallCost: number;
-  // Хватает ли текущей толпы, чтобы пробить следующую стену (crowd > cost).
+  // Суммарная кинетическая масса прорыва (Танк = вес 2) — тот же числитель, что в
+  // фактическом решении FinishLineManager (паритет превью HUD и реального прорыва).
+  finishBreakingPower: number;
+  // Хватает ли текущей толпы, чтобы пробить следующую стену (finishBreakingPower > cost).
   finishNextWallAffordable: boolean;
   // Серия уворотов в упор (Near-Miss Streak) — текущая длина и множитель награды.
   nearMissStreak: number;
@@ -3396,9 +3399,11 @@ export class GameEngine {
       finishStepsTotal: this.finishLine.getFinishStepsTotal(),
       isFinishActive: this.finishLine.hasCrossedFinish,
       finishNextWallCost: this.finishLine.getNextWallCost(this.crowd.formation),
+      finishBreakingPower: this.crowd.getFinishBreakingPower(),
       finishNextWallAffordable: (() => {
         const cost = this.finishLine.getNextWallCost(this.crowd.formation);
-        return cost >= 0 && this.crowd.getAliveCount() > cost;
+        // Паритет с решением FinishLineManager: прорыв по кинетической массе (Танк = 2), строгое >.
+        return cost >= 0 && this.crowd.getFinishBreakingPower() > cost;
       })(),
       nearMissStreak: this.obstacles.getNearMissStreak(),
       nearMissMultiplier: getNearMissMultiplier(this.obstacles.getNearMissStreak()),

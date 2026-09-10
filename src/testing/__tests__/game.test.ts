@@ -5,6 +5,7 @@ import { LevelGenerator, DEFAULT_TRACK_WIDTH, getTargetMobsToWin, getStarsForFin
 import { StateManager } from '../../core/StateManager';
 import { ObjectPool, Poolable } from '../../core/ObjectPool';
 import { BossManager } from '../../engine/BossManager';
+import { CrowdManager } from '../../engine/CrowdManager';
 import { calculateFormationOffset, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT, getMobFinishPower, getMobBossPower } from '../../utils/math';
 
 describe('Gate & Math Operations', () => {
@@ -1184,3 +1185,17 @@ describe('Phase-aware getNextHazardDistance (предикция фазы на м
   });
 });
 
+
+// Паритет превью стены в HUD: решение FinishLineManager и числитель плашки —
+// по кинетической массе прорыва (Танк = 2), а не по сырому числу голов.
+describe('getFinishBreakingPower — числитель паритетного превью стены', () => {
+  it('масса больше числа голов при наличии танков', () => {
+    const c = new CrowdManager(new THREE.Scene());
+    c.spawnMob('tank');
+    c.spawnMob('regular');
+    c.spawnMob('regular');
+    expect(c.getAliveCount()).toBe(3);
+    // 3 головы, масса 4: стена с cost=3 пробивается, хотя голов "не больше" стоимости.
+    expect(c.getFinishBreakingPower()).toBe(4);
+  });
+});

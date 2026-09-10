@@ -37,7 +37,9 @@ interface HUDProps {
   isFinishActive: boolean;
   // Стоимость следующей финишной стены в легионерах (-1 если финиш не активен или все стены пробиты).
   finishNextWallCost?: number;
-  // Хватает ли текущей толпы, чтобы пробить следующую стену (crowd > cost).
+  // Суммарная кинетическая масса прорыва (Танк = 2) — числитель паритетного решения стены.
+  finishBreakingPower?: number;
+  // Хватает ли текущей толпы, чтобы пробить следующую стену (finishBreakingPower > cost).
   finishNextWallAffordable?: boolean;
   // Серия уворотов в упор (Near-Miss Streak) — текущая длина и множитель награды.
   nearMissStreak: number;
@@ -80,6 +82,7 @@ export const HUD: React.FC<HUDProps> = ({
   finishStepsTotal,
   isFinishActive,
   finishNextWallCost = -1,
+  finishBreakingPower = -1,
   finishNextWallAffordable = false,
   nearMissStreak,
   nearMissMultiplier,
@@ -477,7 +480,7 @@ export const HUD: React.FC<HUDProps> = ({
               }`}
             >
               {i18n.t('nextWall')}: −{finishNextWallCost} · {i18n.t('finishCrowd')}{' '}
-              {crowdCount}/{finishNextWallCost}
+              {finishBreakingPower}/{finishNextWallCost}
             </div>
           )}
         </div>
