@@ -490,6 +490,7 @@ export class LevelGenerator {
         'guard_dog',
         'swinging_hammer',
         'rolling_spike_ball',
+        'hunter',
       ];
       return pool[Math.floor(rng() * pool.length)];
     }

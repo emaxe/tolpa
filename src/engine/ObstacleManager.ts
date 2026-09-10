@@ -13,6 +13,7 @@ import {
   createGuardDogMesh,
   createSwingingHammerMesh,
   createRollingSpikeBallMesh,
+  createHunterMesh,
 } from '../utils/proceduralMeshes';
 import { CrowdManager } from './CrowdManager';
 import { ParticleSystem } from './ParticleSystem';
@@ -76,6 +77,11 @@ interface ObstacleVisual {
   dogAnimPhase?: number; // фаза анимации шага/хвоста
   dogFacing?: number; // куда повёрнута собака (радианы, мировой Y)
   dogLungeT?: number; // прогресс броска при атаке (0..1), -1 когда не атакует
+  // Охотник (hunter): фаза преследователя с тыла. sleep = стоит на трассе как
+  // обычное препятствие (летален), wake = толпа прошла, встаёт (~2.5с, не летален),
+  // chase = догоняет сзади. hunterTimer — обратный отсчёт текущей фазы/рычания.
+  hunterState?: 'sleep' | 'wake' | 'chase';
+  hunterTimer?: number;
   // One-shot флаг удара гидравлического молота (звук hammer_impact играет один раз
   // за проход бойка через нижнюю точку, а не каждый кадр).
   hammerImpacted?: boolean;
@@ -271,6 +277,9 @@ export class ObstacleManager {
         break;
       case 'rolling_spike_ball':
         mesh = createRollingSpikeBallMesh();
+        break;
+      case 'hunter':
+        mesh = createHunterMesh();
         break;
       default:
         mesh = createSawBladeMesh();
@@ -612,7 +621,15 @@ export class ObstacleManager {
       // staticHazard-ловушки (spike_trap/lava_pit/laser_grid) не требуют анимации,
       // но им нужна актуальная позиция после свипа — их пропускаем аналогично.
       const animDz = obs.z - crowd.leaderZ;
-      if (animDz > ObstacleManager.OBSTACLE_ANIM_CULL_AHEAD || animDz < -ObstacleManager.OBSTACLE_ANIM_CULL_BACK) continue;
+      // Активный охотник в погоне не куллится по back-границе: иначе замороженный
+      // в 30м позади преследователь никогда не догонит и будет съеден prune() на 40м.
+      const hunterChasing = obs.type === 'hunter' && obsVis.hunterState === 'chase';
+      if (
+        !hunterChasing &&
+        (animDz > ObstacleManager.OBSTACLE_ANIM_CULL_AHEAD ||
+          animDz < -ObstacleManager.OBSTACLE_ANIM_CULL_BACK)
+      )
+        continue;
 
       // Обратный отсчёт rate-limit эмита feedback (screenShake/звук) при контакте.
       if (obsVis.feedbackCooldown && obsVis.feedbackCooldown > 0) {
@@ -791,6 +808,46 @@ export class ObstacleManager {
             this.scene.remove(obsVis.mesh);
           }
           break;
+
+        case 'hunter': {
+          // Охотник: до толпы стоит на трассе как обычное препятствие ('sleep',
+          // летален). Толпа прошла -> 'wake' ~2.5с (рык, присед-подготовка, НЕ
+          // летален — честное окно реакции на звук) -> 'chase': догоняет сзади на
+          // 1.25x forwardSpeed, целясь по X лидера. Отставшего за 40м убирает prune().
+          this.setHazard(obsVis, obs.x, obs.z, obs.width, 2.2);
+          if (obsVis.hunterState === 'chase') {
+            obs.z += dt * (crowd.forwardSpeed * 1.25);
+            const halfH = DEFAULT_TRACK_WIDTH / 2 - 1.0;
+            obs.x = clamp(
+              lerp(obs.x, crowd.leaderX, Math.min(1, dt * 2.2)),
+              -halfH,
+              +halfH
+            );
+            obsVis.mesh.position.set(obs.x, 0.5 + Math.abs(Math.sin(t * 9)) * 0.14, obs.z);
+            // Рычащая петля погони ~0.9с, громкость по дистанции (за 26м — тишина).
+            obsVis.hunterTimer = (obsVis.hunterTimer ?? 0) - dt;
+            const dzH = obs.z - crowd.leaderZ;
+            if (dzH >= -16 && dzH <= -1 && (obsVis.hunterTimer ?? 0) <= 0) {
+              obsVis.hunterTimer = 0.9;
+              const volH = this.proximityVolume(obs.z, crowd.leaderZ);
+              if (volH > 0) soundEngine.playSound('dog_snap', 0.8, volH);
+            }
+          } else if (obsVis.hunterState === 'wake') {
+            obsVis.hunterTimer = (obsVis.hunterTimer ?? 0) - dt;
+            // Дрожь «встаёт» — читается даже боковым зрением при проходе.
+            obsVis.mesh.position.y = 0.5 + Math.abs(Math.sin(t * 14)) * 0.18;
+            if ((obsVis.hunterTimer ?? 0) <= 0) obsVis.hunterState = 'chase';
+          } else {
+            // 'sleep' (undefined): статичен на трассе.
+            if (crowd.leaderZ > obs.z + 2.5) {
+              obsVis.hunterState = 'wake';
+              obsVis.hunterTimer = 2.5;
+              const volW = this.proximityVolume(obs.z, crowd.leaderZ);
+              if (volW > 0) soundEngine.playSound('boss_roar', 0.7, volW);
+            }
+          }
+          break;
+        }
       }
 
       // Ранний выход: препятствия далеко от толпы не проверяем на коллизии (CPU hot-path).
@@ -938,6 +995,10 @@ export class ObstacleManager {
         return !obsVis.exploded;
       case 'guard_dog':
         return true;
+      case 'hunter':
+        // Окно 'wake' (встаёт после прохода толпы) — единственная неубивающая
+        // фаза: sleep стоит на трассе, chase догоняет сзади.
+        return obsVis.hunterState !== 'wake';
       case 'swinging_hammer':
         // Молот опасен в нижней точке траектории удара по настилу
         const hammerPivot = obsVis.mesh.children[4] as THREE.Group;

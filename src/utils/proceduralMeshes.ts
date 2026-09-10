@@ -2046,3 +2046,65 @@ function bananaCylinder(rt: number, height: number, seg: number, bend: number): 
 function createHumanoidGeo(): THREE.BufferGeometry {
   return createHumanoidGeometry();
 }
+
+/**
+ * Охотник — crimson-механический пёс, преследующий толпу с тыла.
+ * Собирается лицом в +Z (в догоняемом направлении): игрок видит его спину,
+ * когда тот только просыпается, и приближающуюся морду на миникарте/камере
+ * сзади. Статичная сборка — вся анимация (подпрыгивание/дрожь) двигает группу
+ * целиком в ObstacleManager, иерархия не мутируется.
+ */
+export function createHunterMesh(): THREE.Group {
+  const group = new THREE.Group();
+
+  const bodyMat = new THREE.MeshStandardMaterial({
+    color: 0x7f1d1d,
+    metalness: 0.75,
+    roughness: 0.35,
+    emissive: 0xdc2626,
+    emissiveIntensity: 0.3,
+  });
+  const darkMat = new THREE.MeshStandardMaterial({
+    color: 0x1c1917,
+    metalness: 0.8,
+    roughness: 0.3,
+  });
+
+  // Торс
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.55, 1.3), bodyMat);
+  body.position.y = 0.62;
+  group.add(body);
+
+  // Голова на +Z (направление погони)
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.4, 0.5), darkMat);
+  head.position.set(0, 0.82, 0.8);
+  group.add(head);
+
+  // Светящиеся глаза — читаются в тумане/темноте biome
+  const eyeMat = new THREE.MeshBasicMaterial({ color: 0xf87171 });
+  const eyeGeo = new THREE.BoxGeometry(0.09, 0.06, 0.05);
+  const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+  eyeL.position.set(-0.13, 0.88, 1.06);
+  group.add(eyeL);
+  const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+  eyeR.position.set(0.13, 0.88, 1.06);
+  group.add(eyeR);
+
+  // Четыре лапы (бег читается bob-анимацией группы, не шарнирами)
+  const legGeo = new THREE.BoxGeometry(0.16, 0.5, 0.16);
+  for (let li = 0; li < 4; li++) {
+    const leg = new THREE.Mesh(legGeo, darkMat);
+    leg.position.set(li % 2 === 0 ? -0.24 : 0.24, 0.25, li < 2 ? 0.45 : -0.45);
+    group.add(leg);
+  }
+
+  // Гребень шипов по хребту — силуэт читается «враждебным» издалека
+  const spikeGeo = new THREE.ConeGeometry(0.09, 0.32, 4);
+  for (let si = 0; si < 3; si++) {
+    const spike = new THREE.Mesh(spikeGeo, bodyMat);
+    spike.position.set(0, 1.02, 0.4 - si * 0.42);
+    group.add(spike);
+  }
+
+  return group;
+}

@@ -62,7 +62,8 @@ export type ObstacleType =
   | 'guard_dog'
   | 'swinging_hammer'
   | 'rolling_spike_ball'
-  | 'laser_wall';
+  | 'laser_wall'
+  | 'hunter';
 
 export interface ObstacleData {
   id: string;
