@@ -86,6 +86,10 @@ interface ObstacleVisual {
   // ловушке без касания + последняя Z-позиция лидера для детекта пересечения плоскости.
   nearMissAwarded?: boolean;
   lastLeaderZ?: number;
+  // Минимальный зазор лидера до головы бойка (swinging_hammer) за текущий проход
+  // зоны его качания: near-miss-сэмплер, т.к. хитбокс молота движется по Z и
+  // одиночный замер на статичной плоскости obs.z врёт. undefined = вне зоны.
+  nmMinGap?: number;
   // Rate-limit эмита screenShake/звука при непрерывном контакте мобов с активной
   // ловушкой: без него непрерывные ловушки (laser_grid/lava_pit/saw/axe) спамили
   // события каждый кадр и держали тряску камеры на максимуме. Обратный отсчёт в
@@ -1157,6 +1161,52 @@ export class ObstacleManager {
     // Зазор меряем чистой функцией circleRectGap по XZ-хитбоксу (валиден во все фазы).
     if (obs.isDead) {
       obsVis.nearMissAwarded = false;
+      obsVis.nmMinGap = undefined;
+      obsVis.lastLeaderZ = lz;
+      return;
+    }
+
+    // Бьющий молот: голова ходит по Z на ±2.9 м вокруг якоря obs.z, поэтому замер на
+    // статичной плоскости даёт ложную награду/ложный сброс серии (в момент пересечения
+    // голова может быть в противоположной точке дуги). Для этого типа — сэмплер по
+    // конверту качания: пока лидер в зоне, копим минимальный зазор до ЖИВОГО хитбокса,
+    // на выходе из зоны оцениваем один раз. Статичные ловушки идут прежним путём.
+    if (obs.type === 'swinging_hammer') {
+      const envMin = rz - 3.8; // амплитуда 2.9 + половина глубины головы 0.9
+      const envMax = rz + 3.8;
+      if (lz >= envMin && lz <= envMax) {
+        const gap = circleRectGap(
+          crowd.leaderX,
+          lz,
+          0.3, // радиус лидера
+          obsVis.hazardX,
+          obsVis.hazardZ,
+          obsVis.hazardW,
+          obsVis.hazardD
+        );
+        if (gap > 0 && gap < (obsVis.nmMinGap ?? Infinity)) obsVis.nmMinGap = gap;
+      } else if (lz > envMax && obsVis.nmMinGap !== undefined && !obsVis.nearMissAwarded) {
+        const minGap = obsVis.nmMinGap;
+        obsVis.nmMinGap = undefined;
+        obsVis.nearMissAwarded = true;
+        if (minGap <= 0.35) {
+          // Весь мах пройден хотя бы раз в упор (<0.35 м) без касания — награда.
+          const { streak, multiplier } = stateManager.runRecordNearMissStreak();
+          const prevMult = getNearMissMultiplier(streak - 1);
+          if (multiplier > prevMult) {
+            eventBus.emit('nearMissMilestone', { x: obsVis.hazardX, z: rz, streak, multiplier });
+          }
+          const coins = 8 * multiplier;
+          stateManager.runAddCoins(coins);
+          eventBus.emit('coinCollected', { value: coins, x: obsVis.hazardX, z: rz, tier: 2 });
+          soundEngine.playSound('near_miss', 1.0 + Math.min(1.0, streak * 0.05));
+          // Бурст/хаптик/тряска — централизованно в обработчике nearMiss (не дублируем).
+          eventBus.emit('nearMiss', { x: obsVis.hazardX, z: rz, coins, streak, multiplier });
+        } else if (minGap <= 2.2) {
+          // Прошёл мах на безопасной дистанции — риск не нужен, серия сбрасывается.
+          this.breakNearMissStreak(obsVis.hazardX, obsVis.hazardZ);
+        }
+      }
       obsVis.lastLeaderZ = lz;
       return;
     }
