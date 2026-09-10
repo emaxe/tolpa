@@ -943,6 +943,33 @@ export class ObstacleManager {
     }
   }
 
+  /**
+   * Предикция летальности ловушки на будущее время t — замкнутые формулы фазовых
+   * анимаций (те же коэффициенты, что в update-свитче), без чтения меша.
+   * Нужна HUD-у, чтобы не скрывать ловушку, которая OFF сейчас, но включится
+   * к моменту прибытия толпы. Типы без фазового гейта наследуют текущую проверку.
+   */
+  private isHazardActiveAtTime(obsVis: ObstacleVisual, t: number): boolean {
+    switch (obsVis.data.type) {
+      case 'crusher':
+        // update: y = 0.5 + |sin(t·1.5)|·2.0; опасно при y <= 1.2
+        return 0.5 + Math.abs(Math.sin(t * 1.5)) * 2.0 <= 1.2;
+      case 'axe_pendulum':
+        // update: rot.z = sin(t)·1.1; опасно при |rot| < 0.55
+        return Math.abs(Math.sin(t) * 1.1) < 0.55;
+      case 'barrier_gate':
+        // update: gateY = 1.4 + 1.15·sin(t·1.6); опасно при baseY + gateY < 2.4
+        return obsVis.mesh.position.y + (1.4 + 1.15 * Math.sin(t * 1.6)) < 2.4;
+      case 'swinging_hammer':
+        // update: rot.x = sin(t·1.8)·1.25; опасно при |rot| < 0.25
+        return Math.abs(Math.sin(t * 1.8) * 1.25) < 0.25;
+      case 'laser_wall':
+        return Math.sin(t * 1.2) > 0;
+      default:
+        return this.isHazardActive(obsVis);
+    }
+  }
+
   // Разные спецэффекты смерти для каждого типа препятствия: цвет искр, разлёт,
   // вертикальное смещение. Партиклы берутся из общего пула (0-GC), новый объект не создаётся.
   private playDeathEffect(obs: ObstacleData, x: number, y: number, z: number, particles: ParticleSystem): void {
@@ -1446,13 +1473,19 @@ export class ObstacleManager {
     });
   }
 
-  /** Дистанция до ближайшего живого препятствия впереди — для предупреждения в HUD. -1, если нет. */
-  public getNextHazardDistance(fromZ: number): number {
+  /** Дистанция до ближайшей УГРОЖАЮЩЕЙ ловушки впереди — для предупреждения в HUD. -1, если нет.
+   *  Фазовые ловушки проверяются в предикции на момент прибытия (а не «сейчас»):
+   *  OFF-фаза в 20 м впереди — всё ещё угроза, если к прибытию стена включится. */
+  public getNextHazardDistance(fromZ: number, forwardSpeed: number): number {
     let closest = -1;
+    const speed = Math.max(forwardSpeed, 1);
     for (const o of this.obstacles) {
       if (o.data.isDead) continue;
       const d = o.data.z - fromZ;
-      if (d > 0 && (closest === -1 || d < closest)) closest = d;
+      if (d <= 0) continue;
+      const tArrival = d / speed;
+      if (!this.isHazardActiveAtTime(o, o.animTime + tArrival * o.data.speed)) continue;
+      if (closest === -1 || d < closest) closest = d;
     }
     return closest;
   }

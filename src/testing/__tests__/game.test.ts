@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
+import * as THREE from 'three';
+import { ObstacleManager } from '../../engine/ObstacleManager';
 import { LevelGenerator, DEFAULT_TRACK_WIDTH, getTargetMobsToWin, getStarsForFinish } from '../../engine/LevelGenerator';
 import { StateManager } from '../../core/StateManager';
 import { ObjectPool, Poolable } from '../../core/ObjectPool';
@@ -1105,6 +1107,50 @@ describe('Finish Line & Multiplier Wall Perks', () => {
     expect(getFinishWallCost(0, 'wide')).toBe(0);
     expect(getFinishWallCost(-5, 'wide')).toBe(0);
     expect(getFinishWallCost(1, 'wide')).toBe(1);
+  });
+});
+
+describe('Phase-aware getNextHazardDistance (предикция фазы на момент прибытия)', () => {
+  // laser_wall активна при sin(animTime·1.2) > 0. Толпа едет speed=10 м/с,
+  // препятствие на z=10 → tArrival=1с → проверяем фазу в (animTime + 1)·1.2.
+  const mkWall = (anim: number) => ({
+    id: 'w', type: 'laser_wall' as const, x: 0, y: 1, z: 10,
+    width: 8, depth: 0.5, speed: 1, range: 0, initialOffset: anim,
+  });
+  const mk = () => new ObstacleManager(new THREE.Scene());
+
+  it('ON сейчас и ON к прибытию — показывает дистанцию', () => {
+    const m = mk();
+    m.initObstacles([mkWall(0)], []);
+    expect(m.getNextHazardDistance(0, 10)).toBe(10); // sin(1.2)>0
+  });
+
+  it('OFF сейчас, но ON к прибытию — НЕ скрывает (главный кейс предикции)', () => {
+    const m = mk();
+    m.initObstacles([mkWall(4.6)], []);
+    // сейчас: sin(5.52)<0 (OFF), к прибытию tf=5.6: sin(6.72)>0 (ON)
+    expect(Math.sin(4.6 * 1.2)).toBeLessThan(0);
+    expect(m.getNextHazardDistance(0, 10)).toBe(10);
+  });
+
+  it('OFF сейчас и OFF к прибытию — скрывает (безопасное окно)', () => {
+    const m = mk();
+    m.initObstacles([mkWall(4)], []);
+    // tf=5: sin(6)≈-0.28 < 0
+    expect(m.getNextHazardDistance(0, 10)).toBe(-1);
+  });
+
+  it('статичная ловушка (spike_trap) не зависит от фазы', () => {
+    const m = mk();
+    m.initObstacles([{ ...mkWall(0), type: 'spike_trap' as const }], []);
+    expect(m.getNextHazardDistance(0, 10)).toBe(10);
+    expect(m.getNextHazardDistance(0, 1)).toBe(10);
+  });
+
+  it('нулевая скорость не делит на ноль (клэмп до 1 м/с)', () => {
+    const m = mk();
+    m.initObstacles([mkWall(0)], []);
+    expect(m.getNextHazardDistance(0, 0)).toBeGreaterThanOrEqual(-1);
   });
 });
 

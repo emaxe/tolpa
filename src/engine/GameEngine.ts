@@ -2830,7 +2830,7 @@ export class GameEngine {
     // Индикатор ловушек в HUD пассивен и скрыт на мобильных (max-sm:hidden) — сигналим
     // один раз на момент входа ловушки в опасную зону, иначе игрок узнаёт о ней только
     // при контакте. Дистанция считается раз за кадр и переиспользуется в HUD-снапшоте.
-    this.hazardDistanceCache = this.obstacles.getNextHazardDistance(this.crowd.leaderZ);
+    this.hazardDistanceCache = this.obstacles.getNextHazardDistance(this.crowd.leaderZ, this.crowd.forwardSpeed);
     if (this.hazardDistanceCache >= 0 && this.hazardDistanceCache < GameEngine.HAZARD_ALERT_RANGE) {
       if (!this.hazardAlerted) {
         this.hazardAlerted = true;

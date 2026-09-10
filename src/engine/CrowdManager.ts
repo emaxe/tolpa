@@ -79,6 +79,8 @@ export class CrowdManager {
   public formation: FormationType = 'oval';
   public isHyperMode: boolean = false;
   public hyperTimer: number = 0;
+  /** Фактическая поступательная скорость лидера (м/с) — пишется каждый кадр в update(). */
+  public forwardSpeed: number = 0;
 
   // Игровая половина ширины трассы (trackWidth/2 - TRACK_RAIL_MARGIN) — считается в
   // update()/reset() и используется и для формации (calculateFormationOffset), и для
@@ -861,6 +863,7 @@ export class CrowdManager {
 
     // Move leader forward
     const speedMult = this.isHyperMode ? 1.4 : this.formation === 'arrow' ? 1.15 : 1.0;
+    this.forwardSpeed = speed * speedMult;
     this.leaderZ += speed * speedMult * dt;
 
     // Steer leader left/right
