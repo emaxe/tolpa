@@ -290,6 +290,9 @@ export class CrowdManager {
   /** Троттлинг-эмит визуально-звукового фидбека брони формаций (wedge -40% / diamond -25%).
    *  Ограничиваем частоту FORMATION_DEFEND_EMIT_INTERVAL_MS = 200 мс. */
   private emitFormationDefend(formation: 'wedge' | 'diamond', saved: number): void {
+    // Lifetime-учёт («Щит Легиона») ведём ДО троттлинг-гейта: фидбек, проглоченный
+    // 200-мс окном, не должен съедать реальный счёт спасённых мобов.
+    stateManager.runAddMobsSaved(saved);
     const now = performance.now();
     if (now - this.lastFormationDefendEmitMs < CrowdManager.FORMATION_DEFEND_EMIT_INTERVAL_MS) return;
     this.lastFormationDefendEmitMs = now;

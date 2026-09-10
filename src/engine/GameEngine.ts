@@ -884,8 +884,8 @@ export class GameEngine {
         this.particles.emitBurst(x, 1.0, z, 14, data.formation === 'wedge' ? 0xa855f7 : 0x94a3b8, 3.5);
         soundEngine.playSound('hammer_impact', 1.45);
         this.triggerHaptic(15);
-        // Накопление lifetime-статистики спасённых броней строя (ачивка «Щит Легиона»).
-        stateManager.runAddMobsSaved(data.saved ?? 0);
+        // Учёт lifetime-статистики («Щит Легиона») ведётся в CrowdManager.emitFormationDefend
+        // ДО троттлинг-гейта — здесь только фидбек, съеденные эмиты не должны терять счёт.
       }
     );
 
