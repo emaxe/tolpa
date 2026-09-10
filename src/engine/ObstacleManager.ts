@@ -22,6 +22,24 @@ import { stateManager } from '../core/StateManager';
 import { clamp, checkCircleRectCollision, circleRectGap, getNearMissMultiplier, lerp } from '../utils/math';
 import { DEFAULT_TRACK_WIDTH } from './LevelGenerator';
 
+// Звуковая идентичность ловушек: тон удара/смерти по типу ловушки (pitchShift для
+// obstacle_hit + mob_death). Тяжёлые ловушки (шар, лава, пресс) — низкий гул,
+// режущие (пила, лазер, шипы) — визг. Bomb/пёс/шар-роклер имеют свои отдельные
+// звуки (bomb_explode/dog_snap/rolling_approach), здесь им тон не нужен.
+const HAZARD_HIT_PITCH: Record<string, number> = {
+  saw_blade: 1.25,
+  axe_pendulum: 1.1,
+  crusher: 0.8,
+  spike_trap: 1.4,
+  laser_grid: 1.5,
+  barrier_gate: 0.9,
+  lava_pit: 0.7,
+  wrecking_ball: 0.65,
+  swinging_hammer: 0.75,
+  rolling_spike_ball: 0.85,
+};
+
+
 interface ObstacleVisual {
   data: ObstacleData;
   mesh: THREE.Group;
@@ -1074,8 +1092,11 @@ export class ObstacleManager {
       // без гейта — страдает только частота обратной связи (звук/тряска), HUD не трогаем.
       if (!obsVis.feedbackCooldown || obsVis.feedbackCooldown <= 0) {
         obsVis.feedbackCooldown = 0.25;
-        if (vol > 0) soundEngine.playSound('obstacle_hit', 1, vol);
-        if (vol > 0) soundEngine.playSound('mob_death', 1, vol);
+        // Тон смерти зависит от типа ловушки: визг пилы/лазера отличается от гула
+        // шара/лавы — игрок узнаёт убийцу по звуку, не глядя на экран.
+        const hitPitch = HAZARD_HIT_PITCH[obs.type] ?? 1;
+        if (vol > 0) soundEngine.playSound('obstacle_hit', hitPitch, vol);
+        if (vol > 0) soundEngine.playSound('mob_death', hitPitch, vol);
         eventBus.emit('screenShake', { intensity: 0.3 });
         // Виньетка урона + всплывающие "-N" (HUD/FloatingText) подписаны на mobsKilled,
         // но ловушки его не эмитили — фидбек потерь на трассе отсутствовал. Батчим
