@@ -415,6 +415,18 @@ describe('Economy & Upgrades', () => {
     expect(lvl0).toBe(100);
     expect(lvl2).toBe(225);
   });
+
+  it('runAddGems (апекс серии из 12 монет) копится в забеге и коммитится в гемы и lifetime-стат', () => {
+    const mgr = StateManager.getInstance();
+    mgr.beginRun();
+    const gemsBefore = mgr.getState().gems;
+    const lifetimeBefore = mgr.getState().stats.totalGemsEarned;
+    mgr.runAddGems(1);
+    expect(mgr.getRun()?.bossGems).toBeGreaterThanOrEqual(1);
+    mgr.commitRun();
+    expect(mgr.getState().gems).toBe(gemsBefore + 1);
+    expect(mgr.getState().stats.totalGemsEarned).toBe(lifetimeBefore + 1);
+  });
 });
 
 describe('Save System', () => {

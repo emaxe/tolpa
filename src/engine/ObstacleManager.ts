@@ -884,7 +884,14 @@ export class ObstacleManager {
             // хаптик. Раньше серия только повышала питч/число искр, но не отмечала
             // веху — длинная цепочка подбора ощущалась «плоско» (аналог nearMissMilestone).
             if (this.coinChainCount === 6 || (this.coinChainCount === 12 && !this.coinChainApexEmitted)) {
-              if (this.coinChainCount === 12) this.coinChainApexEmitted = true;
+              if (this.coinChainCount === 12) {
+                this.coinChainApexEmitted = true;
+                // Апекс серии из 12 монет: награда +1 гем. VFX/звук/хаптика уже даёт
+                // подписчик coinChainMilestone (бурст 30 + крик толпы) — НОВЫХ звуков
+                // и частиц здесь НЕ добавлять (иначе тройной фидбек).
+                stateManager.runAddGems(1);
+                eventBus.emit('gemRewarded', { value: 1, x: coin.x, z: coin.z });
+              }
               eventBus.emit('coinChainMilestone', { count: this.coinChainCount, x: coin.x, z: coin.z });
             }
             soundEngine.playSound('coin_pickup', 1.0 + this.coinChainCount * 0.055);

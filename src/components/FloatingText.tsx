@@ -152,6 +152,12 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       );
     });
 
+    // Апекс серии монет: награда-гем, всплывает у точки подбора циановым бриллиантом.
+    const unsubGemReward = eventBus.on('gemRewarded', (data: { value?: number; x?: number; z?: number }) => {
+      if (!data || !data.value) return;
+      spawn(data.x || 0, data.z || 0, `+${data.value} 💎`, 'text-cyan-300 font-extrabold drop-shadow-[0_0_8px_rgba(34,211,238,0.9)]');
+    });
+
     // Серия ворот сбита: всплывающая надпись «СЕРИЯ СБИТА!» с указанием утраченной
     // длины. Показывается только при потере значимой серии (≥5), эмитится GateManager.
     const unsubComboBreak = eventBus.on('comboBreak', (data: { streak?: number; x?: number; z?: number }) => {
@@ -540,6 +546,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubGate();
       unsubMobsKilled();
       unsubCoin();
+      unsubGemReward();
       unsubComboBreak();
       unsubComboMax();
       unsubObstacle();

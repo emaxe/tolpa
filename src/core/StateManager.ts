@@ -670,6 +670,13 @@ export class StateManager {
     if (this.run) this.run.coins += amount;
   }
 
+  /** Начислить гемы текущего забега в накопитель (награда босса + апекс серии монет).
+   *  Поле run.bossGems — историческое имя общего забегового счётчика гемов;
+   *  commitRun() коммитит его в state.gems, totalGemsEarned и ачивку gem_collector. */
+  public runAddGems(amount: number): void {
+    if (this.run) this.run.bossGems += amount;
+  }
+
   public runRecordMobSpawn(count: number = 1): void {
     if (this.run) this.run.mobsSpawned += count;
   }
