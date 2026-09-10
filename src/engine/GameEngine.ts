@@ -694,7 +694,14 @@ export class GameEngine {
     // эмитится ObstacleManager/BonusManager, но раньше не имело haptic-потребителя —
     // монеты давали звук/частицы/текст, но не вибрацию (комментарий троттлинга на
     // lastHapticMs уже называл coinCollected частым событием, а потребителя не было).
-    this.unsubCoinCollected = eventBus.on('coinCollected', () => {
+    this.unsubCoinCollected = eventBus.on('coinCollected', (data?: { value?: number; tier?: number }) => {
+      // Перк строя «Шеренга»: монеты заряжают адреналин (обычная +2, самоцвет/gem +4).
+      // Тактический размен: arrow усиливает заряд ×1.5 через ворота, wide набирает его
+      // объёмом сбора (у wide охват подбора +60%).
+      if (this.crowd.formation === 'wide') {
+        const charge = data?.tier === 2 ? 4 : 2;
+        this.adrenalineCharge = Math.min(100, this.adrenalineCharge + charge * this.crowd.getAdrenalineMultiplier());
+      }
       this.triggerHaptic(8);
     });
 
