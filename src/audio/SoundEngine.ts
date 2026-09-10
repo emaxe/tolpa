@@ -404,6 +404,25 @@ export class SoundEngine {
         break;
       }
 
+      case 'laser_wall_zap': {
+        // Включение лазерной стены (фаза OFF→ON): короткий восходящий «вжик».
+        // Тише boss_laser (0.25 против 0.4) — телеграф фазы не маскирует удар.
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(500, t);
+        osc.frequency.exponentialRampToValueAtTime(1800, t + 0.18);
+
+        gain.gain.setValueAtTime(0.25, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+
+        osc.connect(gain);
+        gain.connect(outGain);
+        osc.start(t);
+        osc.stop(t + 0.22);
+        break;
+      }
+
       case 'boss_minions': {
         // Swarm of small creatures — buzzing cluster of short high blips
         for (let i = 0; i < 6; i++) {

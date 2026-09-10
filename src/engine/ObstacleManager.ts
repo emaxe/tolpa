@@ -32,6 +32,8 @@ const HAZARD_HIT_PITCH: Record<string, number> = {
   crusher: 0.8,
   spike_trap: 1.4,
   laser_grid: 1.5,
+  // Лазерная стена — тот же меш/семейство, что laser_grid: тот же визг (15d1a1c).
+  laser_wall: 1.5,
   barrier_gate: 0.9,
   lava_pit: 0.7,
   wrecking_ball: 0.65,
@@ -77,6 +79,9 @@ interface ObstacleVisual {
   // One-shot флаг удара гидравлического молота (звук hammer_impact играет один раз
   // за проход бойка через нижнюю точку, а не каждый кадр).
   hammerImpacted?: boolean;
+  // Латч фазы лазерной стены OFF→ON: one-shot звуковой телеграф включения (zap).
+  // Обновляется каждый кадр в update(), спам фронт-переходом исключён.
+  wallWasOn?: boolean;
   // Near-Miss (уворот в упор): one-shot флаг награды за проход вплотную к активной
   // ловушке без касания + последняя Z-позиция лидера для детекта пересечения плоскости.
   nearMissAwarded?: boolean;
@@ -663,6 +668,14 @@ export class ObstacleManager {
           // Визуальный телеграф ровно по тому же условию, что и isHazardActive:
           // лучи (children 2+, posts = 0/1) гаснут, когда стена не убивает.
           const wallOn = Math.sin(t * 1.2) > 0;
+          // Звуковой телеграф фазы: one-shot «вжик» на фронте OFF→ON (латч по
+          // образцу hammerImpacted) — единственная ловушка с тайминг-уворотом
+          // без аудио-предупреждения включения. Громкость тает с дистанцией.
+          if (wallOn && !obsVis.wallWasOn) {
+            const zapVol = this.proximityVolume(obs.z, crowd.leaderZ);
+            if (zapVol > 0) soundEngine.playSound('laser_wall_zap', 1, zapVol);
+          }
+          obsVis.wallWasOn = wallOn;
           for (let bi = 2; bi < obsVis.mesh.children.length; bi++) {
             obsVis.mesh.children[bi].visible = wallOn;
           }

@@ -14,6 +14,7 @@ export type SoundEffect =
   | 'bomb_explode'
   | 'dog_snap'
   | 'hammer_impact'
+  | 'laser_wall_zap'
   | 'rolling_approach'
   | 'adrenaline_activate'
   | 'adrenaline_whoosh'
