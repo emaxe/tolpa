@@ -75,12 +75,12 @@ export const translations = {
     gateConditionElse: 'ИНАЧЕ',
 
     // Formations
-    wedgeDesc: 'Снижает урон от фронтальных ловушек на 40%',
-    wideDesc: 'Максимальный охват монет, ворот и сложения; прорыв финишных стен (-20% жертв)',
-    circleDesc: 'Толкает и разрушает препятствия силой толпы',
+    wedgeDesc: 'Снижает урон от фронтальных ловушек на 40%; на воротах ÷ теряет на 10% меньше',
+    wideDesc: 'Максимальный охват монет, ворот и сложения; прорыв финишных стен (-20% жертв); монеты заряжают адреналин',
+    circleDesc: 'Толкает и разрушает препятствия силой толпы; на воротах ÷ теряет на 20% меньше',
     arrowDesc: 'Увеличивает скорость бега, ускоряет заряд Гипер-режима (+50%) и пробивает стены клином',
     ovalDesc: 'Баланс: ворота и сферы +25%, удача Мистики 85%',
-    diamondDesc: 'Ромб: броня фронта +25%, пробивает стены и таранит в плотном строю',
+    diamondDesc: 'Ромб: броня фронта +25%, пробивает стены и таранит в плотном строю; на воротах ÷ теряет на 15% меньше',
 
     // Specialized mobs
     tankName: 'Джаггернаут (Танк)',
@@ -453,12 +453,12 @@ export const translations = {
     gateConditionElse: 'ELSE',
 
     // Formations
-    wedgeDesc: 'Reduces frontal trap damage by 40%',
-    wideDesc: 'Maximum width for coins, gates & adds; finish wall breakthrough (-20% sacrifice)',
-    circleDesc: 'Pushes and smashes barriers with crowd weight',
+    wedgeDesc: 'Reduces frontal trap damage by 40%; loses 10% less at ÷ gates',
+    wideDesc: 'Maximum width for coins, gates & adds; finish wall breakthrough (-20% sacrifice); coins charge adrenaline',
+    circleDesc: 'Pushes and smashes barriers with crowd weight; loses 20% less at ÷ gates',
     arrowDesc: 'Increases run speed, boosts Hyper-mode charge (+50%) and pierces walls with a wedge',
     ovalDesc: 'Balanced: gates & orbs +25%, Mystery luck 85%',
-    diamondDesc: 'Diamond: +25% frontline armor, pierces walls and rams in tight formation',
+    diamondDesc: 'Diamond: +25% frontline armor, pierces walls and rams in tight formation; loses 15% less at ÷ gates',
 
     // Specialized mobs
     tankName: 'Juggernaut (Tank)',
