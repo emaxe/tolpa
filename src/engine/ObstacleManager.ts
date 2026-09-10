@@ -1247,6 +1247,52 @@ export class ObstacleManager {
       return;
     }
 
+    // Катящийся шар: единственный снаряд, движущийся НА толпу (obs.z уменьшается
+    // каждый кадр), поэтому плоскостной тест «пересечение Z» для него не
+    // frame-rate независим: при сближении быстрее шага кадра момент prev < rz
+    // может ни разу не наступить и награда молча теряется (~15-20% проходов). Плюс шар зигзагит
+    // по X — разовый замер в кадре пересечения ловит случайную фазу вихляния.
+    // Тот же сэмплер минимального зазора, что у молота: копим gap, пока шар
+    // впереди в пределах 6 м, оцениваем один раз на проходе (dz < 0).
+    if (obs.type === 'rolling_spike_ball') {
+      const dzBall = rz - lz; // >0 = шар ещё впереди лидера
+      if (dzBall >= 0 && dzBall <= 6) {
+        const gap = circleRectGap(
+          crowd.leaderX,
+          lz,
+          0.3, // радиус лидера
+          obsVis.hazardX,
+          obsVis.hazardZ,
+          obsVis.hazardW,
+          obsVis.hazardD
+        );
+        if (gap > 0 && gap < (obsVis.nmMinGap ?? Infinity)) obsVis.nmMinGap = gap;
+      } else if (dzBall < 0 && obsVis.nmMinGap !== undefined && !obsVis.nearMissAwarded) {
+        const minGap = obsVis.nmMinGap;
+        obsVis.nmMinGap = undefined;
+        obsVis.nearMissAwarded = true;
+        if (minGap <= 0.35) {
+          // Весь проход пройден хотя бы раз в упор (<0.35 м) без касания — награда.
+          const { streak, multiplier } = stateManager.runRecordNearMissStreak();
+          const prevMult = getNearMissMultiplier(streak - 1);
+          if (multiplier > prevMult) {
+            eventBus.emit('nearMissMilestone', { x: obsVis.hazardX, z: rz, streak, multiplier });
+          }
+          const coins = 8 * multiplier;
+          stateManager.runAddCoins(coins);
+          eventBus.emit('coinCollected', { value: coins, x: obsVis.hazardX, z: rz, tier: 2 });
+          soundEngine.playSound('near_miss', 1.0 + Math.min(1.0, streak * 0.05));
+          // Бурст/хаптик/тряска — централизованно в обработчике nearMiss (не дублируем).
+          eventBus.emit('nearMiss', { x: obsVis.hazardX, z: rz, coins, streak, multiplier });
+        } else if (minGap <= 2.2) {
+          // Пропустил шар на безопасной дистанции — риск не нужен, серия сбрасывается.
+          this.breakNearMissStreak(obsVis.hazardX, obsVis.hazardZ);
+        }
+      }
+      obsVis.lastLeaderZ = lz;
+      return;
+    }
+
     const prev = obsVis.lastLeaderZ ?? rz - 1000;
     // Фиксируем момент пересечения плоскости Z лидером = один замер на препятствие.
     if (prev < rz && lz >= rz && !obsVis.nearMissAwarded) {
