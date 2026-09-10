@@ -471,14 +471,14 @@ export class BossManager {
     // дорогу до финиша после того как пробежала мимо (distanceToArena становится отрицательной).
     if (distanceToArena <= 6 && distanceToArena >= -3) {
       const aliveMobs = crowd.getAliveMobs();
-      // Раньше 35 dps на моба означало, что толпа в полсотни бойцов сносила босса L10
-      // (150 HP) за 0.086 секунды — "бой" не успевал начаться. Теперь урон растёт
-      // медленнее и не зависит от размера толпы линейно.
-      const crowdPower = Math.min(140, 12 + aliveMobs.length * 1.6) * dt;
+      const power = crowd.getBossAttackPower();
+      // Классовый вес: Танк ×2, Маг ×1.75, Ниндзя ×1.25 — состав отряда решает, не только число голов.
+      const crowdPower = Math.min(180, 12 + power * 1.6) * (crowd.isHyperMode ? 1.5 : 1.0) * dt;
       // Тактический бонус Фаланги (circle): толпа в плотном строю наносит боссу больше урона.
       const crowdMult = crowd.getBossDamageMultiplier();
-      // Фаланга (circle) пробивает энергетический купол на 20% от урона.
-      this.takeDamage(crowdPower * crowdMult, particles, crowd.formation === 'circle', dt);
+      // Фаланга (circle) ИЛИ Маг в строю пробивают энергетический купол на 20% от урона.
+      const pierce = crowd.formation === 'circle' || crowd.hasMobType('mage');
+      this.takeDamage(crowdPower * crowdMult, particles, pierce, dt);
 
       // Босс погиб в этом же кадре (takeDamage вызвал defeatBoss) — удары возмездия прекращаются немедленно.
       if (this.isDefeated || this.isDefeatCollapsing) return;

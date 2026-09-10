@@ -332,3 +332,13 @@ export function getFinishWallCost(baseCost: number, formation: FormationType = '
 export function getMobFinishPower(type: MobType): number {
   return type === 'tank' ? 2 : 1;
 }
+
+/**
+ * Классовый боевой вес моба в уроне по боссу.
+ * Танк держит удар и бьёт вдвое сильнее, маг тяжелее обычного, но бьёт сильно,
+ * ниндзя — быстрый, чуть сильнее регулярного.
+ */
+export function getMobBossPower(type: MobType): number {
+  return type === 'tank' ? 2.0 : type === 'mage' ? 1.75 : type === 'ninja' ? 1.25 : 1.0;
+}
+

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { MobInstance, MobType, FormationType, PlayerSkin } from '../types/game';
-import { calculateFormationOffset, getFormationScale, FormationOffset, clamp, lerp, TRACK_RAIL_MARGIN, getMobFinishPower } from '../utils/math';
+import { calculateFormationOffset, getFormationScale, FormationOffset, clamp, lerp, TRACK_RAIL_MARGIN, getMobFinishPower, getMobBossPower } from '../utils/math';
 import { createHumanoidGeometry, createSkinLeaderModel } from '../utils/proceduralMeshes';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { stateManager, INITIAL_SKINS } from '../core/StateManager';
@@ -594,6 +594,21 @@ export class CrowdManager {
     let power = 0;
     for (let i = 0; i < alive.length; i++) power += getMobFinishPower(alive[i].type);
     return power;
+  }
+
+  /** Суммарный классовый боевой вес живых мобов для урона по боссу (0-GC, поверх frame-cached snapshot). */
+  public getBossAttackPower(): number {
+    const alive = this.getAliveMobs();
+    let p = 0;
+    for (let i = 0; i < alive.length; i++) p += getMobBossPower(alive[i].type);
+    return p;
+  }
+
+  /** Есть ли в живом строю моб указанного класса. */
+  public hasMobType(type: MobType): boolean {
+    const alive = this.getAliveMobs();
+    for (let i = 0; i < alive.length; i++) if (alive[i].type === type) return true;
+    return false;
   }
 
   /**
