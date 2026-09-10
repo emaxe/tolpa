@@ -41,6 +41,7 @@ export const INITIAL_STATS: GameStats = {
   totalAdrenalineActivations: 0,
   totalNearMisses: 0, // Начальное значение счётчика уворотов в упор
   maxNearMissStreak: 0, // Максимальная серия уворотов в упор (для достижений)
+  coinChainApexes: 0, // Апексы серий из 12 монет (для достижений)
   gamesPlayed: 0,
   levelsCompleted: 0,
 };
@@ -459,6 +460,30 @@ export const INITIAL_ACHIEVEMENTS: AchievementItem[] = [
     category: 'combat',
   },
   {
+    id: 'coin_chain_3',
+    titleKey: 'achCoinChain3',
+    descKey: 'achCoinChain3Desc',
+    icon: 'Coins',
+    progress: 0,
+    goal: 3,
+    rewardCoins: 1000,
+    rewardGems: 15,
+    claimed: false,
+    category: 'economy',
+  },
+  {
+    id: 'coin_chain_25',
+    titleKey: 'achCoinChain25',
+    descKey: 'achCoinChain25Desc',
+    icon: 'Coins',
+    progress: 0,
+    goal: 25,
+    rewardCoins: 3000,
+    rewardGems: 40,
+    claimed: false,
+    category: 'economy',
+  },
+  {
     id: 'veteran_25',
     titleKey: 'achVeteran25',
     descKey: 'achVeteran25Desc',
@@ -540,6 +565,8 @@ export interface RunStats {
   nearMissStreak: number;
   /** Максимальная серия уворотов в упор за текущий забег. */
   maxNearMissStreak: number;
+  /** Число апексов серии из 12 монет за текущий забег. */
+  coinChainApexes: number;
 }
 
 function createEmptyRun(): RunStats {
@@ -558,6 +585,7 @@ function createEmptyRun(): RunStats {
     nearMisses: 0,
     nearMissStreak: 0,
     maxNearMissStreak: 0,
+    coinChainApexes: 0,
   };
 }
 
@@ -694,6 +722,14 @@ export class StateManager {
   }
 
   /**
+   * Фиксирует апекс серии из 12 монет (награда +1 гем уже выдана вызывающим кодом).
+   * Без notify() — значение попадёт в сейв пакетом в commitRun().
+   */
+  public runRecordCoinChainApex(): void {
+    if (this.run) this.run.coinChainApexes += 1;
+  }
+
+  /**
    * Фиксирует успешный уворот в упор: инкрементирует общий счётчик, наращивает
    * текущую серию, обновляет рекорд maxNearMissStreak и возвращает множитель награды.
    * Без notify() — серия накапливается в RunStats и попадает в сейв только в commitRun().
@@ -769,6 +805,7 @@ export class StateManager {
     this.state.stats.totalObstaclesSmashed += r.obstaclesSmashed;
     this.state.stats.totalBossesDefeated += r.bossesDefeated;
     this.state.stats.totalNearMisses += r.nearMisses;
+    this.state.stats.coinChainApexes += r.coinChainApexes;
     if (r.maxNearMissStreak > this.state.stats.maxNearMissStreak) this.state.stats.maxNearMissStreak = r.maxNearMissStreak;
     if (r.maxCombo > this.state.stats.highestCombo) this.state.stats.highestCombo = r.maxCombo;
     if (r.maxCrowd > this.state.stats.maxCrowdReached) this.state.stats.maxCrowdReached = r.maxCrowd;
@@ -791,6 +828,9 @@ export class StateManager {
     // Достижения серии уворотов в упор — по lifetime-максимуму серии (забег завершён).
     this.updateAchievementProgressSilent('near_miss_streak_5', this.state.stats.maxNearMissStreak);
     this.updateAchievementProgressSilent('near_miss_streak_10', this.state.stats.maxNearMissStreak);
+    // Достижения апексов серии из 12 монет — по lifetime-числу завершённых серий.
+    this.updateAchievementProgressSilent('coin_chain_3', this.state.stats.coinChainApexes);
+    this.updateAchievementProgressSilent('coin_chain_25', this.state.stats.coinChainApexes);
     // Достижения легиона в Бесконечном режиме: completeLevel() не вызывается в эндлессе,
     // поэтому прогресс legion_50/150 привязываем к lifetime-максимуму толпы.
     this.updateAchievementProgressSilent('legion_50', this.state.stats.maxCrowdReached);
@@ -1097,6 +1137,8 @@ export class StateManager {
     this.updateAchievementProgressSilent('near_miss_200', this.state.stats.totalNearMisses);
     this.updateAchievementProgressSilent('near_miss_streak_5', this.state.stats.maxNearMissStreak);
     this.updateAchievementProgressSilent('near_miss_streak_10', this.state.stats.maxNearMissStreak);
+    this.updateAchievementProgressSilent('coin_chain_3', this.state.stats.coinChainApexes);
+    this.updateAchievementProgressSilent('coin_chain_25', this.state.stats.coinChainApexes);
     this.updateAchievementProgressSilent('legion_50', this.state.stats.maxCrowdReached);
     this.updateAchievementProgressSilent('legion_150', this.state.stats.maxCrowdReached);
     this.updateAchievementProgressSilent('games_played', this.state.stats.gamesPlayed);

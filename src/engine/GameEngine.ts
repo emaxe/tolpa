@@ -2392,6 +2392,7 @@ export class GameEngine {
       coins: 0, mobsSpawned: 0, gatesPassed: 0, obstaclesSmashed: 0,
       bossesDefeated: 0, bossCoins: 0, bossGems: 0, maxCombo: 0, maxCrowd: 0,
       distance: 0, recordBeaten: false, nearMisses: 0, nearMissStreak: 0, maxNearMissStreak: 0,
+      coinChainApexes: 0,
     };
     // Откатываем активные эффекты событий (ЭМИ-шторм, множители скорости), чтобы они
     // не протекли в следующий забег.

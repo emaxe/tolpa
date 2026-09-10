@@ -890,6 +890,8 @@ export class ObstacleManager {
                 // подписчик coinChainMilestone (бурст 30 + крик толпы) — НОВЫХ звуков
                 // и частиц здесь НЕ добавлять (иначе тройной фидбек).
                 stateManager.runAddGems(1);
+                // Lifetime-учёт для достижений coin_chain_3/25 (сворачивается в сейв в commitRun()).
+                stateManager.runRecordCoinChainApex();
                 eventBus.emit('gemRewarded', { value: 1, x: coin.x, z: coin.z });
               }
               eventBus.emit('coinChainMilestone', { count: this.coinChainCount, x: coin.x, z: coin.z });

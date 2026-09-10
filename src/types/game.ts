@@ -243,6 +243,8 @@ export interface GameStats {
   totalNearMisses: number;
   /** Максимальная серия уворотов в упор подряд (без урона) за всё время игры. */
   maxNearMissStreak: number;
+  /** Число доведённых до апекса серий из 12 монет за всё время (для достижений). */
+  coinChainApexes: number;
   gamesPlayed: number;
   levelsCompleted: number;
 }
