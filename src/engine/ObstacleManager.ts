@@ -621,11 +621,14 @@ export class ObstacleManager {
       // staticHazard-ловушки (spike_trap/lava_pit/laser_grid) не требуют анимации,
       // но им нужна актуальная позиция после свипа — их пропускаем аналогично.
       const animDz = obs.z - crowd.leaderZ;
-      // Активный охотник в погоне не куллится по back-границе: иначе замороженный
-      // в 30м позади преследователь никогда не догонит и будет съеден prune() на 40м.
-      const hunterChasing = obs.type === 'hunter' && obsVis.hunterState === 'chase';
+      // Активный охотник (wake-подъём и погоня) не куллится по back-границе: иначе
+      // таймер wake замерзает за 30м (при скорости ≥12 м/с толпа уходит дальше за
+      // 2.5с подъёма), погоня никогда не стартует, и охотника съедает prune().
+      const hunterActive =
+        obs.type === 'hunter' &&
+        (obsVis.hunterState === 'wake' || obsVis.hunterState === 'chase');
       if (
-        !hunterChasing &&
+        !hunterActive &&
         (animDz > ObstacleManager.OBSTACLE_ANIM_CULL_AHEAD ||
           animDz < -ObstacleManager.OBSTACLE_ANIM_CULL_BACK)
       )
@@ -1617,7 +1620,12 @@ export class ObstacleManager {
     for (let i = 0; i < this.obstacles.length; i++) {
       const obsVis = this.obstacles[i];
       const obs = obsVis.data;
-      if (obs.isDead || obs.z < threshold) {
+      // Активный охотник (wake/chase) живёт дальше остальных: он догоняет толпу
+      // с превышением всего +25% скорости, стандартных 40м на это не хватает.
+      const hunterOn =
+        obs.type === 'hunter' &&
+        (obsVis.hunterState === 'wake' || obsVis.hunterState === 'chase');
+      if (obs.isDead || obs.z < (hunterOn ? leaderZ - 75 : threshold)) {
         // Флеш смертей, не успевших выйти в окне кулдауна фидбека: за границей
         // зоны коллизий (dz < -25) ветка сброса hitAccum в update() больше не
         // выполняется, и без этого эмита накопленные "-N" терялись бы молча.
