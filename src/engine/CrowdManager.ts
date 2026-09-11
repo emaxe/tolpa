@@ -63,6 +63,8 @@ export class CrowdManager {
   // Reusable 3D math objects to guarantee ZERO runtime GC allocations
   private dummy: THREE.Object3D = new THREE.Object3D();
   private colorDummy: THREE.Color = new THREE.Color();
+  // Переиспользуемый scratch для вариации оттенка скина при спавне (0-GC)
+  private hslScratch: { h: number; s: number; l: number } = { h: 0, s: 0, l: 0 };
   // Переиспользуемый scratch-объект для расчёта смещения формации (0-GC)
   private formationOffsetScratch: FormationOffset = { x: 0, z: 0 };
   // Переиспользуемый scratch-объект для контакта со стеной (0-GC)
@@ -462,12 +464,12 @@ export class CrowdManager {
           mob.shieldHp = 0;
           // Чуть-чуть варьируем цвет скина (осветление/затемнение), чтобы толпа
           // выглядела живой, но сохраняла общий облик.
-          const c = new THREE.Color(this.currentSkinColor);
-          const hsl = { h: 0, s: 0, l: 0 };
-          c.getHSL(hsl);
-          hsl.l = Math.max(0.15, Math.min(0.9, hsl.l + (Math.random() - 0.5) * 0.12));
-          c.setHSL(hsl.h, hsl.s, hsl.l);
-          mob.color = c.getHex();
+          // 0-GC: переиспользуем colorDummy + hslScratch вместо аллокаций на каждого моба.
+          this.colorDummy.setHex(this.currentSkinColor);
+          this.colorDummy.getHSL(this.hslScratch);
+          this.hslScratch.l = Math.max(0.15, Math.min(0.9, this.hslScratch.l + (Math.random() - 0.5) * 0.12));
+          this.colorDummy.setHSL(this.hslScratch.h, this.hslScratch.s, this.hslScratch.l);
+          mob.color = this.colorDummy.getHex();
         }
 
         this.colorDummy.setHex(mob.color);
@@ -1043,7 +1045,6 @@ export class CrowdManager {
       mob.deathT = (mob.deathT || 0) + dt;
       const t = Math.min(1, (mob.deathT || 0) / 0.5);
       // Плавное заваливание + схлопывание к центру
-      const rot = t * 2.2;
       const s = mob.scale * Math.max(0.05, 1.0 - t * 0.7);
       mob.deathRotX = mob.deathRotX || 0;
       mob.deathRotZ = mob.deathRotZ || 0;

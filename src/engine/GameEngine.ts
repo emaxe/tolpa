@@ -18,6 +18,16 @@ import { perfMonitor } from '../core/Performance';
 import { clamp, getNearMissMultiplier } from '../utils/math';
 import { createSpectatorGeometry, getBillboardTexture } from '../utils/proceduralMeshes';
 
+/** h→rgb для радужного треила (HSL, s=1/l=0.55). Модульный уровень: без создания замыкания на каждый кадр. */
+function hue2rgb(p: number, q: number, t: number): number {
+  if (t < 0) t += 1;
+  if (t > 1) t -= 1;
+  if (t < 1 / 6) return p + (q - p) * 6 * t;
+  if (t < 1 / 2) return q;
+  if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+  return p;
+}
+
 export interface HudSnapshot {
   crowd: number;
   coins: number; // Собранные за текущий забег монеты (трасса + боссы), сырое значение
@@ -2449,18 +2459,10 @@ export class GameEngine {
       case 'rainbow': {
         // Анимированная радуга: hue циклически меняется со временем (0 аллокаций).
         const hue = ((this.lastTime * 0.06) % 360) / 360;
-        const h = hue, s = 1, l = 0.55;
+        const s = 1, l = 0.55;
         const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
         const p = 2 * l - q;
-        const hue2rgb = (t: number): number => {
-          if (t < 0) t += 1;
-          if (t > 1) t -= 1;
-          if (t < 1 / 6) return p + (q - p) * 6 * t;
-          if (t < 1 / 2) return q;
-          if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-          return p;
-        };
-        const r = hue2rgb(h + 1 / 3), g = hue2rgb(h), b = hue2rgb(h - 1 / 3);
+        const r = hue2rgb(p, q, hue + 1 / 3), g = hue2rgb(p, q, hue), b = hue2rgb(p, q, hue - 1 / 3);
         return Math.round(r * 255) * 0x10000 + Math.round(g * 255) * 0x100 + Math.round(b * 255);
       }
       case 'lightning': return 0x38bdf8;
@@ -3381,6 +3383,11 @@ export class GameEngine {
     const bossArenaZ = this.isEndless
       ? (this.boss.isActive() ? this.boss.getArenaZ() : -1)
       : (this.currentLevel?.boss ? this.currentLevel.trackLength - 20 : -1);
+    // Дедупликация: getFinishBreakingPower() — полный O(N)-скан живых мобов, а
+    // остальные геттеры — чистые. Считаем по разу и переиспользуем в трёх полях.
+    const finishWallCost = this.finishLine.getNextWallCost(this.crowd.formation);
+    const finishPower = this.crowd.getFinishBreakingPower();
+    const nearMissStreak = this.obstacles.getNearMissStreak();
     return {
       crowd: this.crowd.getAliveCount(),
       coins: stateManager.getRunCoins(),
@@ -3405,15 +3412,14 @@ export class GameEngine {
       finishStepsDone: this.finishLine.getFinishStepsDone(),
       finishStepsTotal: this.finishLine.getFinishStepsTotal(),
       isFinishActive: this.finishLine.hasCrossedFinish,
-      finishNextWallCost: this.finishLine.getNextWallCost(this.crowd.formation),
-      finishBreakingPower: this.crowd.getFinishBreakingPower(),
+      finishNextWallCost: finishWallCost,
+      finishBreakingPower: finishPower,
       finishNextWallAffordable: (() => {
-        const cost = this.finishLine.getNextWallCost(this.crowd.formation);
         // Паритет с решением FinishLineManager: прорыв по кинетической массе (Танк = 2), строгое >.
-        return cost >= 0 && this.crowd.getFinishBreakingPower() > cost;
+        return finishWallCost >= 0 && finishPower > finishWallCost;
       })(),
-      nearMissStreak: this.obstacles.getNearMissStreak(),
-      nearMissMultiplier: getNearMissMultiplier(this.obstacles.getNearMissStreak()),
+      nearMissStreak,
+      nearMissMultiplier: getNearMissMultiplier(nearMissStreak),
       activeEventType: this.activeEvent?.event.type ?? null,
       activeEventTimer: this.activeEvent ? Math.max(0, this.activeEvent.timer) : 0,
     };
