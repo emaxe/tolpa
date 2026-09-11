@@ -874,6 +874,11 @@ export class BossManager {
   private staggerBoss(particles: ParticleSystem): void {
     if (!this.bossData) return;
     this.staggerAccum = 0;
+    // Сбитая атака засчитывается как отыгранная: сдвигаем индекс, иначе босс
+    // после стаггера детерминированно повторяет ровно ту же атаку, обесценивая
+    // прерывание. Зеркаляет обычную ветку завершения атаки (last + reselect).
+    this.lastAttackIndex = this.currentAttackIndex;
+    this.currentAttackIndex = this.selectNextAttackIndex();
     this.isCoolingDown = true;
     this.attackCooldown = BossManager.STAGGER_COOLDOWN;
     this.attackTimer = 0;
