@@ -194,7 +194,9 @@ export const App: React.FC = () => {
           stars: 0,
           runStats,
           coinsEarned,
-          gemsEarned: 0,
+          // Кристаллы за боссов и апексы цепочек зачисляет commitRun() — экран
+          // обязан показать честную цифру, а не 0 (паритет «Всего награда»).
+          gemsEarned: runStats.bossGems,
           endless: { distance, isNewRecord, coinsEarned },
         });
         setPhase('level_lost');
@@ -214,7 +216,9 @@ export const App: React.FC = () => {
         stars: 0,
         runStats,
         coinsEarned,
-        gemsEarned: 0,
+        // Кристаллы, зачисленные commitRun() за боссов/апексы цепочек до гибели —
+        // показываем честно (раньше был хардкод 0 при реальном пополнении кошелька).
+        gemsEarned: runStats.bossGems,
       });
       setPhase('level_lost');
     },

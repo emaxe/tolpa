@@ -229,7 +229,9 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
                 <Coins className="w-4 h-4" />
                 <span>+{(isEndless ? (endless?.coinsEarned ?? 0) : coinsEarned).toLocaleString()}</span>
               </div>
-              {!isEndless && gemsEarned > 0 && (
+              {/* Бейдж кристаллов показываем и в Endless: commitRun() зачисляет
+                  гемы за боссов/апексы цепочек наравне с кампанией (паритет итога). */}
+              {gemsEarned > 0 && (
                 <div className="flex items-center gap-1 font-orbitron font-bold text-rose-700 text-sm">
                   <Gem className="w-4 h-4" />
                   <span>+{gemsEarned}</span>
