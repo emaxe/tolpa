@@ -486,6 +486,19 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       }
     );
 
+    // Кульминация: золотой баннер над взятым Гранд-Сундуком (эмитится только при ×10.0)
+    const unsubFinishChest = eventBus.on(
+      'finishChestOpened',
+      (data: { x?: number; z?: number }) => {
+        spawn(
+          data?.x ?? 0,
+          (data?.z ?? 0) + 1.2,
+          i18n.t('apexChestOpened', 'СУНДУК ВЗЯТ! 🏆'),
+          'text-yellow-300 font-black text-2xl scale-125 drop-shadow-[0_0_16px_rgba(250,204,21,1)]'
+        );
+      }
+    );
+
     // Классовые способности (Уворот Ниндзя, Щит Танка, Трансмутация Мага)
     const unsubClassAbility = eventBus.on(
       'classAbility',
@@ -577,6 +590,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubBossStaggered();
       unsubFormation();
       unsubFinishStep();
+      unsubFinishChest();
       unsubClassAbility();
       unsubFormationDefend();
       unsubNewClass();

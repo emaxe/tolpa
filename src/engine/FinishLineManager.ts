@@ -32,6 +32,8 @@ export class FinishLineManager {
   private finalStepIndex: number = 0;
   private isCelebrating: boolean = false;
   private chestMesh: THREE.Group | null = null;
+  // Реальный Z сундука: сам Group в начале координат, смещение у дочернего меша.
+  private chestZ: number = 0;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -119,6 +121,7 @@ export class FinishLineManager {
     chestGroup.add(chest);
     this.scene.add(chestGroup);
     this.chestMesh = chestGroup;
+    this.chestZ = chest.position.z;
   }
 
   public update(
@@ -214,10 +217,19 @@ export class FinishLineManager {
       spread: 80,
       origin: { y: 0.6 },
     });
-    if (this.chestMesh) {
-      // Сундук открывается — отдельный яркий звук награды
+    // Кульминация (Гранд-Сундук) достигается только при полном пробитии всех стен.
+    // На ранней остановке сундук физически недостижим — не играем его звук и не
+    // спавним золотой взрыв (иначе фидбек врёт о награде, которой игрок не получил).
+    const isApexWin = this.finalStepIndex >= this.wallSteps.length;
+    if (isApexWin && this.chestMesh) {
+      // Сундук взят — яркий звук награды, столп света и золотой взрыв над ним.
       soundEngine.playSound('finish_chest_open');
-      particles.emitBurst(0, 3.5, this.chestMesh.position.z, 60, 0xfacc15, 8.0);
+      particles.emitLightPillar(0, this.chestZ, 50, 0xfacc15);
+      particles.emitBurst(0, 3.5, this.chestZ, 60, 0xfacc15, 8.0);
+      eventBus.emit('finishChestOpened', { x: 0, z: this.chestZ });
+    } else if (!isApexWin) {
+      // Частичная победа: скромный салют над выжившей толпой — без фантомного сундука.
+      particles.emitBurst(crowd.leaderX, 1.5, crowd.leaderZ, 25, 0x00f0ff, 4.0);
     }
 
     const remainingMobs = crowd.getAliveCount();
