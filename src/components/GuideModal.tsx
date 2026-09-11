@@ -1,11 +1,23 @@
 import React from 'react';
 import { i18n } from '../core/Localization';
 import { soundEngine } from '../audio/SoundEngine';
-import { X, BookOpen, Shield, Sparkles, Cpu, Target } from 'lucide-react';
+import { X, BookOpen, Shield, Sparkles, Cpu, Target, AlertTriangle } from 'lucide-react';
 
 interface GuideModalProps {
   onClose: () => void;
 }
+
+// Бестиарий опасностей: [key, стили рамки/заголовка] — копирайт в Localization.
+const HAZARDS: Array<[string, string]> = [
+  ['hazMoving', 'border-sky-500/30 text-sky-700'],
+  ['hazTiming', 'border-orange-500/30 text-orange-700'],
+  ['hazStatic', 'border-slate-400/40 text-slate-700'],
+  ['hazPhase', 'border-cyan-500/30 text-cyan-700'],
+  ['hazBomb', 'border-amber-500/30 text-amber-700'],
+  ['hazDog', 'border-lime-600/30 text-lime-700'],
+  ['hazHunter', 'border-rose-600/30 text-rose-700'],
+  ['hazClass', 'border-teal-500/30 text-teal-700'],
+];
 
 export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
   return (
@@ -108,6 +120,23 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
                   <p className="text-slate-600 mt-0.5">{i18n.t('mageDesc')}</p>
                 </div>
               </div>
+            </div>
+          </section>
+
+          {/* Track Hazards — бестиарий опасностей */}
+          <section className="space-y-3">
+            <h3 className="font-orbitron font-bold text-slate-900 text-sm flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-400" />
+              <span>{i18n.t('loreHazardsTitle')}</span>
+            </h3>
+            <p className="text-xs text-slate-600">{i18n.t('loreHazardsIntro')}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              {HAZARDS.map(([key, cls]) => (
+                <div key={key} className={`bg-slate-100/50 p-3 rounded-xl border ${cls.split(' ')[0]}`}>
+                  <strong className={`font-orbitron ${cls.split(' ')[1]}`}>{i18n.t(`${key}Name`)}</strong>
+                  <p className="text-slate-600 mt-1">{i18n.t(`${key}Desc`)}</p>
+                </div>
+              ))}
             </div>
           </section>
 
