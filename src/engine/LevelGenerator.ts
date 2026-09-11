@@ -1499,9 +1499,15 @@ export class LevelGenerator {
       idPrefix: `endless_obs_${segmentIndex}`,
     });
 
-    // Слот 3 (Z+88..Z+115): препятствия (tank_breach/choke/hound)
+    // Слот 3 (Z+88..Z+115): препятствия (tank_breach/choke/hound) + засада охотника
     const zSlot3 = currentZ + 88 + (rng() * 4 - 2);
     const r3 = rng();
+    // Охотник (10%, с 5-го сегмента ~600м): тот же hunter из финальных фаз
+    // кампании. Механика полностью готова и режим-агностична (sleep→wake→chase,
+    // подъём-рёв hunterWake, рычание, хаптика, 3D-баннер, ростк/таран/Hyper),
+    // но в бесконечном режиме никогда не спавнился. 0 новых ассетов.
+    const hunterAmbush = r3 >= 0.9 && segmentIndex >= 4;
+    if (!hunterAmbush) {
     const p3: PatternType = r3 < 0.4 ? 'tank_breach_cluster' : r3 < 0.75 ? 'choke_point_funnel' : 'cyborg_hound_pack';
     this.runPattern(p3, {
       out: rawObstacles,
@@ -1517,6 +1523,18 @@ export class LevelGenerator {
       bonuses,
       idPrefix: `endless_obs_${segmentIndex}`,
     });
+    } else {
+      this.pushObs(
+        rawObstacles,
+        'hunter',
+        zSlot3 + 6,
+        (rng() * 2 - 1) * (playableHalf - 1.2),
+        segmentIndex,
+        trackWidth,
+        1.0,
+        rng
+      );
+    }
 
     if (isBossSegment) {
       // Убираем препятствия из зоны арены босса (последние 45м) — толпа будет драться там
