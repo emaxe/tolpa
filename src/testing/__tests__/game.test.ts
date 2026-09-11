@@ -536,6 +536,31 @@ describe('Save System', () => {
       randomSpy.mockRestore();
     }
   });
+
+  it('стойкость классов при ударе по площади (паритет meteor_rain с бомбами): гипер/щит/HP не ваншотятся', () => {
+    // Регрессия на meteor_rain: он звал killMobById напрямую и сносил гипер-режим,
+    // щиты и запас HP танков. Наведённый удар площади теперь идёт через
+    // resolveObstacleImpact — как мины/собаки/ловушки.
+    const c = new CrowdManager(new THREE.Scene());
+    // Гипер-режим: удар полностью поглощается, моб выживает.
+    (c as any).isHyperMode = true;
+    const hyperMob = c.spawnMob('regular') as MobInstance;
+    hyperMob.invulnerableTime = 0;
+    expect(c.resolveObstacleImpact(hyperMob)).toBe(false);
+    expect(hyperMob.alive).toBe(true);
+    (c as any).isHyperMode = false;
+    // Танк 3-го уровня (щит 2 + HP 3): два щита, потом HP, гибнет только на 4-м ударе.
+    const tank = c.spawnMob('tank') as MobInstance;
+    tank.invulnerableTime = 0;
+    tank.shieldHp = 2;
+    tank.hp = 3;
+    expect(c.resolveObstacleImpact(tank)).toBe(false); // щит 1
+    expect(c.resolveObstacleImpact(tank)).toBe(false); // щит 2
+    expect(c.resolveObstacleImpact(tank)).toBe(false); // HP 3→2
+    expect(c.resolveObstacleImpact(tank)).toBe(false); // HP 2→1
+    expect(c.resolveObstacleImpact(tank)).toBe(true);  // последний удар — смерть
+    expect(tank.alive).toBe(false);
+  });
 });
 
 describe('Level Generator Smoke Tests', () => {

@@ -2566,7 +2566,11 @@ export class GameEngine {
             // лазер, стена, бомба, собака). Паритет haptic-фидбека потерь.
             this.triggerHaptic([30, 20, 30]);
 
-            // Честная коллизия: урон только мобам в радиусе падения по координатам XZ
+            // Честная коллизия: урон только мобам в радиусе падения по координатам XZ.
+            // Паритет стойкости классов (как бомбы/собаки/ловушки/метеоры босса):
+            // resolveObstacleImpact учитывает гипер-режим, неуязвимость спавна, 50%
+            // уворот ниндзя, щиты и запас HP танков; killMobById сносил всё в радиусе
+            // мгновенно, игнорируя любую защиту.
             const alive = this.crowd.getAliveMobs();
             let meteorKilled = 0;
             for (let m = 0; m < alive.length; m++) {
@@ -2574,12 +2578,18 @@ export class GameEngine {
               const dx = mob.x - strike.x;
               const dz = mob.z - strike.z;
               if (dx * dx + dz * dz <= impactRadiusSq) {
-                this.crowd.killMobById(mob.id);
-                meteorKilled++;
+                if (this.crowd.resolveObstacleImpact(mob)) {
+                  meteorKilled++;
+                }
               }
             }
-            // Фидбек потерь (виньетка + "-N") — метеорит не эмитил mobsKilled.
             if (meteorKilled > 0) {
+              // Метеор убил мобов — серия уворотов сбрасывается (паритет с миной).
+              const brokenStreak = stateManager.runResetNearMissStreak();
+              if (brokenStreak >= 2) {
+                eventBus.emit('nearMissBreak', { streak: brokenStreak, x: strike.x, z: strike.z });
+              }
+              // Фидбек потерь (виньетка + "-N") — метеорит не эмитил mobsKilled.
               eventBus.emit('mobsKilled', { count: meteorKilled, reason: 'meteor_rain', x: strike.x, z: strike.z });
             }
           } else {
