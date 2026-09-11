@@ -847,6 +847,9 @@ export class ObstacleManager {
               obsVis.hunterTimer = 2.5;
               const volW = this.proximityVolume(obs.z, crowd.leaderZ);
               if (volW > 0) soundEngine.playSound('boss_roar', 0.7, volW);
+              // Телеграф пробуждения: HUD-баннер + тряска + haptic у подписчиков
+              // (рык слышен, но с тыла его легко спутать с боссом — нужен явный сигнал).
+              eventBus.emit('hunterWake', { x: obs.x, z: obs.z });
             }
           }
           break;

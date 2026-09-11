@@ -122,6 +122,7 @@ export const HUD: React.FC<HUDProps> = ({
     bossEnraged: { key: 'bossEnraged', cls: 'border-rose-600 text-rose-700' },
     bossAttackTelegraph: { key: 'bossAttackTelegraph', cls: 'border-orange-500 text-orange-600' },
     retaliationTelegraph: { key: 'bossRetaliation', cls: 'border-rose-500 text-rose-600' },
+    hunterWake: { key: 'hunterWake', cls: 'border-rose-600 text-rose-700' },
     bossStaggered: { key: 'bossStaggered', cls: 'border-yellow-400 text-yellow-500' },
     bossAttack_slam: { key: 'bossAttackSlam', cls: 'border-orange-500 text-orange-600' },
     bossAttack_laser: { key: 'bossAttackLaser', cls: 'border-orange-500 text-orange-600' },
@@ -191,6 +192,11 @@ export const HUD: React.FC<HUDProps> = ({
     // Телеграф возмездия босса — красный баннер-тост предупреждения (1400мс под цикл 1.4с).
     const unsubRetaliation = eventBus.on('retaliationTelegraph', () => {
       showAlert('retaliationTelegraph', undefined, 1400);
+    });
+
+    // Баннер пробуждения охотника с тыла (1800мс < 2.5с окна до погони — честный сигнал).
+    const unsubHunterWake = eventBus.on('hunterWake', () => {
+      showAlert('hunterWake', undefined, 1800);
     });
 
     // Баннер сбитой атаки босса.
@@ -308,6 +314,7 @@ export const HUD: React.FC<HUDProps> = ({
       unsubBossEnraged();
       unsubBossAttackTelegraph();
       unsubRetaliation();
+      unsubHunterWake();
       unsubBossStaggered();
       unsubMobsKilled();
       unsubEvent();

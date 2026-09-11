@@ -286,6 +286,7 @@ export class GameEngine {
   private unsubBossAppear: (() => void) | null = null;
   private unsubBossAttackTelegraph: (() => void) | null = null;
   private unsubRetaliationTelegraph: (() => void) | null = null;
+  private unsubHunterWake: (() => void) | null = null;
   private unsubComboBreak: (() => void) | null = null;
   private unsubFinishStep: (() => void) | null = null;
   private unsubCrowdMilestone: (() => void) | null = null;
@@ -843,6 +844,12 @@ export class GameEngine {
     });
     this.unsubRetaliationTelegraph = eventBus.on('retaliationTelegraph', () => {
       this.triggerHaptic([25, 20, 25]);
+    });
+    // Пробуждение охотника с тыла: короткий толчок тряски + тактильный сигнал
+    // (видимая часть телеграфа — HUD-баннер и рык; подписка в HUD.tsx).
+    this.unsubHunterWake = eventBus.on('hunterWake', () => {
+      eventBus.emit('screenShake', { intensity: 0.3 });
+      this.triggerHaptic([40, 30, 40]);
     });
 
     // Аудиовизуальный фидбек классовых способностей (Уворот Ниндзя, Блок Щита Танка, Трансмутация Мага)
@@ -3477,6 +3484,7 @@ export class GameEngine {
     this.unsubBossAppear?.();
     this.unsubBossAttackTelegraph?.();
     this.unsubRetaliationTelegraph?.();
+    this.unsubHunterWake?.();
     this.unsubSettings?.();
     this.unsubFormation?.();
     this.unsubClassAbility?.();

@@ -591,7 +591,11 @@ export class LevelGenerator {
         // проход зависит от фазы — единственный источник агентности игрока,
         // таран (Круг≥8/Ромб≥10), танк или Hyper, как у остальных ловушек.
         type === 'laser_wall' ||
-        type === 'swinging_hammer',
+        // Охотник в фазах sleep (стоит на трассе) и chase (догоняет) летален —
+        // паритет с guard_dog: танк/таран/Hyper добивают его, не теряя всю толпу.
+        // Фаза 'wake' не летальна (isHazardActive=false), коллизии туда не доходят.
+        type === 'swinging_hammer' ||
+        type === 'hunter',
     };
   }
 
