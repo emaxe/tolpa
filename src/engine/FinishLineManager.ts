@@ -227,6 +227,9 @@ export class FinishLineManager {
       particles.emitLightPillar(0, this.chestZ, 50, 0xfacc15);
       particles.emitBurst(0, 3.5, this.chestZ, 60, 0xfacc15, 8.0);
       eventBus.emit('finishChestOpened', { x: 0, z: this.chestZ });
+      // Тряска кульминации: сильнее каждой отдельной стены (0.35×) — движковый
+      // потребитель screenShake сам добавляет и камеру, и хаптик.
+      eventBus.emit('screenShake', { intensity: 0.55 });
     } else if (!isApexWin) {
       // Частичная победа: скромный салют над выжившей толпой — без фантомного сундука.
       particles.emitBurst(crowd.leaderX, 1.5, crowd.leaderZ, 25, 0x00f0ff, 4.0);

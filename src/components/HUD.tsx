@@ -117,6 +117,7 @@ export const HUD: React.FC<HUDProps> = ({
     endlessRecordBeaten: { key: 'endlessRecordBeaten', cls: 'border-yellow-400 text-yellow-600' },
     finishLineCrossed: { key: 'finishLineCrossed', cls: 'border-cyan-400 text-cyan-600' },
     finishStepSmashed: { key: 'finishStepSmashed', cls: 'border-cyan-400 text-cyan-600' },
+    finishChestOpened: { key: 'apexChestOpened', cls: 'border-yellow-400 text-yellow-600' },
     bossDefeated: { key: 'bossDefeated', cls: 'border-yellow-400 text-yellow-600' },
     bossAppear: { key: 'bossAppear', cls: 'border-red-500 text-red-600' },
     bossEnraged: { key: 'bossEnraged', cls: 'border-rose-600 text-rose-700' },
@@ -293,6 +294,12 @@ export const HUD: React.FC<HUDProps> = ({
       showAlert('finishStepSmashed');
     });
 
+    // Гранд-Сундук взят — кульминация всех пробитых стен. Паритет баннера с
+    // finishStepSmashed: раньше финал был тише каждого из своих десяти шагов.
+    const unsubFinishChest = eventBus.on('finishChestOpened', () => {
+      showAlert('finishChestOpened', undefined, 3600);
+    });
+
     // Новый класс бойца впервые появился в толпе — баннер-тост с именем класса.
     const unsubNewClass = eventBus.on('newClassAppeared', (data: { type?: string }) => {
       if (!data || !data.type) return;
@@ -332,6 +339,7 @@ export const HUD: React.FC<HUDProps> = ({
       unsubEndlessRecordBeaten();
       unsubFinishLine();
       unsubFinishStep();
+      unsubFinishChest();
       unsubNewClass();
       unsubBiomeEntered();
     };
