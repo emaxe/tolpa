@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
-import { ObstacleManager } from '../../engine/ObstacleManager';
+import { ObstacleManager, HAZARD_HIT_PITCH } from '../../engine/ObstacleManager';
 import { LevelGenerator, DEFAULT_TRACK_WIDTH, getTargetMobsToWin, getStarsForFinish } from '../../engine/LevelGenerator';
 import { StateManager } from '../../core/StateManager';
 import { ObjectPool, Poolable } from '../../core/ObjectPool';
 import { BossManager } from '../../engine/BossManager';
 import { CrowdManager } from '../../engine/CrowdManager';
-import type { MobInstance } from '../../types/game';
+import type { MobInstance, ObstacleType } from '../../types/game';
 import { calculateFormationOffset, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT, getMobFinishPower, getMobBossPower, mysteryPenaltyStep } from '../../utils/math';
 
 describe('Gate & Math Operations', () => {
@@ -1234,5 +1234,42 @@ describe('mysteryPenaltyStep — делитель штрафа Мистики', 
     }
     const killedWithBonus = c2.divideMobsByStep(wing2, mysteryPenaltyStep(13), 'gate', { step: 0 }, 0.2);
     expect(killedWithBonus).toBeLessThanOrEqual(8);
+  });
+});
+
+describe('Идентичность ловушек: покрытие таблиц фидбека (тон/VFX смерти)', () => {
+  // Зеркало union-типа ObstacleType: добавление нового типа в union сломает
+  // компиляцию этого объекта (Record требует полноты) и заставит прописать и
+  // тон удара, и VFX смерти — так охотник не остался бы в дефолтных искрах.
+  const ALL: Record<ObstacleType, true> = {
+    saw_blade: true, axe_pendulum: true, crusher: true, spike_trap: true,
+    wrecking_ball: true, laser_grid: true, barrier_gate: true, lava_pit: true,
+    bomb: true, guard_dog: true, swinging_hammer: true, rolling_spike_ball: true,
+    laser_wall: true, hunter: true,
+  };
+  const types = Object.keys(ALL) as ObstacleType[];
+  // bomb/guard_dog имеют отдельные звуки (bomb_explode/dog_snap) — тон не нужен.
+  const PITCH_EXEMPT: ObstacleType[] = ['bomb', 'guard_dog'];
+  // Сигнатура default-ветки playDeathEffect (барьер): count, color, speed, size.
+  const DEFAULT_BURST = [12, 0xfacc15, 4.5, 1.4];
+
+  it('каждая ловушка (кроме исключений) имеет тон в HAZARD_HIT_PITCH', () => {
+    for (const t of types) {
+      if (PITCH_EXEMPT.includes(t)) continue;
+      expect(HAZARD_HIT_PITCH[t], `питч для ${t}`).toBeTypeOf('number');
+    }
+  });
+
+  it('каждая ловушка (кроме барьера) имеет собственный VFX смерти', () => {
+    const mgr = new ObstacleManager(new THREE.Scene());
+    for (const t of types) {
+      const emitBurst = vi.fn();
+      // Вызов приватного метода по той же сигнатуре, что в checkObstacleCollision.
+      (mgr as any).playDeathEffect({ type: t }, 0, 0.8, 0, { emitBurst });
+      expect(emitBurst, `VFX для ${t}`).toHaveBeenCalledTimes(1);
+      const burst = emitBurst.mock.calls[0].slice(3);
+      const isDefault = JSON.stringify(burst) === JSON.stringify(DEFAULT_BURST);
+      expect(isDefault, `${t} не должен падать в default-искры барьера`).toBe(t === 'barrier_gate');
+    }
   });
 });

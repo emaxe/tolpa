@@ -27,7 +27,7 @@ import { DEFAULT_TRACK_WIDTH } from './LevelGenerator';
 // obstacle_hit + mob_death). Тяжёлые ловушки (шар, лава, пресс) — низкий гул,
 // режущие (пила, лазер, шипы) — визг. Bomb/пёс/шар-роклер имеют свои отдельные
 // звуки (bomb_explode/dog_snap/rolling_approach), здесь им тон не нужен.
-const HAZARD_HIT_PITCH: Record<string, number> = {
+export const HAZARD_HIT_PITCH: Record<string, number> = {
   saw_blade: 1.25,
   axe_pendulum: 1.1,
   crusher: 0.8,
@@ -40,6 +40,9 @@ const HAZARD_HIT_PITCH: Record<string, number> = {
   wrecking_ball: 0.65,
   swinging_hammer: 0.75,
   rolling_spike_ball: 0.85,
+  // Охотник — тяжёлый зверь: низкий рычащий тон (семейство dog_snap по звуку,
+  // но у удара/смерти свой питч, а не generic ?? 1).
+  hunter: 0.75,
 };
 
 
@@ -1098,6 +1101,11 @@ export class ObstacleManager {
         // Лазерная стена — цвет лучей (тот же меш, что laser_grid), но залп шире:
         // мёртвая стена бьёт искрами по всей ширине трассы.
         particles.emitBurst(x, y, z, 16, 0x22d3ee, 6.5, 3.4);
+        break;
+      case 'hunter':
+        // Охотник — тёмно-багровые искры в тон его корпуса/глаз (0x7f1d1d/0xdc2626),
+        // иначе умирал в дефолтных жёлтых искрах барьера без опознавательного цвета.
+        particles.emitBurst(x, y, z, 15, 0xdc2626, 5.5, 1.2);
         break;
       case 'barrier_gate':
       default:
