@@ -193,6 +193,9 @@ export class GameEngine {
   private static readonly FOV_MAX = 65.0;
   private static readonly FOV_PER_MULT = 10.0;
   private static readonly FOV_LERP = 6.0;
+  // Опорная скорость (м/с) = стартовый baseSpeed: FOV растёт от неё, а не только
+  // от мультипликаторов — иначе разгон Endless (18→30) остаётся визуально статичным.
+  private static readonly FOV_SPEED_REF = 18.0;
 
   // Крен камеры при рулении: максимум 0.10 рад (~5.7°) и скорость лерпа.
   private static readonly CAMERA_BANK_MAX = 0.10;
@@ -2937,10 +2940,12 @@ export class GameEngine {
     this.camera.position.y = GameEngine.CAMERA_HEIGHT;
 
     // Dynamic FOV: расширение угла обзора при ускорении — ощущение "вваливания" скорости.
-    // Целевой FOV растёт от 55 до 65 пропорционально множителю скорости (speedMult).
+    // Целевой FOV растёт от 55 до 65 пропорционально множителю скорости (speedMult),
+    // включая абсолютный разгон baseSpeed (Endless/уровни): factor = baseSpeed / 18.
+    const fovSpeedMult = speedMult * (this.baseSpeed / GameEngine.FOV_SPEED_REF);
     const targetFov = Math.min(
       GameEngine.FOV_MAX,
-      GameEngine.FOV_BASE + (speedMult - 1.0) * GameEngine.FOV_PER_MULT
+      GameEngine.FOV_BASE + (fovSpeedMult - 1.0) * GameEngine.FOV_PER_MULT
     );
     const newFov = THREE.MathUtils.lerp(this.currentFov, targetFov, GameEngine.FOV_LERP * dt);
     if (Math.abs(newFov - this.currentFov) > 0.01) {
