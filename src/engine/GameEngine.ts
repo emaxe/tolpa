@@ -3103,16 +3103,20 @@ export class GameEngine {
     }
 
     // Предупреждение «толпа не пробивает следующую финишную стену»: когда финиш
-    // активен и численность падает ниже стоимости следующей стены, эмитим
+    // активен и кинетическая масса падает до стоимости следующей стены, эмитим
     // crowdLowWarning ровно один раз (флаг crowdLowWarned), сбрасываем при
     // восстановлении. Раньше был только пассивный красный пульс в HUD — теперь
     // звук + баннер + VFX, чтобы игрок не упустил критический момент.
     if (!this.isEndless && this.finishLine.hasCrossedFinish) {
       const wallCost = this.finishLine.getNextWallCost(this.crowd.formation);
-      const tooLow = wallCost >= 0 && crowdNow <= wallCost;
+      // Паритет с физикой прорыва (FinishLineManager): стену бьёт кинетическая масса
+      // (getFinishBreakingPower: Танк = вес x2, перк шир. строя), а не численность.
+      // Сырой crowdNow давал ложный алерт «не пробьёт» перед успешным тараном.
+      const finishPower = this.crowd.getFinishBreakingPower();
+      const tooLow = wallCost >= 0 && finishPower <= wallCost;
       if (tooLow && !this.crowdLowWarned) {
         this.crowdLowWarned = true;
-        eventBus.emit('crowdLowWarning', { x: this.crowd.leaderX, z: this.crowd.leaderZ, crowd: crowdNow, cost: wallCost });
+        eventBus.emit('crowdLowWarning', { x: this.crowd.leaderX, z: this.crowd.leaderZ, crowd: finishPower, cost: wallCost });
       } else if (!tooLow && this.crowdLowWarned) {
         this.crowdLowWarned = false;
       }

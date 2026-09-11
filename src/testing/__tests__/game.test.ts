@@ -1224,6 +1224,17 @@ describe('getFinishBreakingPower — числитель паритетного �
     // 3 головы, масса 4: стена с cost=3 пробивается, хотя голов "не больше" стоимости.
     expect(c.getFinishBreakingPower()).toBe(4);
   });
+  it('триггер crowdLowWarning паритетен физике прорыва: танки не дают ложного алерта', () => {
+    // Контрпример из жизни: 8 Танков (масса 16) против стены cost=8 пробивается
+    // строго (16 > 8), но старый счёт по голом (8 <= 8) ложно кричал «не пробьёт».
+    const c = new CrowdManager(new THREE.Scene());
+    for (let i = 0; i < 8; i++) c.spawnMob('tank');
+    const wallCost = 8;
+    expect(c.getAliveCount()).toBeLessThanOrEqual(wallCost); // старая (ложная) логика
+    expect(c.getFinishBreakingPower() > wallCost).toBe(true); // физика прорыва
+    // Новое tooLow = масса <= стоимость — ложного предупреждения нет.
+    expect(c.getFinishBreakingPower() <= wallCost).toBe(false);
+  });
 });
 
 // Мистика: штраф ÷ не должен использовать сырой val (8..13) — это вайп крыла 88..92%
