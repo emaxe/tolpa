@@ -1210,7 +1210,7 @@ export class LevelGenerator {
     obstacles: ObstacleData[],
     trackWidth: number
   ): number | null {
-    const maxPlayableX = trackWidth / 2 - 1.2;
+    const maxPlayableX = trackWidth / 2 - TRACK_RAIL_MARGIN;
     const nearbyObs = obstacles.filter((obs) => Math.abs(obs.z - z) < 2.5);
 
     if (nearbyObs.length === 0) {

@@ -353,6 +353,14 @@ export const HUD: React.FC<HUDProps> = ({
     }
   };
 
+  // Клик по строю: button_click даёт отклик и на уже активном строю
+  // (setFormation молча игнорирует повтор); сама смена дополнительно
+  // озвучивается formation_change через движок — это разные звуки.
+  const handleFormationClick = (f: FormationType) => {
+    soundEngine.playSound('button_click');
+    onFormationChange(f);
+  };
+
   return (
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-4 select-none">
       {/* Красная виньетка при потере бойцов */}
@@ -656,7 +664,7 @@ export const HUD: React.FC<HUDProps> = ({
           </div>
           <div className="pointer-events-auto grid grid-cols-6 gap-2 bg-slate-100/80 backdrop-blur-md p-1.5 rounded-xl border border-slate-300 max-sm:order-1 max-sm:grid-cols-1 max-sm:gap-1 max-sm:p-1 max-sm:rounded-2xl">
           <button
-            onClick={() => onFormationChange('wedge')}
+            onClick={() => handleFormationClick('wedge')}
             className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
               currentFormation === 'wedge'
                 ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-zinc-950 font-bold shadow-md shadow-teal-500/30'
@@ -669,7 +677,7 @@ export const HUD: React.FC<HUDProps> = ({
           </button>
 
           <button
-            onClick={() => onFormationChange('wide')}
+            onClick={() => handleFormationClick('wide')}
             className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
               currentFormation === 'wide'
                 ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-zinc-950 font-bold shadow-md shadow-teal-500/30'
@@ -682,7 +690,7 @@ export const HUD: React.FC<HUDProps> = ({
           </button>
 
           <button
-            onClick={() => onFormationChange('circle')}
+            onClick={() => handleFormationClick('circle')}
             className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
               currentFormation === 'circle'
                 ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-zinc-950 font-bold shadow-md shadow-teal-500/30'
@@ -695,7 +703,7 @@ export const HUD: React.FC<HUDProps> = ({
           </button>
 
           <button
-            onClick={() => onFormationChange('arrow')}
+            onClick={() => handleFormationClick('arrow')}
             className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
               currentFormation === 'arrow'
                 ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-zinc-950 font-bold shadow-md shadow-teal-500/30'
@@ -708,7 +716,7 @@ export const HUD: React.FC<HUDProps> = ({
           </button>
 
           <button
-            onClick={() => onFormationChange('oval')}
+            onClick={() => handleFormationClick('oval')}
             className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
               currentFormation === 'oval'
                 ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-zinc-950 font-bold shadow-md shadow-teal-500/30'
@@ -721,7 +729,7 @@ export const HUD: React.FC<HUDProps> = ({
           </button>
 
           <button
-            onClick={() => onFormationChange('diamond')}
+            onClick={() => handleFormationClick('diamond')}
             className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-semibold font-orbitron transition-all cursor-pointer max-sm:p-1.5 max-sm:rounded-xl ${
               currentFormation === 'diamond'
                 ? 'bg-gradient-to-r from-teal-400 to-emerald-400 text-zinc-950 font-bold shadow-md shadow-teal-500/30'

@@ -15,7 +15,7 @@ import { soundEngine } from '../audio/SoundEngine';
 import { MusicTheme } from '../types/audio';
 import { eventBus } from '../core/EventBus';
 import { perfMonitor } from '../core/Performance';
-import { clamp, getNearMissMultiplier } from '../utils/math';
+import { clamp, getNearMissMultiplier, TRACK_RAIL_MARGIN } from '../utils/math';
 import { createSpectatorGeometry, getBillboardTexture } from '../utils/proceduralMeshes';
 
 /** h→rgb для радужного треила (HSL, s=1/l=0.55). Модульный уровень: без создания замыкания на каждый кадр. */
@@ -2511,7 +2511,7 @@ export class GameEngine {
           // Ищем свободное кольцо из пула
           const freeMesh = this.meteorRings.find((m) => !m.visible);
           if (freeMesh) {
-            const half = trackWidth / 2 - 1.2;
+            const half = trackWidth / 2 - TRACK_RAIL_MARGIN;
             const mx = (Math.random() - 0.5) * 2 * half;
             const mz = this.crowd.leaderZ + 14 + Math.random() * 16;
             freeMesh.position.set(mx, 0.04, mz);
@@ -2749,7 +2749,7 @@ export class GameEngine {
       : (this.currentLevel?.boss ? (this.currentLevel.trackLength - 20) : Infinity);
     if (bossArenaZ - this.crowd.leaderZ < 50) return;
 
-    const playableHalf = trackWidth / 2 - 1.2; // TRACK_RAIL_MARGIN
+    const playableHalf = trackWidth / 2 - TRACK_RAIL_MARGIN;
     const count = Math.min(4, 2 + Math.floor(evt.intensity));
     const obsData: ObstacleData[] = [];
     const startZ = this.crowd.leaderZ + 20;
