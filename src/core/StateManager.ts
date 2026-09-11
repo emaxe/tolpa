@@ -951,13 +951,14 @@ export class StateManager {
   }
 
   // Currency
-  public addCoins(amount: number): void {
+  public addCoins(amount: number): number {
     const incomeMultiplier = this.getIncomeMultiplier();
     const finalAmount = Math.round(amount * incomeMultiplier);
     this.state.coins += finalAmount;
     this.state.stats.totalCoinsEarned += finalAmount;
     this.updateAchievementProgress('rich_boy', this.state.stats.totalCoinsEarned);
     this.notify();
+    return finalAmount;
   }
 
   public addGems(amount: number): void {

@@ -262,6 +262,10 @@ export class CrowdManager {
     for (let i = 0; i < totalStart; i++) {
       this.spawnMob('regular', 0, startZ);
     }
+    // setColorAt() создаёт/переиспользует буфер instanceColor, но НЕ выставляет
+    // needsUpdate — без инвалидации стартовая толпа после рестарта отрисовалась бы
+    // старым скином до первого динамического спавна (флаг ставит только addMobsNear).
+    if (this.instancedMesh.instanceColor) this.instancedMesh.instanceColor.needsUpdate = true;
 
     this.updateMobPositions(0, true);
   }

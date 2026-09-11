@@ -1,9 +1,9 @@
 import React from 'react';
 import confetti from 'canvas-confetti';
-import { INITIAL_ACHIEVEMENTS, stateManager } from '../core/StateManager';
+import { INITIAL_ACHIEVEMENTS, INITIAL_SKINS, stateManager } from '../core/StateManager';
 import { i18n } from '../core/Localization';
 import { soundEngine } from '../audio/SoundEngine';
-import { X, Award, Coins, Gem, Check, Footprints, Users, ShieldAlert, Swords, Crown, Zap, Flame, Hammer, DoorOpen, Trophy, Skull, Star, Gamepad2, Route } from 'lucide-react';
+import { X, Award, Coins, Gem, Check, Footprints, Users, ShieldAlert, Swords, Crown, Zap, Flame, Hammer, DoorOpen, Trophy, Skull, Star, Gamepad2, Route, Shirt } from 'lucide-react';
 
 interface AchievementsModalProps {
   onClose: () => void;
@@ -141,6 +141,17 @@ export const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose })
 
                 {/* Reward / Claim */}
                 <div className="shrink-0">
+                  {/* Скин-награда: раньше не рендерилась нигде, кроме магазина —
+                      игрок не видел, что за достижение открывает эксклюзивный скин. */}
+                  {ach.rewardSkinId && (() => {
+                    const rSkin = INITIAL_SKINS.find((s) => s.id === ach.rewardSkinId);
+                    return rSkin ? (
+                      <div className="flex items-center gap-1 mb-1.5 justify-end text-[10px] font-orbitron font-bold text-cyan-400">
+                        <Shirt className="w-3.5 h-3.5" />
+                        <span>{i18n.t(rSkin.nameKey)}</span>
+                      </div>
+                    ) : null;
+                  })()}
                   {isClaimed ? (
                     <div className="flex items-center gap-1 text-xs font-orbitron text-emerald-400 font-bold px-3 py-1.5 bg-emerald-950/40 rounded-xl border border-emerald-800/40">
                       <Check className="w-4 h-4" />

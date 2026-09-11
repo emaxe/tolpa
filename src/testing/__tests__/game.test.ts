@@ -110,6 +110,11 @@ describe('Gate & Math Operations', () => {
     // Формула: 1 + уровень * 0.15 (кап уровней до 10 в UI, формула не ограничена).
     mgr.upgradeStat('incomeMultiplier');
     expect(mgr.getIncomeMultiplier()).toBeCloseTo(1.15);
+    // addCoins возвращает ФАКТИЧЕСКИ зачисленную сумму (с множителем) — на этом
+    // держится честный итог «Всего награда» на экране финала (App.handleLevelWon).
+    const before = mgr.getState().coins;
+    expect(mgr.addCoins(100)).toBe(115);
+    expect(mgr.getState().coins - before).toBe(115);
   });
 
   it('трансмутация ворот ÷N Хроно-Магом: one-shot guard предотвращает задвоение спавна при проходе несколькими пачками', () => {

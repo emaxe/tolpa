@@ -136,12 +136,21 @@ export const App: React.FC = () => {
     (score: number, mult: number, remainingMobs: number, sacrificed: number, runStats: RunStats) => {
       const target = getTargetMobsToWin(activeLevel);
       const stars = getStarsForFinish(remainingMobs, target);
-      const coinsEarned = Math.round((score * 0.5) * stateManager.getIncomeMultiplier());
-      const gemsEarned = activeLevel % 10 === 0 ? 10 : 2;
-
-      stateManager.addCoins(Math.round(score * 0.5));
-      if (gemsEarned > 0) {
-        stateManager.addGems(gemsEarned);
+      // «Всего награда» = ВСЁ, что зачислит этот забег: монеты трассы и босса
+      // (их начисляет commitRun до этого колбэка) + финишный бонус score*0.5.
+      // Раньше в модалке был только бонус — итог выглядел заниженным (~в 4 раза).
+      // В кошелёк addCoins кладёт ТОЛЬКО финишный бонус: монеты трассы/босса
+      // уже зачислены в commitRun() (формула-зеркало ниже — для отображения).
+      const incomeMult = stateManager.getIncomeMultiplier();
+      const runCoins = Math.round((runStats.coins + runStats.bossCoins) * incomeMult);
+      const bonusCoins = stateManager.addCoins(Math.round(score * 0.5)); // итог с множителем
+      const coinsEarned = runCoins + bonusCoins;
+      // Кристаллы: +15💎 за босса уже зачислил commitRun — в кошелёк кладём только
+      // финишный бонус, в отобразаемый итог — бонус + кристаллы босса из забега.
+      const bonusGems = activeLevel % 10 === 0 ? 10 : 2;
+      const gemsEarned = bonusGems + runStats.bossGems;
+      if (bonusGems > 0) {
+        stateManager.addGems(bonusGems);
         soundEngine.playSound('gem_pickup');
       }
       stateManager.completeLevel(activeLevel, score, remainingMobs, stars);
@@ -171,10 +180,12 @@ export const App: React.FC = () => {
         const distance = runStats?.distance ?? 0;
         const isNewRecord = distance > stateManager.getState().endlessHighScore;
         if (isNewRecord) stateManager.setEndlessHighScore(distance);
-        // Награда за дистанцию: ~10 монет за 100 м (масштабируется с экономикой).
+        // Награда за дистанцию: ~10 монет за 100 м + монеты, собранные на трассе
+        // (их уже зачислил commitRun — раньше в итоге не показывались).
         const rawCoins = Math.floor(distance / 10);
-        if (rawCoins > 0) stateManager.addCoins(rawCoins);
-        const coinsEarned = Math.round(rawCoins * stateManager.getIncomeMultiplier());
+        const distBonus = rawCoins > 0 ? stateManager.addCoins(rawCoins) : 0;
+        const incomeMult = stateManager.getIncomeMultiplier();
+        const coinsEarned = distBonus + Math.round((runStats.coins + runStats.bossCoins) * incomeMult);
         setEndResult({
           isVictory: true,
           score: distance,
@@ -189,10 +200,12 @@ export const App: React.FC = () => {
         setPhase('level_lost');
         return;
       }
-      // Утешительная награда при поражении в кампании (совпадает с LevelEndModal: +25).
+      // Утешительная награда при поражении в кампании (+25) + монеты, собранные
+      // на трассе до гибели (их зачислил commitRun — в итоге они не показывались).
       const rawCoins = 25;
-      stateManager.addCoins(rawCoins);
-      const coinsEarned = Math.round(rawCoins * stateManager.getIncomeMultiplier());
+      const consolation = stateManager.addCoins(rawCoins);
+      const incomeMultL = stateManager.getIncomeMultiplier();
+      const coinsEarned = consolation + Math.round((runStats.coins + runStats.bossCoins) * incomeMultL);
       setEndResult({
         isVictory: false,
         score: 0,
