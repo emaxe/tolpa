@@ -222,13 +222,11 @@ export const App: React.FC = () => {
   );
 
   const handleNextLevel = useCallback(() => {
-    soundEngine.playSound('button_click');
     const nextLvl = Math.min(50, activeLevel + 1);
     handlePlayLevel(nextLvl);
   }, [activeLevel, handlePlayLevel]);
 
   const handleRetry = useCallback(() => {
-    soundEngine.playSound('button_click');
     if (isEndless) {
       handlePlayEndless();
     } else {
@@ -237,7 +235,6 @@ export const App: React.FC = () => {
   }, [isEndless, activeLevel, handlePlayEndless, handlePlayLevel]);
 
   const handleToMainMenu = useCallback(() => {
-    soundEngine.playSound('button_click');
     // Чилловая BGM-тема меню (dead-but-supported: тема синтезирована, но меню было в тишине).
     // playMusic() сам переключает currentTheme и не трогает идущий интервал при возврате.
     soundEngine.playMusic('menu');
@@ -252,24 +249,19 @@ export const App: React.FC = () => {
   }, []);
 
   const handleResume = useCallback(() => {
-    soundEngine.playSound('button_click');
     setPhase((p) => (p === 'paused' ? 'running' : p));
   }, []);
 
   const handlePauseButton = useCallback(() => {
-    soundEngine.playSound('button_click');
     setPhase((p) => (p === 'running' ? 'paused' : p === 'paused' ? 'running' : p));
   }, []);
 
-  // Единая точка звука для открытия/закрытия модалок: покрывает close-кнопки
-  // Shop/Settings/Achievements/Guide/Test и open из меню/финала одним местом —
-  // раньше все эти кнопки были немыми (звук был только в MainMenu-открытиях).
+  // Звук кликов инкапсулирован в листовых UI-кнопках (MainMenu/HUD/модалки играют
+  // button_click в своих onClick) — здесь не воспроизводим, иначе двойной осциллятор.
   const openModal = useCallback((m: 'shop' | 'settings' | 'achievements' | 'guide' | 'tests') => {
-    soundEngine.playSound('button_click');
     setActiveModal(m);
   }, []);
   const closeModal = useCallback(() => {
-    soundEngine.playSound('button_click');
     setActiveModal(null);
   }, []);
 
