@@ -889,6 +889,34 @@ export class CrowdManager {
     return this.wallImpactScratch;
   }
 
+  /**
+   * Разрешает контакт одного моба с опасностью трассы (ловушка/мина/собака):
+   * неуязвимость свежего спавна, гипер-режим, уворот ниндзя, щит и запас HP —
+   * паритет с resolveWallImpact и ветками ворот. Возвращает true, если моб погиб.
+   * Классовый фидбек выживших даёт emitClassAbility (консьюмер в GameEngine),
+   * поэтому вызывающая сторона при false не играет death-FX и не считает потерю.
+   */
+  public resolveObstacleImpact(mob: MobInstance): boolean {
+    if (this.isHyperMode || !mob.alive || mob.dying || mob.invulnerableTime > 0) return false;
+    // Уворот ниндзя 50% — тратит удар опасности, не убивает
+    if (mob.type === 'ninja' && Math.random() < 0.5) {
+      this.emitClassAbility('ninja', 'dodge', mob.x, mob.z);
+      return false;
+    }
+    // Щит танка/мага поглощает контакт
+    if (mob.shieldHp > 0) {
+      mob.shieldHp--;
+      this.emitClassAbility(mob.type === 'mage' ? 'mage' : 'tank', 'shield', mob.x, mob.z);
+      return false;
+    }
+    // Запас HP (прокачанный танк): −1 HP, выживает
+    if (mob.hp > 1) {
+      mob.hp--;
+      return false;
+    }
+    return this.killMobById(mob.id);
+  }
+
   /** Тактический бонус Фаланги (circle): множитель урона толпы по боссу. */
   public getBossDamageMultiplier(): number {
     return this.formation === 'circle' ? 1.35 : 1.0;

@@ -1192,15 +1192,15 @@ export class ObstacleManager {
           eventBus.emit('obstacleSmashed', { type: obs.type, x: obs.x, z: obs.z, ram: isRam });
           break;
         } else {
-          // Препятствие уничтожает КАЖДОГО моба, который его касается — в этом же кадре.
-          // killMobById помечает моба умирающим (death-анимация) и убирает из живых,
-          // поэтому один и тот же моб не погибает дважды, а остальные в этом кадре
-          // проверяются независимо и тоже гибнут, если касаются.
-          crowd.killMobById(mob.id);
-          this.playDeathEffect(obs, mob.x, 0.8, mob.z, particles);
-          anyHit = true;
-          hitCount++;
-          obsVis.hitAccum = (obsVis.hitAccum ?? 0) + 1;
+          // Препятствие уничтожает каждого коснувшегося моба, но классы и прокачка
+          // дают стойкость (уворот ниндзя / щит / запас HP — резолвер паритетен со
+          // стенами). Фидбек выжившего (искры+звук) делает emitClassAbility внутри.
+          if (crowd.resolveObstacleImpact(mob)) {
+            this.playDeathEffect(obs, mob.x, 0.8, mob.z, particles);
+            anyHit = true;
+            hitCount++;
+            obsVis.hitAccum = (obsVis.hitAccum ?? 0) + 1;
+          }
         }
       }
     }
@@ -1483,13 +1483,16 @@ export class ObstacleManager {
       const dx = m.x - obs.x;
       const dz = m.z - obs.z;
       if (dx * dx + dz * dz <= rSq) {
-        crowd.killMobById(m.id);
-        this.playDeathEffect(obs, m.x, 0.8, m.z, particles);
-        bombKilled++;
+        if (crowd.resolveObstacleImpact(m)) {
+          this.playDeathEffect(obs, m.x, 0.8, m.z, particles);
+          bombKilled++;
+        }
       }
     }
     // Взрыв мины убил мобов — серия уворотов сбрасывается.
-    this.breakNearMissStreak(obs.x, obs.z);
+    if (bombKilled > 0) {
+      this.breakNearMissStreak(obs.x, obs.z);
+    }
     // Фидбек потерь (виньетка + "-N") — бомба не эмитила mobsKilled.
     if (bombKilled > 0) {
       eventBus.emit('mobsKilled', { count: bombKilled, reason: 'bomb', x: obs.x, z: obs.z });
@@ -1572,17 +1575,18 @@ export class ObstacleManager {
 
     if (!nearest) return;
 
-    // Укус: убиваем одного моба. Кулдаун = 1/attackRate (1..3 моб/сек),
-    // т.е. при attackRate=1 — раз в сек, при 3 — до трёх раз в сек.
-    crowd.killMobById(nearest.id);
+    // Укус: цель — один моб. Кулдаун = 1/attackRate срабатывает ВСЕГДА (собака
+    // потратила атаку), но классовая стойкость может отбить укус.
+    const bitten = crowd.resolveObstacleImpact(nearest);
     vis.attackCooldown = 1 / (obs.attackRate ?? 1);
-    this.playDeathEffect(obs, nearest.x, 0.8, nearest.z, particles);
+    if (bitten) {
+      this.playDeathEffect(obs, nearest.x, 0.8, nearest.z, particles);
+      eventBus.emit('screenShake', { intensity: 0.25 });
+      this.breakNearMissStreak(dogX, dogZ);
+      // Фидбек потерь (виньетка + "-N") — собака не эмитила mobsKilled.
+      eventBus.emit('mobsKilled', { count: 1, reason: 'guard_dog', x: nearest.x, z: nearest.z });
+    }
     if (vol > 0) soundEngine.playSound('dog_snap', 1, vol);
-    eventBus.emit('screenShake', { intensity: 0.25 });
-    // Собака укусила моба — серия уворотов сбрасывается.
-    this.breakNearMissStreak(dogX, dogZ);
-    // Фидбек потерь (виньетка + "-N") — собака не эмитила mobsKilled.
-    eventBus.emit('mobsKilled', { count: 1, reason: 'guard_dog', x: nearest.x, z: nearest.z });
   }
 
   private disposeMeshTree(root: THREE.Object3D): void {
