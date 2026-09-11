@@ -6,7 +6,8 @@ import { StateManager } from '../../core/StateManager';
 import { ObjectPool, Poolable } from '../../core/ObjectPool';
 import { BossManager } from '../../engine/BossManager';
 import { CrowdManager } from '../../engine/CrowdManager';
-import { calculateFormationOffset, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT, getMobFinishPower, getMobBossPower } from '../../utils/math';
+import type { MobInstance } from '../../types/game';
+import { calculateFormationOffset, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT, getMobFinishPower, getMobBossPower, mysteryPenaltyStep } from '../../utils/math';
 
 describe('Gate & Math Operations', () => {
   it('выполняет сложение мобов (+15 к 10 = 25)', () => {
@@ -1197,5 +1198,41 @@ describe('getFinishBreakingPower — числитель паритетного �
     expect(c.getAliveCount()).toBe(3);
     // 3 головы, масса 4: стена с cost=3 пробивается, хотя голов "не больше" стоимости.
     expect(c.getFinishBreakingPower()).toBe(4);
+  });
+});
+
+// Мистика: штраф ÷ не должен использовать сырой val (8..13) — это вайп крыла 88..92%
+// при награде всего +8..13. Делитель — в обычном диапазоне ÷-ворот (2..3).
+describe('mysteryPenaltyStep — делитель штрафа Мистики', () => {
+  it('для всего диапазона val 8..13 делитель остаётся 2..3', () => {
+    for (let val = 8; val <= 13; val++) {
+      const step = mysteryPenaltyStep(val);
+      expect(step).toBeGreaterThanOrEqual(2);
+      expect(step).toBeLessThanOrEqual(3);
+    }
+    expect(mysteryPenaltyStep(8)).toBe(2);
+    expect(mysteryPenaltyStep(13)).toBe(3);
+  });
+
+  it('реальное деление крыла 12 по шагу 3 теряет 8 (не 11, как при сырой ÷13)', () => {
+    const c = new CrowdManager(new THREE.Scene());
+    const wing: MobInstance[] = [];
+    for (let i = 0; i < 12; i++) {
+      const mob = c.spawnMob('regular') as MobInstance;
+      mob.invulnerableTime = 0; // сбрасываем спавн-невменяемость (килл по шагу иначе пропускается)
+      wing.push(mob);
+    }
+    const killed = c.divideMobsByStep(wing, mysteryPenaltyStep(13), 'gate', { step: 0 }, 0);
+    expect(killed).toBe(8);
+    // Синергия Фаланги может спасти приговорённых, но не убить больше базы.
+    const c2 = new CrowdManager(new THREE.Scene());
+    const wing2: MobInstance[] = [];
+    for (let i = 0; i < 12; i++) {
+      const mob = c2.spawnMob('regular') as MobInstance;
+      mob.invulnerableTime = 0;
+      wing2.push(mob);
+    }
+    const killedWithBonus = c2.divideMobsByStep(wing2, mysteryPenaltyStep(13), 'gate', { step: 0 }, 0.2);
+    expect(killedWithBonus).toBeLessThanOrEqual(8);
   });
 });

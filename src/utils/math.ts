@@ -342,3 +342,11 @@ export function getMobBossPower(type: MobType): number {
   return type === 'tank' ? 2.0 : type === 'mage' ? 1.75 : type === 'ninja' ? 1.25 : 1.0;
 }
 
+/**
+ * Делитель штрафа Mystery-ворот. Сырой val (8..13) как делитель стирал 88..92% крыла —
+ * в 3-6 раз жёстче обычных ÷-ворот (2..3). Верх диапазона разброса (10..13) — ÷3,
+ * низ (8..9) — ÷2: риск остаётся видимым, но в рамках сбалансированных делителей.
+ */
+export function mysteryPenaltyStep(val: number): number {
+  return val >= 10 ? 3 : 2;
+}

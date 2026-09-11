@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GateData, GateOp, GateMotion, MobInstance } from '../types/game';
 import { createGateTexture } from '../utils/proceduralMeshes';
 import { CrowdManager } from './CrowdManager';
+import { mysteryPenaltyStep } from '../utils/math';
 import { ParticleSystem } from './ParticleSystem';
 import { soundEngine } from '../audio/SoundEngine';
 import { eventBus } from '../core/EventBus';
@@ -404,7 +405,24 @@ export class GateManager {
           isPositive = true;
           if (isNewTransmute && base > 0) isMageTransmuteSpawn = true;
         } else {
-          netChange = -crowd.divideMobsByStep(wing, val, 'gate', gateVisual.divideStep);
+          // Штраф: ÷ по шагу. Делитель масштабируем из val (8..13) в обычный диапазон
+          // ÷-ворот (2..3): сырой val стирал 88..92% крыла — при награде +8..13 это
+          // не риск-геймбил, а гарантированный ваншот. Больше вал — жёстче делитель.
+          const penaltyDiv = mysteryPenaltyStep(val);
+          // Синергия защитных формаций при делении — та же, что у ветки op === 'divide'
+          // (Клин +10%, Ромб +15%, Фаланга +20% удержания); делитель остаётся ЦЕЛЫМ.
+          let retentionBonus = 0;
+          if (crowd.formation === 'wedge') {
+            retentionBonus = 0.10;
+            perk = 'wedge_div';
+          } else if (crowd.formation === 'diamond') {
+            retentionBonus = 0.15;
+            perk = 'diamond_div';
+          } else if (crowd.formation === 'circle') {
+            retentionBonus = 0.20;
+            perk = 'circle_div';
+          }
+          netChange = -crowd.divideMobsByStep(wing, penaltyDiv, 'gate', gateVisual.divideStep, retentionBonus);
           if (isFirstTrigger) soundEngine.playSound('gate_pass_negative');
           if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 20, 0xef4444, 4.0);
           if (isFirstTrigger) eventBus.emit('screenShake', { intensity: 0.3 });
