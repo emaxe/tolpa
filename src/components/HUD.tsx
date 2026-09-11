@@ -89,7 +89,7 @@ export const HUD: React.FC<HUDProps> = ({
   activeEventType,
   activeEventTimer,
 }) => {
-  const [bossInfo, setBossInfo] = useState<{ hp: number; maxHp: number; nameKey: string } | null>(null);
+  const [bossInfo, setBossInfo] = useState<{ hp: number; maxHp: number; nameKey: string; titleKey?: string } | null>(null);
   const [isBossShielded, setIsBossShielded] = useState<boolean>(false);
   const [damageFlashKey, setDamageFlashKey] = useState<number>(0);
   // Баннер динамического события уровня (ambush/coin_train/emp_storm/meteor_rain/speed_boost/biomeEntered)
@@ -562,6 +562,13 @@ export const HUD: React.FC<HUDProps> = ({
             <span className={`font-bold tracking-wider flex items-center gap-1 ${critical ? 'text-red-600' : isBossShielded ? 'text-cyan-600' : 'text-red-400'}`}>
               <Skull className="w-3.5 h-3.5" />
               {i18n.t(bossInfo.nameKey, 'BOSS')}
+              {/* Титул босса: поле titleKey генерировалось LevelGenerator и локализовалось,
+                  но HUD его не читал — полоса показывала только имя. */}
+              {bossInfo.titleKey && (
+                <span className="font-sans text-[10px] font-normal text-slate-500 tracking-normal normal-case">
+                  • {i18n.t(bossInfo.titleKey)}
+                </span>
+              )}
               {isBossShielded && (
                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-500/20 border border-cyan-400 text-cyan-700 text-[10px] font-extrabold uppercase animate-pulse">
                   <Shield className="w-3 h-3 text-cyan-500" />
