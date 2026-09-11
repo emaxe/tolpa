@@ -7,6 +7,7 @@ import { ObjectPool, Poolable } from '../../core/ObjectPool';
 import { BossManager } from '../../engine/BossManager';
 import { CrowdManager } from '../../engine/CrowdManager';
 import { ParticleSystem } from '../../engine/ParticleSystem';
+import { GateManager } from '../../engine/GateManager';
 import type { MobInstance, ObstacleType } from '../../types/game';
 import { calculateFormationOffset, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT, getMobFinishPower, getMobBossPower, mysteryPenaltyStep } from '../../utils/math';
 
@@ -1307,5 +1308,26 @@ describe('Идентичность ловушек: покрытие таблиц
       const isDefault = JSON.stringify(burst) === JSON.stringify(DEFAULT_BURST);
       expect(isDefault, `${t} не должен падать в default-искры барьера`).toBe(t === 'barrier_gate');
     }
+  });
+});
+
+// Регресс: GateManager.clear() обязан сбрасывать состояние ЭМИ-шторма вместе с
+// воротами. До фикса флаг empActive утекал в новый забег (рестарт во время шторма):
+// applyEmpStorm самоблокировался (:536), а prune() ворот был заморожен (:227) на весь
+// следующий ран endless — пройденные ворота переставали выгружаться из сцены.
+describe('GateManager — сброс ЭМИ-состояния в clear()', () => {
+  it('clear() гасит empActive, и шторм применяется к свежим воротам повторно', () => {
+    const gm = new GateManager(new THREE.Scene());
+    gm.applyEmpStorm(2);
+    expect(gm.isEmpActive()).toBe(true);
+    // Повторный вызов во время активного шторма — self-block (защита от повторной
+    // инверсии уже инвертированных ворот).
+    gm.applyEmpStorm(3);
+    expect(gm.isEmpActive()).toBe(true);
+    gm.clear();
+    expect(gm.isEmpActive()).toBe(false);
+    // После clear() новый шторм должен применяться снова (а не молча выходить по guard).
+    gm.applyEmpStorm(2);
+    expect(gm.isEmpActive()).toBe(true);
   });
 });

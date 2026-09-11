@@ -583,6 +583,12 @@ export class GateManager {
       g.mat.dispose();
     });
     this.gates = [];
+    // ЭМИ-состояние принадлежит этим воротам: после clear() originals указывают
+    // на уже освобождённые меши, а незакрытый флаг утекает в новый забег —
+    // applyEmpStorm самоблокируется (:536), а prune() в update() (:227) остаётся
+    // замороженным на весь следующий ран. Сбрасываем флаг вместе с воротами.
+    this.empActive = false;
+    this.empOriginals = [];
 
     this.sharedPlaneGeo?.dispose();
     this.sharedPillarGeo?.dispose();
