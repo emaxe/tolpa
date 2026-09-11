@@ -346,7 +346,9 @@ export const HUD: React.FC<HUDProps> = ({
   }, []);
 
   const handleAdrenalineClick = () => {
-    if (adrenalineCharge >= 100 || isHyperActive) {
+    // Активация возможна только при полном заряде и вне активного гипер-режима:
+    // клик во время «Ярости» был мёртвым (движок молча возвращал false).
+    if (adrenalineCharge >= 100 && !isHyperActive) {
       onActivateAdrenaline();
     }
   };
@@ -608,7 +610,7 @@ export const HUD: React.FC<HUDProps> = ({
         <div className="pointer-events-auto max-sm:order-2">
           <button
             onClick={handleAdrenalineClick}
-            disabled={adrenalineCharge < 100 && !isHyperActive}
+            disabled={adrenalineCharge < 100 || isHyperActive}
             className={`relative overflow-hidden rounded-xl border font-orbitron font-extrabold uppercase tracking-wider transition-all duration-300 flex items-center justify-between shadow-lg ${
               isHyperActive
                 ? 'bg-gradient-to-r from-yellow-500 via-amber-400 to-orange-500 text-zinc-950 border-yellow-300 animate-pulse scale-[1.02]'

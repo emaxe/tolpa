@@ -54,7 +54,7 @@ export const translations = {
     formationCircleBadge: '💥 Таран боссов ×1.35 · Стен ×2',
     formationArrowBadge: '⚡ Скорость +15%',
     formationOvalBadge: '⚖️ Баланс · Ворота и сферы +25%',
-    formationDiamondBadge: '💎 Броня −25% · Стены ×2 · Таран',
+    formationDiamondBadge: '💎 Броня +25% · Стены ×2 · Таран',
     metersToFinish: 'м до финиша',
     
     // Gates
@@ -439,7 +439,7 @@ export const translations = {
     formationCircleBadge: '💥 Boss Ram ×1.35 · Walls ×2',
     formationArrowBadge: '⚡ Speed +15%',
     formationOvalBadge: '⚖️ Balance · Gates & orbs +25%',
-    formationDiamondBadge: '💎 Armor −25% · Walls ×2 · Ram',
+    formationDiamondBadge: '💎 Armor +25% · Walls ×2 · Ram',
     metersToFinish: 'm to finish',
     
     // Gates
