@@ -330,6 +330,15 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       spawnScreen(i18n.t('endlessRecordBeaten'), 'text-yellow-300 font-extrabold text-lg drop-shadow-[0_0_10px_rgba(250,204,21,0.9)]');
     });
 
+    // Достижение готово к получению — центральный баннер с именем достижения,
+    // паритет с фанфарами milestone/рекорда (у HUD — тост, у движка — 3D-столб,
+    // а центральной праздничной надписи не хватало). Эмит однократный в StateManager.
+    const unsubAchReady = eventBus.on('achievementReady', (data: { achId?: string; titleKey?: string }) => {
+      const banner = i18n.t('achievementReady', 'ДОСТИЖЕНИЕ ГОТОВО! 🏆');
+      const title = data?.titleKey ? i18n.t(data.titleKey, '') : '';
+      spawnScreen(title ? `${banner}: ${title}` : banner, 'text-amber-300 font-black text-xl drop-shadow-[0_0_12px_rgba(251,191,36,0.95)]', -40);
+    });
+
     // Покупка апгрейда: всплывающая плашка в центре экрана.
     // Событие upgradePurchased эмитится StateManager, но раньше никем не потреблялось.
     const unsubUpgrade = eventBus.on('upgradePurchased', (data: { upgradeKey?: string; level?: number }) => {
@@ -620,6 +629,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubNewClass();
       unsubBiomeEntered();
       unsubEndlessRecord();
+      unsubAchReady();
     };
   }, [engine]);
 
