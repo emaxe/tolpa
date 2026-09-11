@@ -419,6 +419,29 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       }
     );
 
+    // Победа над боссом: золотой 3D-баннер над ареной. Событие bossDefeated раньше
+    // потребляли только HUD (2D-алерт) + GameEngine (салют VFX) — 3D-текста над
+    // боссом не было, тогда как появление/ярость/стан имеют свой. Паттерн как у
+    // bossEnraged: проекция y=4.5 над ареной, кап списка slice(-24).
+    const unsubBossDefeated = eventBus.on(
+      'bossDefeated',
+      (data: { boss?: { z?: number }; x?: number; z?: number }) => {
+        const eng = engine.current;
+        if (!eng) return;
+        const z = data?.z ?? data?.boss?.z ?? 0;
+        const pos = eng.projectToScreen(0, 4.5, z);
+        const id = idRef.current++;
+        setItems((prev) => [...prev.slice(-24), {
+          id, text: i18n.t('bossDefeated') + ' 👑',
+          colorClass: 'text-amber-300 font-black text-2xl drop-shadow-[0_0_16px_rgba(245,158,11,1)]',
+          x: pos.x, y: pos.y,
+        }]);
+        window.setTimeout(() => {
+          setItems((prev) => prev.filter((it) => it.id !== id));
+        }, 1500);
+      }
+    );
+
     // 3D-бейдж при смене боевого построения: название строя всплывает над толпой.
     // Событие formationChanged эмитится CrowdManager.setFormation, но FloatingText
     // раньше не потреблял его — игрок видел только звук + частицы, без текстовой
@@ -587,6 +610,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubBossShieldPierced();
       unsubBossAppear();
       unsubBossEnraged();
+      unsubBossDefeated();
       unsubBossStaggered();
       unsubFormation();
       unsubFinishStep();
