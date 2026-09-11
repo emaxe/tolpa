@@ -244,6 +244,10 @@ export class ParticleSystem {
       // При этом сбрасываем окно сканирования — весь пул снова пуст, следующий emit
       // начнёт с нулевого индекса и раздвинет poolTail заново.
       this.poolTail = 0;
+      // Кольца ударных волн живут независимо от частиц: без их обновления ниже
+      // ring, рождённый без взрыва (achievementReady, biomeEntered), застыл бы
+      // кольцом на земле навсегда и забил фиксированный пул из 6 мешей.
+      this.updateShockwaves(dt);
       return;
     }
 
@@ -300,6 +304,11 @@ export class ParticleSystem {
     }
 
     // Анимация колец ударных волн
+    this.updateShockwaves(dt);
+  }
+
+  /** Раздувает и гасит пул колец ударных волн; не зависит от частиц (0-GC). */
+  private updateShockwaves(dt: number): void {
     for (let i = 0; i < this.shockwaves.length; i++) {
       const sw = this.shockwaves[i];
       if (sw.active) {

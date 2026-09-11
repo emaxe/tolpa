@@ -6,6 +6,7 @@ import { StateManager } from '../../core/StateManager';
 import { ObjectPool, Poolable } from '../../core/ObjectPool';
 import { BossManager } from '../../engine/BossManager';
 import { CrowdManager } from '../../engine/CrowdManager';
+import { ParticleSystem } from '../../engine/ParticleSystem';
 import type { MobInstance, ObstacleType } from '../../types/game';
 import { calculateFormationOffset, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT, getMobFinishPower, getMobBossPower, mysteryPenaltyStep } from '../../utils/math';
 
@@ -830,6 +831,25 @@ describe('Object Pool & Memory', () => {
 
     const item2 = pool.acquire();
     expect(item2.val).toBe(0);
+  });
+});
+
+describe('ParticleSystem: ударные волны без частиц', () => {
+  // Регрессия skip-empty-pass: кольцо, рождённое без взрыва (achievementReady,
+  // biomeEntered), раньше замирало на земле навсегда, пока не придёт новый burst.
+  it('раздувает и гасит кольцо при пустом пуле частиц', () => {
+    const ps = new ParticleSystem(new THREE.Scene(), 8);
+    ps.emitShockwave(2, 3);
+    const sw = (ps as unknown as {
+      shockwaves: { active: boolean; opacity: number; scale: number; mesh: THREE.Mesh }[];
+    }).shockwaves[0];
+    expect(sw.active).toBe(true);
+    ps.update(0.1);
+    expect(sw.opacity).toBeLessThan(0.9);
+    expect(sw.scale).toBeGreaterThan(0.2);
+    ps.update(1.0);
+    expect(sw.active).toBe(false);
+    expect(sw.mesh.position.y).toBe(-100);
   });
 });
 
