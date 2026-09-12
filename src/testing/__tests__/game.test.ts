@@ -4,6 +4,7 @@ import { ObstacleManager, HAZARD_HIT_PITCH } from '../../engine/ObstacleManager'
 import { LevelGenerator, DEFAULT_TRACK_WIDTH, getTargetMobsToWin, getStarsForFinish, phaseSpeedMult } from '../../engine/LevelGenerator';
 import { StateManager, stateManager } from '../../core/StateManager';
 import { eventBus } from '../../core/EventBus';
+import { translations } from '../../core/Localization';
 import { ObjectPool, Poolable } from '../../core/ObjectPool';
 import { BossManager } from '../../engine/BossManager';
 import { CrowdManager } from '../../engine/CrowdManager';
@@ -1707,7 +1708,7 @@ describe('Бонус-сферы: лут Ниндзя (паритет с моне
     stubCanvas();
     const scene = new THREE.Scene();
     const crowd = new CrowdManager(scene);
-    crowd.formation = 'line'; // детерминированный ovalMult = 1.0
+    crowd.formation = 'wedge'; // детерминированный ovalMult = 1.0
     const bm = new BonusManager(scene);
     crowd.addMobsNear(1, 0, 0);
     const mob = crowd.getAliveMobs()[0];
@@ -1731,7 +1732,7 @@ describe('Бонус-сферы: лут Ниндзя (паритет с моне
     stubCanvas();
     const scene = new THREE.Scene();
     const crowd = new CrowdManager(scene);
-    crowd.formation = 'line';
+    crowd.formation = 'wedge';
     const bm = new BonusManager(scene);
     crowd.addMobsNear(1, 0, 0);
     crowd.getAliveMobs().forEach((m) => (m.type = 'regular')); // спавн рандомит классы
@@ -1743,5 +1744,47 @@ describe('Бонус-сферы: лут Ниндзя (паритет с моне
     expect(spy).toHaveBeenCalledWith(25);
     spy.mockRestore();
     vi.unstubAllGlobals();
+  });
+});
+
+describe('Бейджи формаций синхронны с реальными перками движка', () => {
+  // Оркестратор сверяет тексты HUD с фактическими константами GateManager/CrowdManager.
+  // Если перк меняется в движке, но не в бейдже — тест падает и ловит рассинхрон обещаний UI.
+  const ru = translations['ru'] as Record<string, string>;
+  const en = translations['en'] as Record<string, string>;
+
+  it('каждый бейдж и описание присутствуют в RU и EN словарях', () => {
+    const keys = ['wedge', 'wide', 'circle', 'arrow', 'oval', 'diamond'];
+    for (const k of keys) {
+      const badge = 'formation' + k[0].toUpperCase() + k.slice(1) + 'Badge';
+      const desc = k + 'Desc';
+      expect(typeof ru[badge]).toBe('string');
+      expect(ru[badge].length).toBeGreaterThan(0);
+      expect(typeof en[badge]).toBe('string');
+      expect(en[badge].length).toBeGreaterThan(0);
+      expect(typeof ru[desc]).toBe('string');
+      expect(typeof en[desc]).toBe('string');
+    }
+  });
+
+  it('числовые перки из движка отражены в бейджах (Стрела/Фаланга/Овал/Клин/Ромб)', () => {
+    // GateManager:336 — Стрела: multFactor +0.5; CrowdManager:956 — заряд ×1.5.
+    expect(ru.formationArrowBadge).toMatch(/\+0\.5/);
+    expect(ru.formationArrowBadge).toMatch(/1\.5/);
+    expect(en.formationArrowBadge).toMatch(/\+0\.5/);
+    expect(en.formationArrowBadge).toMatch(/1\.5/);
+    // GateManager:307 — Фаланга: add ×1.3 (+30%).
+    expect(ru.formationCircleBadge).toMatch(/30/);
+    expect(en.formationCircleBadge).toMatch(/30/);
+    // GateManager:358 — Овал: удача Мистики 85%.
+    expect(ru.formationOvalBadge).toMatch(/85/);
+    expect(en.formationOvalBadge).toMatch(/85/);
+    // GateManager:415-421 — удержание деления: Клин 10%, Ромб 15%, Фаланга 20%.
+    expect(ru.formationWedgeBadge).toMatch(/10/);
+    expect(ru.formationDiamondBadge).toMatch(/15/);
+    expect(ru.formationCircleBadge).toMatch(/20/);
+    expect(en.formationWedgeBadge).toMatch(/10/);
+    expect(en.formationDiamondBadge).toMatch(/15/);
+    expect(en.formationCircleBadge).toMatch(/20/);
   });
 });

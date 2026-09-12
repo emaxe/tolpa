@@ -49,12 +49,12 @@ export const translations = {
     formationArrow: 'Стрела (Скорость)',
     formationOval: 'Овал (Баланс)',
     formationDiamond: 'Ромб (Броня)',
-    formationWedgeBadge: '🛡️ Урон −40%',
+    formationWedgeBadge: '🛡️ Урон −40% · Деление −10%',
     formationWideBadge: '🧲 Охват +60% · Сложение +50% · Монеты → заряд',
-    formationCircleBadge: '💥 Таран боссов ×1.35 · Стен ×2',
-    formationArrowBadge: '⚡ Скорость +15%',
-    formationOvalBadge: '⚖️ Баланс · Ворота и сферы +25%',
-    formationDiamondBadge: '💎 Броня +25% · Стены ×2 · Таран',
+    formationCircleBadge: '💥 Таран ×1.35 · Стен ×2 · Сложение +30% · Деление −20%',
+    formationArrowBadge: '⚡ Скорость +15% · Заряд ×1.5 · Умножение +0.5 · Стен ×2',
+    formationOvalBadge: '⚖️ Баланс · Ворота и сферы +25% · Мистика 85%',
+    formationDiamondBadge: '💎 Броня +25% · Стены ×2 · Таран · Деление −15%',
     metersToFinish: 'м до финиша',
     
     // Gates
@@ -64,8 +64,8 @@ export const translations = {
     // Formations
     wedgeDesc: 'Снижает урон от фронтальных ловушек на 40%; на воротах ÷ теряет на 10% меньше',
     wideDesc: 'Максимальный охват монет, ворот и сложения; прорыв финишных стен (-20% жертв); монеты заряжают адреналин',
-    circleDesc: 'Толкает и разрушает препятствия силой толпы; на воротах ÷ теряет на 20% меньше',
-    arrowDesc: 'Увеличивает скорость бега, ускоряет заряд Гипер-режима (+50%) и пробивает стены клином',
+    circleDesc: 'Толкает и разрушает препятствия силой толпы; сложение на +воротах +30%; на воротах ÷ теряет на 20% меньше',
+    arrowDesc: 'Увеличивает скорость бега, ускоряет заряд Гипер-режима (×1.5), усиливает ворота умножения (+0.5, до ×4) и пробивает стены клином (×2)',
     ovalDesc: 'Баланс: ворота и сферы +25%, удача Мистики 85%',
     diamondDesc: 'Ромб: броня фронта +25%, пробивает стены и таранит в плотном строю; на воротах ÷ теряет на 15% меньше',
 
@@ -435,12 +435,12 @@ export const translations = {
     formationArrow: 'Arrow (Speed)',
     formationOval: 'Oval (Balance)',
     formationDiamond: 'Diamond (Armor)',
-    formationWedgeBadge: '🛡️ Damage −40%',
+    formationWedgeBadge: '🛡️ Damage −40% · Divide −10%',
     formationWideBadge: '🧲 Coverage +60% · Merge +50% · Coins charge',
-    formationCircleBadge: '💥 Boss Ram ×1.35 · Walls ×2',
-    formationArrowBadge: '⚡ Speed +15%',
-    formationOvalBadge: '⚖️ Balance · Gates & orbs +25%',
-    formationDiamondBadge: '💎 Armor +25% · Walls ×2 · Ram',
+    formationCircleBadge: '💥 Ram ×1.35 · Walls ×2 · Merge +30% · Divide −20%',
+    formationArrowBadge: '⚡ Speed +15% · Charge ×1.5 · Multiply +0.5 · Walls ×2',
+    formationOvalBadge: '⚖️ Balance · Gates & orbs +25% · Mystery 85%',
+    formationDiamondBadge: '💎 Armor +25% · Walls ×2 · Ram · Divide −15%',
     metersToFinish: 'm to finish',
     
     // Gates
@@ -450,8 +450,8 @@ export const translations = {
     // Formations
     wedgeDesc: 'Reduces frontal trap damage by 40%; loses 10% less at ÷ gates',
     wideDesc: 'Maximum width for coins, gates & adds; finish wall breakthrough (-20% sacrifice); coins charge adrenaline',
-    circleDesc: 'Pushes and smashes barriers with crowd weight; loses 20% less at ÷ gates',
-    arrowDesc: 'Increases run speed, boosts Hyper-mode charge (+50%) and pierces walls with a wedge',
+    circleDesc: 'Pushes and smashes barriers with crowd weight; +30% at add gates; loses 20% less at ÷ gates',
+    arrowDesc: 'Boosts run speed, Hyper-mode charge (×1.5), strengthens multiply gates (+0.5, up to ×4) and pierces walls with a wedge (×2)',
     ovalDesc: 'Balanced: gates & orbs +25%, Mystery luck 85%',
     diamondDesc: 'Diamond: +25% frontline armor, pierces walls and rams in tight formation; loses 15% less at ÷ gates',
 
