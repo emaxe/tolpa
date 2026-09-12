@@ -43,6 +43,37 @@ const BIOME_BANNER_CONFIG: Record<string, { key: string; fallback: string; color
   },
 };
 
+// Старт динамического события уровня — центральный баннер-вспышка.
+// До этого у levelEvent был только узкий HUD-тиккер; паритет с biomeEntered/
+// achievementReady (тексты общие с HUD-конфигом, ключи уже в Localization).
+const EVENT_SCREEN_CONFIG: Record<string, { key: string; fallback: string; colorClass: string }> = {
+  ambush: {
+    key: 'eventAmbush',
+    fallback: 'ВНИМАНИЕ: Вражеская засада впереди!',
+    colorClass: 'text-rose-400 font-black text-xl drop-shadow-[0_0_12px_rgba(251,113,133,0.9)]',
+  },
+  coin_train: {
+    key: 'eventCoinTrain',
+    fallback: 'БОНУС: Золотой караван на трассе!',
+    colorClass: 'text-yellow-300 font-black text-xl drop-shadow-[0_0_12px_rgba(250,204,21,0.9)]',
+  },
+  emp_storm: {
+    key: 'eventEmpStorm',
+    fallback: 'ОПАСНОСТЬ: ЭМИ-Шторм искажает ворота!',
+    colorClass: 'text-violet-400 font-black text-xl drop-shadow-[0_0_12px_rgba(167,139,250,0.9)]',
+  },
+  meteor_rain: {
+    key: 'eventMeteorRain',
+    fallback: 'ТРЕВОГА: Метеоритный дождь!',
+    colorClass: 'text-orange-400 font-black text-xl drop-shadow-[0_0_12px_rgba(249,115,22,0.9)]',
+  },
+  speed_boost: {
+    key: 'eventSpeedBoost',
+    fallback: 'УСКОРЕНИЕ: Гипер-драйв активирован!',
+    colorClass: 'text-cyan-300 font-black text-xl drop-shadow-[0_0_12px_rgba(34,211,238,0.9)]',
+  },
+};
+
 /**
  * Лёгкий DOM-оверлей: всплывающие подписи над воротами/уроном/монетами.
  * Раньше единственным фидбеком был звук — игрок не видел, что именно изменилось
@@ -339,6 +370,27 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       spawnScreen(title ? `${banner}: ${title}` : banner, 'text-amber-300 font-black text-xl drop-shadow-[0_0_12px_rgba(251,191,36,0.95)]', -40);
     });
 
+    // Старт динамического события уровня — цветной баннер по центру (паритет с
+    // biome/achievement-фанфарами; у события были только HUD-тиккер и FX движка).
+    const unsubLevelEvent = eventBus.on('levelEvent', (data: { type?: string }) => {
+      if (!data?.type) return;
+      const cfg = EVENT_SCREEN_CONFIG[data.type];
+      if (!cfg) return;
+      spawnScreen(i18n.t(cfg.key, cfg.fallback), cfg.colorClass, -80);
+    });
+
+    // Пробуждение охотника с тыла — красный центральный warning. Не 3D-спавн:
+    // охотник ПОЗАДИ камеры и projectToScreen переворачивает экранные координаты.
+    const unsubHunterWake = eventBus.on('hunterWake', () => {
+      spawnScreen(i18n.t('hunterWake'), 'text-rose-500 font-black text-2xl drop-shadow-[0_0_14px_rgba(244,63,94,0.95)]', -120);
+    });
+
+    // Телеграф ответки босса — янтарный warning над кольцом (у HUD уже есть алерт
+    // по тому же ключу bossRetaliation; центр — второй, в линии взгляда игрока).
+    const unsubRetaliationTelegraph = eventBus.on('retaliationTelegraph', () => {
+      spawnScreen(i18n.t('bossRetaliation'), 'text-amber-400 font-black text-xl drop-shadow-[0_0_12px_rgba(251,191,36,0.9)]', -80);
+    });
+
     // Покупка апгрейда: всплывающая плашка в центре экрана.
     // Событие upgradePurchased эмитится StateManager, но раньше никем не потреблялось.
     const unsubUpgrade = eventBus.on('upgradePurchased', (data: { upgradeKey?: string; level?: number }) => {
@@ -630,6 +682,9 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubBiomeEntered();
       unsubEndlessRecord();
       unsubAchReady();
+      unsubLevelEvent();
+      unsubHunterWake();
+      unsubRetaliationTelegraph();
     };
   }, [engine]);
 
