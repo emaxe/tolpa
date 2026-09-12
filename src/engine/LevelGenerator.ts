@@ -32,6 +32,15 @@ export function getStarsForFinish(remainingMobs: number, targetMobsToWin: number
   return 1;
 }
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+/** Множитель скорости препятствий по множителю фазы сложности (диапазон [1.0, 1.4]). */
+export function phaseSpeedMult(phaseMult: number): number {
+  return clamp(1 + (phaseMult - 1) * 0.6, 1, 1.4);
+}
+
 function createRng(seed: number) {
   let s = (seed * 1664525 + 1013904223) | 0;
   return () => {
@@ -94,6 +103,11 @@ export class LevelGenerator {
   public static getEndlessBiome(segmentIndex: number): BiomeType {
     const i = Math.floor(Math.max(0, segmentIndex) / 5) % LevelGenerator.ENDLESS_BIOME_CYCLE.length;
     return LevelGenerator.ENDLESS_BIOME_CYCLE[i];
+  }
+
+  /** Множитель фазы сложности для бесконечного режима по номеру сегмента. */
+  private static endlessPhaseMult(segmentIndex: number): number {
+    return 1 + Math.min(0.6, segmentIndex * 0.02);
   }
 
   public static getBiomeForLevel(levelNum: number): BiomeType {
@@ -294,7 +308,7 @@ export class LevelGenerator {
         },
         phase.phaseName
       );
-      sectionZ += Math.max(26, span.spanZ);
+      sectionZ += Math.max(26, span.spanZ / clamp(phase.densityMult, 0.85, 1.45));
     }
 
     // -------------------------------------------------------------
@@ -615,6 +629,7 @@ export class LevelGenerator {
   ): void {
     const index = out.length;
     const def = this.createObstacleDef(type, z, levelNum, index, trackWidth, rng);
+    def.speed *= phaseSpeedMult(phaseMult);
     def.x = x;
     def.z = z;
     if (overrides) {
@@ -1471,7 +1486,7 @@ export class LevelGenerator {
       levelNum: segmentIndex,
       trackWidth,
       playableHalf,
-      phaseMult: 1.0,
+      phaseMult: this.endlessPhaseMult(segmentIndex),
       rng,
       rawGates,
       rawWalls,
@@ -1490,7 +1505,7 @@ export class LevelGenerator {
       levelNum: segmentIndex,
       trackWidth,
       playableHalf,
-      phaseMult: 1.0,
+      phaseMult: this.endlessPhaseMult(segmentIndex),
       rng,
       rawGates,
       rawWalls,
@@ -1508,21 +1523,21 @@ export class LevelGenerator {
     // но в бесконечном режиме никогда не спавнился. 0 новых ассетов.
     const hunterAmbush = r3 >= 0.9 && segmentIndex >= 4;
     if (!hunterAmbush) {
-    const p3: PatternType = r3 < 0.4 ? 'tank_breach_cluster' : r3 < 0.75 ? 'choke_point_funnel' : 'cyborg_hound_pack';
-    this.runPattern(p3, {
-      out: rawObstacles,
-      z0: zSlot3,
-      levelNum: segmentIndex,
-      trackWidth,
-      playableHalf,
-      phaseMult: 1.0,
-      rng,
-      rawGates,
-      rawWalls,
-      coins,
-      bonuses,
-      idPrefix: `endless_obs_${segmentIndex}`,
-    });
+      const p3: PatternType = r3 < 0.4 ? 'tank_breach_cluster' : r3 < 0.75 ? 'choke_point_funnel' : 'cyborg_hound_pack';
+      this.runPattern(p3, {
+        out: rawObstacles,
+        z0: zSlot3,
+        levelNum: segmentIndex,
+        trackWidth,
+        playableHalf,
+        phaseMult: this.endlessPhaseMult(segmentIndex),
+        rng,
+        rawGates,
+        rawWalls,
+        coins,
+        bonuses,
+        idPrefix: `endless_obs_${segmentIndex}`,
+      });
     } else {
       this.pushObs(
         rawObstacles,

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
 import { ObstacleManager, HAZARD_HIT_PITCH } from '../../engine/ObstacleManager';
-import { LevelGenerator, DEFAULT_TRACK_WIDTH, getTargetMobsToWin, getStarsForFinish } from '../../engine/LevelGenerator';
+import { LevelGenerator, DEFAULT_TRACK_WIDTH, getTargetMobsToWin, getStarsForFinish, phaseSpeedMult } from '../../engine/LevelGenerator';
 import { StateManager } from '../../core/StateManager';
 import { ObjectPool, Poolable } from '../../core/ObjectPool';
 import { BossManager } from '../../engine/BossManager';
@@ -9,7 +9,7 @@ import { CrowdManager } from '../../engine/CrowdManager';
 import { ParticleSystem } from '../../engine/ParticleSystem';
 import { GateManager } from '../../engine/GateManager';
 import type { MobInstance, ObstacleType } from '../../types/game';
-import { calculateFormationOffset, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT, getMobFinishPower, getMobBossPower, mysteryPenaltyStep } from '../../utils/math';
+import { calculateFormationOffset, getFormationScale, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT, getMobFinishPower, getMobBossPower, mysteryPenaltyStep } from '../../utils/math';
 
 describe('Gate & Math Operations', () => {
   it('выполняет сложение мобов (+15 к 10 = 25)', () => {
@@ -950,6 +950,68 @@ describe('Formations & Math Helpers', () => {
   });
 });
 
+describe('Diamond Formation Geometry', () => {
+  it('diamond != oval: формация diamond отличается от овала на подавляющем большинстве позиций (>=80%)', () => {
+    const totalCount = 41;
+    const playableHalfWidth = 10;
+    let diffCount = 0;
+    for (let i = 1; i <= 40; i++) {
+      const d = calculateFormationOffset(i, totalCount, 'diamond', playableHalfWidth, { x: 0, z: 0 });
+      const o = calculateFormationOffset(i, totalCount, 'oval', playableHalfWidth, { x: 0, z: 0 });
+      if (Math.abs(d.x - o.x) > 1e-9 || Math.abs(d.z - o.z) > 1e-9) {
+        diffCount++;
+      }
+    }
+    expect(diffCount / 40).toBeGreaterThanOrEqual(0.8);
+  });
+
+  it('уникальность: все позиции мобов 0..119 попарно различны при масштабировании', () => {
+    const totalCount = 120;
+    const playableHalfWidth = 2;
+    const scale = getFormationScale('diamond', totalCount, playableHalfWidth);
+    const seen = new Set<string>();
+    for (let i = 0; i < totalCount; i++) {
+      const offset = calculateFormationOffset(i, totalCount, 'diamond', playableHalfWidth, undefined, scale);
+      const key = `${offset.x.toFixed(6)},${offset.z.toFixed(6)}`;
+      seen.add(key);
+    }
+    expect(seen.size).toBe(totalCount);
+  });
+
+  it('граница: diamond никогда не выходит за playableHalfWidth для любой толпы 1..200', () => {
+    const playableHalfWidth = 2;
+    for (let n = 1; n <= 200; n++) {
+      for (let i = 0; i < n; i++) {
+        const offset = calculateFormationOffset(i, n, 'diamond', playableHalfWidth);
+        expect(Math.abs(offset.x)).toBeLessThanOrEqual(playableHalfWidth + 1e-6);
+      }
+    }
+  });
+
+  it('симметрия формы: для полного кольца (totalCount=61) есть max|x| > 0, и среди 1..60 есть z > 0 и z < 0', () => {
+    const totalCount = 61;
+    const playableHalfWidth = 10;
+    let maxX = 0;
+    let hasPositiveZ = false;
+    let hasNegativeZ = false;
+    for (let i = 1; i < totalCount; i++) {
+      const offset = calculateFormationOffset(i, totalCount, 'diamond', playableHalfWidth);
+      if (Math.abs(offset.x) > maxX) {
+        maxX = Math.abs(offset.x);
+      }
+      if (offset.z > 1e-6) {
+        hasPositiveZ = true;
+      }
+      if (offset.z < -1e-6) {
+        hasNegativeZ = true;
+      }
+    }
+    expect(maxX).toBeGreaterThan(0);
+    expect(hasPositiveZ).toBe(true);
+    expect(hasNegativeZ).toBe(true);
+  });
+});
+
 describe('Skin Rewards (бонусные скины)', () => {
   it('прохождение 30 уровня бесплатно открывает скин dino_rex', () => {
     const mgr = StateManager.getInstance();
@@ -1382,5 +1444,16 @@ describe('ObstacleManager — хитбокс охотника следует з�
     expect(vis.data.z).toBeGreaterThan(12); // погоня реально сдвинула охотника
     expect(vis.hazardX).toBeCloseTo(vis.mesh.position.x, 6);
     expect(vis.hazardZ).toBeCloseTo(vis.mesh.position.z, 6);
+  });
+});
+
+
+describe('phaseSpeedMult — живая фазовая шкала скорости', () => {
+  it('warmup (1.0) — без изменений', () => {
+    expect(phaseSpeedMult(1.0)).toBeCloseTo(1.0, 6);
+  });
+  it('climax (1.6) — +36% скорости, с потолком 1.4', () => {
+    expect(phaseSpeedMult(1.6)).toBeCloseTo(1.36, 6);
+    expect(phaseSpeedMult(3.0)).toBe(1.4);
   });
 });
