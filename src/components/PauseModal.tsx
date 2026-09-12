@@ -17,7 +17,7 @@ export const PauseModal: React.FC<PauseModalProps> = ({ onResume, onRestart, onH
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3 shadow-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-zinc-950">
             <Pause className="w-8 h-8 fill-current" />
           </div>
-          <h2 className="font-orbitron font-extrabold text-2xl tracking-wider text-amber-400">
+          <h2 className="font-orbitron font-extrabold text-2xl tracking-wider text-amber-600">
             {i18n.t('paused')}
           </h2>
         </div>

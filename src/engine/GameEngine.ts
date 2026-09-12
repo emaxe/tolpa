@@ -2351,6 +2351,7 @@ export class GameEngine {
     if (paused) {
       this.stopLoop();
       this.releaseInput();
+      soundEngine.stopCrowdCheer(); // ликовый луп толпы не должен звучать за паузой
       soundEngine.setBgmVolume(0);
     } else {
       soundEngine.setBgmVolume(stateManager.getState().settings.musicVolume);
