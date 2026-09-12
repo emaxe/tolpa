@@ -436,8 +436,8 @@ export const HUD: React.FC<HUDProps> = ({
           {/* Debug performance stats */}
           {stateManager.getState().settings.showFps && (
             <div className="bg-slate-100/70 border border-slate-300 rounded-lg px-2.5 py-1 text-[11px] text-slate-600 font-mono flex gap-2">
-              <span>FPS: <strong className="text-emerald-400">{fps}</strong></span>
-              <span>DC: <strong className="text-teal-700">{drawCalls}</strong></span>
+              <span>{i18n.t('fps')}: <strong className="text-emerald-400">{fps}</strong></span>
+              <span>{i18n.t('drawCalls')}: <strong className="text-teal-700">{drawCalls}</strong></span>
             </div>
           )}
 

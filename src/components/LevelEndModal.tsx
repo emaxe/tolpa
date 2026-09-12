@@ -112,6 +112,10 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
           {isVictory && !isEndless && (
             <>
               <div className="flex justify-between items-center text-slate-700">
+                <span className="font-orbitron text-xs">{i18n.t('score')}</span>
+                <span className="font-orbitron font-bold text-indigo-700">{score.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-700">
                 <span className="font-orbitron text-xs">{i18n.t('wallMultiplier')}</span>
                 <span className="font-orbitron font-bold text-amber-700">×{multiplier.toFixed(1)}</span>
               </div>
