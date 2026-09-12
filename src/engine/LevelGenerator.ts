@@ -577,6 +577,28 @@ export class LevelGenerator {
       // Шипы статичны: размещаем по лейну, квантовано.
       x = (Math.floor(rng() * 3) - 1) * (trackWidth / 2 - 2.0);
       range = 0;
+    } else if (type === 'axe_pendulum') {
+      // Рама секиры жёстко рассчитана на центр трассы: стойки на x = ±6,
+      // перекладина 12 м. Смещённая группа ставит одну опору в полосу
+      // бега, а вторую — за борт над пустотой. Качается только голова
+      // (obs.range этим типом не читается) — размах обнулён честно.
+      obsWidth = 2.6;
+      x = 0;
+      range = 0;
+      speed = 1.6 + rng() * 0.8;
+    } else if (type === 'crusher') {
+      // Пресс бьёт строго по Y: горизонтальный range мёртв, хитбокс
+      // синхронизирован с ударным блоком меша (2.2 × 1.4 × 1.2).
+      obsWidth = 2.2;
+      x = (rng() * 2 - 1) * (playableHalf - 1.1);
+      range = 0;
+    } else if (type === 'hunter') {
+      // Охотник — засада на полотне и погоня вдоль Z; бокового свипа нет,
+      // range мёртв. Хитбокс 1.6 вместо 2.0 — ближе к видимому корпусу.
+      obsWidth = 1.6;
+      x = (rng() * 2 - 1) * (playableHalf - 0.8);
+      range = 0;
+      speed = 2.2;
     } else {
       const maxHalfX = (trackWidth / 2 - 0.6) - 1.0;
       obsWidth = 2.0;
@@ -630,7 +652,9 @@ export class LevelGenerator {
     const index = out.length;
     const def = this.createObstacleDef(type, z, levelNum, index, trackWidth, rng);
     def.speed *= phaseSpeedMult(phaseMult);
-    def.x = x;
+    // Рама секиры центрирована на трассе (стойки ±6): паттернам нельзя
+    // смещать её по X — иначе опоры висят над пустотой за бортом.
+    def.x = type === 'axe_pendulum' ? 0 : x;
     def.z = z;
     if (overrides) {
       Object.assign(def, overrides);
@@ -764,10 +788,7 @@ export class LevelGenerator {
 
     // 2 разрушаемых препятствия
     this.pushObs(ctx.out, 'crusher', ctx.z0, -2.2, ctx.levelNum, ctx.trackWidth, ctx.phaseMult, ctx.rng, {
-      width: 2.6,
-      range: 0.8,
       speed: 2.2,
-      destructible: true,
       ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
     });
     this.pushObs(ctx.out, type2, ctx.z0 + 7, 2.2, ctx.levelNum, ctx.trackWidth, ctx.phaseMult, ctx.rng, {

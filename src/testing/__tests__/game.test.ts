@@ -1788,3 +1788,37 @@ describe('Бейджи формаций синхронны с реальными
     expect(en.formationCircleBadge).toMatch(/20/);
   });
 });
+
+describe('Геометрия ловушек: синхрон генератора с мешами', () => {
+  // Рама секиры (стойки x=±6) рассчитана на центр трассы: любое смещение
+  // по X ставит опору за борт над пустотой. Пресс и охотник двигаются
+  // строго по своим осям (Y и Z) — горизонтальный range у них мёртв,
+  // а хитбоксы обязаны совпадать с габаритами мешей (2.2 и 1.6).
+  const check = (obstacles: { type: string; x: number; range: number; width: number }[], label: string) => {
+    for (const obs of obstacles) {
+      if (obs.type === 'axe_pendulum') {
+        expect(obs.x, `axe x (${label})`).toBe(0);
+      } else if (obs.type === 'crusher') {
+        expect(obs.range, `crusher range (${label})`).toBe(0);
+        expect(obs.width, `crusher width (${label})`).toBe(2.2);
+      } else if (obs.type === 'hunter') {
+        expect(obs.range, `hunter range (${label})`).toBe(0);
+        expect(obs.width, `hunter width (${label})`).toBe(1.6);
+      }
+    }
+  };
+
+  it('все 50 уровней: секира центрирована, пресс/охотник без мёртвого размаха', () => {
+    for (let lvl = 1; lvl <= 50; lvl++) {
+      const config = LevelGenerator.generateLevel(lvl);
+      check(config.obstacles, `L${lvl}`);
+    }
+  });
+
+  it('бесконечные сегменты: те же инварианты ловушек', () => {
+    for (let seg = 0; seg < 6; seg++) {
+      const config = LevelGenerator.generateEndlessSegment(seg, seg * 7);
+      check(config.obstacles, `endless ${seg}`);
+    }
+  });
+});
