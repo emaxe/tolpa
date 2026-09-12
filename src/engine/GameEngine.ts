@@ -1381,8 +1381,10 @@ export class GameEngine {
     this.screenShakeIntensity = 0;
     stateManager.beginRun();
 
-    // Стартуем с биома, соответствующего первому сегменту (getBiomeForLevel(0) = cyber_city)
-    this.endlessBiome = LevelGenerator.getBiomeForLevel(0);
+    // Стартуем с биома первого endless-сегмента — тот же контракт, что и у
+    // стриминга (getEndlessBiome), а не кампейнского getBiomeForLevel, чтобы
+    // инициализация не разъезжалась при изменении цикла ENDLESS_BIOME_CYCLE.
+    this.endlessBiome = LevelGenerator.getEndlessBiome(0);
     this.endlessTrackLength = 500;
     this.endlessTrackWidth = DEFAULT_TRACK_WIDTH;
     this.setupBiomeEnvironment(this.endlessBiome);
@@ -1407,7 +1409,9 @@ export class GameEngine {
     }
     this.currentEndlessZ += seg.length;
 
-    soundEngine.playMusic('cyber');
+    // Стартовая тема через общий ротатор getMusicThemeForLevel — тот же контракт,
+    // что у стриминга сегментов, вместо захардкоженного 'cyber'.
+    soundEngine.playMusic(this.getMusicThemeForLevel(this.endlessSegmentIndex, this.endlessBiome));
   }
 
   private setupBiomeEnvironment(biome: BiomeType): void {
