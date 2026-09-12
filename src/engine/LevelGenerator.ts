@@ -1368,10 +1368,15 @@ export class LevelGenerator {
   public static generateEndlessBoss(segmentIndex: number): BossData {
     const bossInterval = 5;
     const cycle = Math.floor(segmentIndex / bossInterval); // 1, 2, 3, ...
-    const tier = Math.min(5, Math.max(1, cycle)); // 1..5
+    // Тир босса = номер биома-блока, в котором стоит арена (getEndlessBiome:
+    // floor(seg/5)%5), со сдвигом +1: арена сегмента 5 — в магме, там правит
+    // magma_colossus. Циклическая ротация 1..5 вместо клампа min(5,cycle):
+    // после 5-го босса круг начинается заново, а не навсегда Apex Overlord.
+    // Рост сложности между кругами — через HP-скейл ниже (+40% за полный круг).
+    const tier = ((cycle % 5) + 1) as 1 | 2 | 3 | 4 | 5; // 2,3,4,5,1,2,... по кругу биомов
     const levelNum = tier * 10; // 10, 20, 30, 40, 50
     const boss = this.generateBoss(levelNum);
-    // Рост HP для циклов после 5 (segmentIndex >= 25): +40% за каждый полный цикл
+    // Рост HP для кругов после первого (segmentIndex >= 25): +40% за каждый полный круг
     const extraCycles = Math.max(0, Math.floor(segmentIndex / (bossInterval * 5)));
     if (extraCycles > 0) {
       const hpMult = 1 + extraCycles * 0.4;
@@ -1651,7 +1656,9 @@ export class LevelGenerator {
     if (isBossSegment) {
       boss = LevelGenerator.generateEndlessBoss(segmentIndex);
       bossArenaZ = currentZ + length - 20;
-      bossLevel = Math.min(50, Math.floor(segmentIndex / 5) * 10);
+      // Тот же цикл тиров, что в generateEndlessBoss: уровень = тир*10,
+      // синхронно с биомом арены (иначе фазы/ритм атак возьмутся с Apex).
+      bossLevel = ((Math.floor(segmentIndex / 5) % 5) + 1) * 10; // 20,30,40,50,10,...
     }
 
     rawWalls.sort((a, b) => a.z - b.z);

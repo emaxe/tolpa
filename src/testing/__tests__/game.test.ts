@@ -755,6 +755,34 @@ describe('Level Generator Enhanced Tests', () => {
     }
   });
 
+  it('боссы Endless циклически ротируются и совпадают с биомом арены', () => {
+    const modelByBiome: Record<string, string> = {
+      cyber_city: 'iron_golem',
+      magma_citadel: 'magma_colossus',
+      crystal_cavern: 'crystal_wyrm',
+      quantum_void: 'titan_nullifier',
+      celestial_core: 'apex_overlord',
+    };
+    // Арена каждого босс-сегмента (5,10,...) стоит в своём биоме-блоке
+    for (const seg of [5, 10, 15, 20, 25, 30, 55]) {
+      const boss = LevelGenerator.generateEndlessBoss(seg);
+      const biome = LevelGenerator.getEndlessBiome(seg);
+      expect(boss.modelType).toBe(modelByBiome[biome]);
+    }
+    // После 5-го босса круг начинается заново, а не навсегда Apex (сегмент 30 = magma, тир 2)
+    expect(LevelGenerator.generateEndlessBoss(30).modelType).toBe('magma_colossus');
+    // HP одного и того же тира монотонно растёт по кругам (+40% за полный круг)
+    const lap1 = LevelGenerator.generateEndlessBoss(5); // magma, круг 1
+    const lap2 = LevelGenerator.generateEndlessBoss(30); // magma, круг 2
+    const lap3 = LevelGenerator.generateEndlessBoss(55); // magma, круг 3
+    expect(lap2.maxHp).toBeGreaterThan(lap1.maxHp);
+    expect(lap3.maxHp).toBeGreaterThan(lap2.maxHp);
+    // bossLevel сегмента синхронен с тиром босса (уровень = тир*10)
+    const segWithBoss = LevelGenerator.generateEndlessSegment(10, 0);
+    expect(segWithBoss.bossLevel).toBe(30);
+    expect(segWithBoss.boss!.modelType).toBe('crystal_wyrm');
+  });
+
   it('gate и obstacle никогда не сталкиваются (clearance по Z >= 10, и нет X-перекрытия в z-полосе)', () => {
     for (let lvl = 1; lvl <= 50; lvl++) {
       const config = LevelGenerator.generateLevel(lvl);
