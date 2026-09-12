@@ -570,30 +570,6 @@ export class CrowdManager {
     return killed;
   }
 
-  /** Убивает точно count мобов, игнорируя броню/уклонение/гипер-режим — используется стеной множителей. */
-  public consumeMobs(count: number): number {
-    if (count <= 0) return 0;
-    let killed = 0;
-    const alive = this.getAliveMobs();
-    // НЕ мутируем разделяемый кэш-буфер aliveSnapshot сортировкой — копируем
-    // ссылки в предаллоцированный groupScratch (0-GC) и сортируем его.
-    this.groupScratch.length = 0;
-    for (let i = 0; i < alive.length; i++) this.groupScratch.push(alive[i]);
-    this.groupScratch.sort(CrowdManager.SORT_BY_Z_DESC);
-    for (const mob of this.groupScratch) {
-      if (killed >= count) break;
-      mob.alive = false;
-      this.aliveCount--;
-      this.invalidateAliveSnapshot();
-      mob.y = -100;
-      this.dummy.position.set(0, -100, 0);
-      this.dummy.updateMatrix();
-      this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
-      killed++;
-    }
-    return killed;
-  }
-
   /** Суммарная кинетическая масса прорыва живого отряда (Танк = 2). 0-GC, для финишной стены. */
   public getFinishBreakingPower(): number {
     const alive = this.getAliveMobs();

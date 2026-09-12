@@ -520,7 +520,11 @@ export class GateManager {
         this.comboMaxCelebrated = false;
       }
 
-      stateManager.runRecordGatePass();
+      // Ворота засчитываются в lifetime-статистику РОВНО ОДИН раз — на первом триггере.
+      // Поздний трансмут мага (isMageTransmuteSpawn при isFirstTrigger==false) — это
+      // спасение тех же ворот, а не новые: повторный вызов завышал totalGatesPassed и
+      // прогресс ачивки gate_master (двойной учёт ÷N-ворот с хвостовым Магом).
+      if (isFirstTrigger) stateManager.runRecordGatePass();
       eventBus.emit('gatePassed', { op, val, isPositive, netChange, comboStreak: this.comboStreak, comboFactor, x: gateX, z: gateZ, perk });
     }
   }
