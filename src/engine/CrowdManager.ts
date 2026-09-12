@@ -931,7 +931,9 @@ export class CrowdManager {
 
   /** Тактический бонус Стрелы (arrow): ускоренный набор заряда Гипер-режима (+50%). */
   public getAdrenalineMultiplier(): number {
-    return this.formation === 'arrow' ? 1.5 : 1.0;
+    // Апгрейд «Адреналиновый реактор»: +10% скорости набора заряда за уровень (длительность — в activateHyperMode).
+    const upgMult = 1 + stateManager.getState().upgrades.adrenalineDuration * 0.1;
+    return (this.formation === 'arrow' ? 1.5 : 1.0) * upgMult;
   }
 
   /** Урон моба по кинетической стене: танки наносят 3 урона, маги — 2, формации Стрела, Фаланга и Ромб — по 2, остальные — 1. */

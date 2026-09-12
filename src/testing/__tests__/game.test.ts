@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
 import { ObstacleManager, HAZARD_HIT_PITCH } from '../../engine/ObstacleManager';
 import { LevelGenerator, DEFAULT_TRACK_WIDTH, getTargetMobsToWin, getStarsForFinish, phaseSpeedMult } from '../../engine/LevelGenerator';
-import { StateManager } from '../../core/StateManager';
+import { StateManager, stateManager } from '../../core/StateManager';
 import { eventBus } from '../../core/EventBus';
 import { ObjectPool, Poolable } from '../../core/ObjectPool';
 import { BossManager } from '../../engine/BossManager';
@@ -1392,6 +1392,30 @@ describe('getFinishBreakingPower — числитель паритетного �
     expect(c.getFinishBreakingPower() > wallCost).toBe(true); // физика прорыва
     // Новое tooLow = масса <= стоимость — ложного предупреждения нет.
     expect(c.getFinishBreakingPower() <= wallCost).toBe(false);
+  });
+});
+
+// Апгрейд «Адреналиновый реактор»: обещание магазина — «ускоряет зарядку И длительность».
+// Длительность масштабировалась всегда; скорость набора заряда читала только бонус строя Стрелы.
+describe('getAdrenalineMultiplier — множитель скорости набора заряда', () => {
+  it('+10% за уровень апгрейда, перемножается с бонусом строя Стрелы', () => {
+    const c = new CrowdManager(new THREE.Scene());
+    const upgrades = stateManager.getState().upgrades;
+    const savedLvl = upgrades.adrenalineDuration;
+    const savedFormation = c.formation;
+    try {
+      upgrades.adrenalineDuration = 0;
+      expect(c.getAdrenalineMultiplier()).toBe(1.0);
+      upgrades.adrenalineDuration = 5;
+      expect(c.getAdrenalineMultiplier()).toBeCloseTo(1.5, 5);
+      upgrades.adrenalineDuration = 10;
+      c.formation = 'arrow';
+      // 1.5 (Стрела) * 2.0 (10 уровней) = 3.0 — потолок прокачки.
+      expect(c.getAdrenalineMultiplier()).toBeCloseTo(3.0, 5);
+    } finally {
+      upgrades.adrenalineDuration = savedLvl;
+      c.formation = savedFormation;
+    }
   });
 });
 
