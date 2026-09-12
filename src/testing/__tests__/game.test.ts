@@ -1457,3 +1457,26 @@ describe('phaseSpeedMult — живая фазовая шкала скорост
     expect(phaseSpeedMult(3.0)).toBe(1.4);
   });
 });
+
+describe('кибер-щит Легиона (defenseAura) против ловушек', () => {
+  it('спасает от контакта с шансом 10% за уровень и даёт i-frames', () => {
+    const sm = StateManager.getInstance();
+    const prev = sm.getState().upgrades.defenseAura;
+    sm.importSave(btoa(JSON.stringify({ ...sm.getState(), upgrades: { ...sm.getState().upgrades, defenseAura: 5 } })));
+    const c = new CrowdManager(new THREE.Scene());
+    const mob = c.spawnMob('regular') as MobInstance;
+    mob.invulnerableTime = 0;
+    const spy = vi.spyOn(Math, 'random').mockReturnValue(0.01);
+    // 5 ур. × 10% = 50% шанс: 0.01 < 0.5 — аура гасит удар полностью
+    expect(c.resolveObstacleImpact(mob)).toBe(false);
+    expect(mob.alive).toBe(true);
+    expect(mob.invulnerableTime).toBeGreaterThan(0);
+    // Бросок мимо порога — моб гибнет, как и раньше
+    mob.invulnerableTime = 0;
+    spy.mockReturnValue(0.99);
+    expect(c.resolveObstacleImpact(mob)).toBe(true);
+    expect(mob.alive).toBe(false);
+    spy.mockRestore();
+    sm.importSave(btoa(JSON.stringify({ ...sm.getState(), upgrades: { ...sm.getState().upgrades, defenseAura: prev } })));
+  });
+});

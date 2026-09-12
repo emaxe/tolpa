@@ -873,13 +873,27 @@ export class CrowdManager {
 
   /**
    * Разрешает контакт одного моба с опасностью трассы (ловушка/мина/собака):
-   * неуязвимость свежего спавна, гипер-режим, уворот ниндзя, щит и запас HP —
+   * неуязвимость свежего спавна, гипер-режим, аура брони, уворот ниндзя, щит и запас HP —
    * паритет с resolveWallImpact и ветками ворот. Возвращает true, если моб погиб.
    * Классовый фидбек выживших даёт emitClassAbility (консьюмер в GameEngine),
    * поэтому вызывающая сторона при false не играет death-FX и не считает потерю.
    */
   public resolveObstacleImpact(mob: MobInstance): boolean {
     if (this.isHyperMode || !mob.alive || mob.dying || mob.invulnerableTime > 0) return false;
+    // Кибер-щит Легиона (upg defenseAura): шанс 10% за уровень полностью погасить
+    // контакт с ловушкой. Ранее аура работала только в killMobs/killMobsFromGroup
+    // (боссы/таран) — обещание магазина «−10% урона от всех препятствий» не
+    // действовало на основной путь гибели (ловушки/мины/собаки/метеоры).
+    const defenseAuraLvl = stateManager.getState().upgrades.defenseAura;
+    if (defenseAuraLvl > 0 && Math.random() < defenseAuraLvl * 0.1) {
+      // Короткие i-frames: спасённый моб не должен погибнуть от того же
+      // многокадрового хитбокса ловушки на следующем кадре.
+      mob.invulnerableTime = 0.35;
+      if (mob.type === 'mage' || mob.type === 'tank') {
+        this.emitClassAbility(mob.type, 'shield', mob.x, mob.z);
+      }
+      return false;
+    }
     // Уворот ниндзя 50% — тратит удар опасности, не убивает
     if (mob.type === 'ninja' && Math.random() < 0.5) {
       this.emitClassAbility('ninja', 'dodge', mob.x, mob.z);
