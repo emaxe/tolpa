@@ -820,7 +820,6 @@ export class ObstacleManager {
           // летален). Толпа прошла -> 'wake' ~2.5с (рык, присед-подготовка, НЕ
           // летален — честное окно реакции на звук) -> 'chase': догоняет сзади на
           // 1.25x forwardSpeed, целясь по X лидера. Отставшего за 40м убирает prune().
-          this.setHazard(obsVis, obs.x, obs.z, obs.width, 2.2);
           if (obsVis.hunterState === 'chase') {
             obs.z += dt * (crowd.forwardSpeed * 1.25);
             const halfH = DEFAULT_TRACK_WIDTH / 2 - 1.0;
@@ -855,6 +854,10 @@ export class ObstacleManager {
               eventBus.emit('hunterWake', { x: obs.x, z: obs.z });
             }
           }
+          // Хитбокс пересчитывается ПОСЛЕ движения кадра (паритет с saw/axe/crusher):
+          // ранее setHazard стоял до chase-ветки, и hazard отставал от меша на кадр
+          // (~0.5м) — убивал по пустому месту и прощал фактический контакт.
+          this.setHazard(obsVis, obs.x, obs.z, obs.width, 2.2);
           break;
         }
       }

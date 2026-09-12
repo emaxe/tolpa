@@ -1356,3 +1356,31 @@ describe('GateManager — сброс ЭМИ-состояния в clear()', () =
     expect(gm.isEmpActive()).toBe(true);
   });
 });
+
+// Регресс: хитбокс охотника обязан пересчитываться ПОСЛЕ движения кадра.
+// До фикса setHazard стоял в начале hunter-кейса (до chase-ветки) — hazard
+// отставал от меша на кадр (~0.5м на скоростях эндлесса): смерть по пустому
+// месту и прощённый фактический контакт. Паритет с saw/axe/crusher.
+describe('ObstacleManager — хитбокс охотника следует за мешем (chase)', () => {
+  it('после update hazard совпадает с финальной позицией меша', () => {
+    const mgr = new ObstacleManager(new THREE.Scene());
+    mgr.appendObstacles(
+      [{ id: 'h1', type: 'hunter', x: 0, y: 0, z: 12, width: 1.2, depth: 1.2, speed: 1, range: 0 }],
+      []
+    );
+    const vis = (mgr as any).obstacles[0];
+    vis.hunterState = 'chase';
+    vis.hunterRoarPlayed = true; // рык уже играл — не трогаем звук в тесте
+    const crowd = {
+      getAliveMobs: () => [],
+      leaderX: 1.5,
+      leaderZ: 8,
+      forwardSpeed: 20,
+      isHyperMode: false,
+    };
+    mgr.update(0.05, crowd as any, null as any);
+    expect(vis.data.z).toBeGreaterThan(12); // погоня реально сдвинула охотника
+    expect(vis.hazardX).toBeCloseTo(vis.mesh.position.x, 6);
+    expect(vis.hazardZ).toBeCloseTo(vis.mesh.position.z, 6);
+  });
+});
