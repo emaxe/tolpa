@@ -637,7 +637,11 @@ export class LevelGenerator {
         // паритет с guard_dog: танк/таран/Hyper добивают его, не теряя всю толпу.
         // Фаза 'wake' не летальна (isHazardActive=false), коллизии туда не доходят.
         type === 'swinging_hammer' ||
-        type === 'hunter',
+        type === 'hunter' ||
+        // Мина: ветка обезвреживания в resolveBomb (Hyper / танк / таран строем)
+        // реализована полностью, но генератор никогда не ставил флаг — мина
+        // гарантированно стирала всю толпу в радиусе 3.5. Включаем паритет.
+        type === 'bomb',
     };
   }
 
@@ -1027,6 +1031,9 @@ export class LevelGenerator {
           ['gate_trap_dilemma', 0.2],
           ['cyborg_hound_pack', 0.2],
           ['central_bastion_split', 0.2],
+          // Одиночная ловушка: единственный путь появления мин ('bomb') —
+          // мины есть только в пика/коридор/климакс пулах pickObstacleType.
+          ['single_hazard', 0.12],
         ];
         break;
       case 'corridor':
@@ -1036,6 +1043,7 @@ export class LevelGenerator {
           ['pendulum_sweep_wave', 0.2],
           ['slalom_cascade', 0.2],
           ['central_bastion_split', 0.2],
+          ['single_hazard', 0.12],
         ];
         break;
       case 'climax':
@@ -1046,6 +1054,7 @@ export class LevelGenerator {
           ['choke_point_funnel', 0.25],
           ['cyborg_hound_pack', 0.2],
           ['central_bastion_split', 0.2],
+          ['single_hazard', 0.12],
         ];
         break;
     }

@@ -651,6 +651,24 @@ describe('Level Generator Smoke Tests', () => {
     }
   });
 
+  it('мины спавнятся (50 уровней) и генерируются разрушаемыми (танк/таран/Hyper)', () => {
+    let bombCount = 0;
+    let totalObs = 0;
+    for (let lvl = 1; lvl <= 50; lvl++) {
+      const obs50 = LevelGenerator.generateLevel(lvl).obstacles;
+      totalObs += obs50.length;
+      for (const obs of obs50) {
+        if (obs.type === 'bomb') {
+          bombCount++;
+          expect(obs.destructible).toBe(true);
+        }
+      }
+    }
+    // Мина недолжна быть ни мгновенно мёртвым типом (0 спавнов), ни спамом (<5%)
+    expect(bombCount).toBeGreaterThan(0);
+    expect(bombCount / totalObs).toBeLessThan(0.05);
+  });
+
   it('все 5 босс-уровней (10, 20, 30, 40, 50) имеют корректных боссов и атаки', () => {
     const bossLevels = [10, 20, 30, 40, 50];
     for (const lvl of bossLevels) {
