@@ -837,6 +837,31 @@ export class CrowdManager {
     const damageDealt = this.getMobWallDamage(mob);
     this.wallImpactScratch.damageDealt = damageDealt;
 
+    // Кибер-щит Легиона (upg defenseAura): паритет с resolveObstacleImpact —
+    // шанс 10% за уровень полностью погасить таран стены. Урон стене при этом
+    // наносится (как при увороте ниндзя), но моб выживает. Короткие i-frames:
+    // иначе следующий удар той же стены (killsRemaining > 1) добьёт спасённого.
+    const defenseAuraLvl = stateManager.getState().upgrades.defenseAura;
+    if (defenseAuraLvl > 0 && Math.random() < defenseAuraLvl * 0.1) {
+      mob.invulnerableTime = 0.35;
+      if (mob.type === 'mage' || mob.type === 'tank') {
+        this.emitClassAbility(mob.type, 'shield', mob.x, mob.z);
+      }
+      this.wallImpactScratch.killed = false;
+      return this.wallImpactScratch;
+    }
+
+    // Честная броня формаций: бейджи «Клин: урон −40%» / «Ромб: броня +25%»
+    // работали только на ловушки и массовые удары — таран стены их обходил.
+    // Шанс погасить контакт зеркален резолверу опасностей (wedge 0.4, diamond 0.25).
+    const formationArmor = this.formation === 'wedge' ? 0.4 : this.formation === 'diamond' ? 0.25 : 0;
+    if (formationArmor > 0 && Math.random() < formationArmor) {
+      mob.invulnerableTime = 0.35;
+      this.emitFormationDefend(this.formation as 'wedge' | 'diamond', 1);
+      this.wallImpactScratch.killed = false;
+      return this.wallImpactScratch;
+    }
+
     // Додж ниндзя: уворачивается от гибели, но урон стене наносит
     if (mob.type === 'ninja' && Math.random() < 0.5) {
       this.emitClassAbility('ninja', 'dodge', mob.x, mob.z);
@@ -859,15 +884,10 @@ export class CrowdManager {
       return this.wallImpactScratch;
     }
 
-    // Иначе моб погибает
-    mob.alive = false;
-    this.aliveCount--;
-    this.invalidateAliveSnapshot();
-    mob.y = -100;
-    this.dummy.position.set(0, -100, 0);
-    this.dummy.updateMatrix();
-    this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
-    this.wallImpactScratch.killed = true;
+    // Иначе моб погибает — через общий резолвер: death-анимация + честный
+    // dying-слот (паритет с ловушками/боссами; раньше стена роняла моба в -100
+    // мгновенно, минуя заваливание, и обходила счётчик dyingCount).
+    this.wallImpactScratch.killed = this.killMobById(mob.id);
     return this.wallImpactScratch;
   }
 

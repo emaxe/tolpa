@@ -318,13 +318,21 @@ export function computeWallImpact(
   mob: WallImpactMobInput,
   formation: FormationType = 'oval',
   isHyperMode: boolean = false,
-  dodgeSuccess: boolean = false
+  dodgeSuccess: boolean = false,
+  defenseAuraSaved: boolean = false,
+  formationArmorSaved: boolean = false
 ): WallImpactResult {
   if (isHyperMode || !mob.alive || (mob.invulnerableTime !== undefined && mob.invulnerableTime > 0)) {
     return { damageDealt: 0, killed: false };
   }
 
   const damageDealt = mob.type === 'tank' ? 3 : mob.type === 'mage' ? 2 : (formation === 'arrow' || formation === 'circle' || formation === 'diamond' ? 2 : 1);
+
+  // Паритет с resolveWallImpact: кибер-щит и броня строев гасят гибель,
+  // но урон стене наносится (проверяются раньше уворота ниндзя).
+  if (defenseAuraSaved || formationArmorSaved) {
+    return { damageDealt, killed: false };
+  }
 
   if (mob.type === 'ninja' && dodgeSuccess) {
     return { damageDealt, killed: false };

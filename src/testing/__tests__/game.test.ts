@@ -1272,6 +1272,26 @@ describe('Kinetic Wall Impact & Damage Accounting', () => {
     const hyperMob = { type: 'tank', shieldHp: 2, hp: 3, alive: true };
     expect(computeWallImpact(hyperMob, 'circle', true).damageDealt).toBe(0);
   });
+
+  it('Кибер-щит и броня строев гасят гибель от стены, но урон стене наносится', () => {
+    // Спасённый кибер-щитом моб выживает и чиплет стену (damageDealt > 0, killed false)
+    const auraMob = { type: 'regular', shieldHp: 0, hp: 1, alive: true };
+    const auraRes = computeWallImpact(auraMob, 'oval', false, false, true, false);
+    expect(auraRes.killed).toBe(false);
+    expect(auraRes.damageDealt).toBeGreaterThan(0);
+    expect(auraMob.alive).toBe(true);
+
+    // Спасённый броней Клина — то же самое
+    const armorMob = { type: 'regular', shieldHp: 0, hp: 1, alive: true };
+    const armorRes = computeWallImpact(armorMob, 'wedge', false, false, false, true);
+    expect(armorRes.killed).toBe(false);
+    expect(armorRes.damageDealt).toBeGreaterThan(0);
+    expect(armorMob.alive).toBe(true);
+
+    // Без спасбросов моб с hp=1 погибает по-прежнему
+    const doomed = { type: 'regular', shieldHp: 0, hp: 1, alive: true };
+    expect(computeWallImpact(doomed, 'oval').killed).toBe(true);
+  });
 });
 
 describe('Finish Line & Multiplier Wall Perks', () => {
