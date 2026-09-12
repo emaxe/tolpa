@@ -665,14 +665,14 @@ export class ObstacleManager {
 
         case 'axe_pendulum':
           // Маятник качается; убивающая часть — голова-топор на конце. Её X сдвигается
-          // по дуге. Активен только в нижней точке (isHazardActive |rotZ|<0.55).
+          // по дуге. Активен в нижней половине дуги (isHazardActive |rotZ|<0.72).
           // Вращаем ТОЛЬКО подгруппу качания (children[0]) — неподвижная П-рама
           // (перекладина + стойки) остаётся на месте.
           obsVis.mesh.children[0].rotation.z = Math.sin(t) * 1.1;
           const swingZ = obsVis.mesh.children[0].rotation.z;
           const axeHeadX = obsVis.mesh.position.x + Math.sin(swingZ) * 3.0;
           obs.x = axeHeadX;
-          this.setHazard(obsVis, axeHeadX, obs.z, 1.3, 0.9);
+          this.setHazard(obsVis, axeHeadX, obs.z, 1.8, 1.3);
           break;
 
         case 'crusher':
@@ -765,7 +765,7 @@ export class ObstacleManager {
             hammerPivot.rotation.x = Math.sin(t * 1.8) * 1.25;
             // голова болта в pivot-local (0,-2.9,0): world Z = obs.z - 2.9·sin(θ)
             const hammerHeadZ = obsVis.mesh.position.z - Math.sin(hammerPivot.rotation.x) * 2.9;
-            this.setHazard(obsVis, obs.x, hammerHeadZ, obs.width, 1.8);
+            this.setHazard(obsVis, obs.x, hammerHeadZ, obs.width, 2.3);
 
             // Звук удара молота по наковальне: голова в нижней точке, когда rotation.x
             // проходит через 0. One-shot флаг + гистерезис — звук играет один раз за
@@ -997,7 +997,7 @@ export class ObstacleManager {
       case 'crusher':
         return obsVis.mesh.position.y <= 1.2;
       case 'axe_pendulum':
-        return Math.abs(obsVis.mesh.children[0].rotation.z) < 0.55;
+        return Math.abs(obsVis.mesh.children[0].rotation.z) < 0.72;
       case 'barrier_gate':
         // Плита-ворота опасна только когда опущена вниз (мировая Y < ~2.4),
         // когда поднята — толпа проходит под ней.
@@ -1014,7 +1014,7 @@ export class ObstacleManager {
       case 'swinging_hammer':
         // Молот опасен в нижней точке траектории удара по настилу
         const hammerPivot = obsVis.mesh.children[4] as THREE.Group;
-        return hammerPivot ? Math.abs(hammerPivot.rotation.x) < 0.25 : true;
+        return hammerPivot ? Math.abs(hammerPivot.rotation.x) < 0.55 : true;
       case 'rolling_spike_ball':
         return true;
       case 'laser_wall':
@@ -1037,14 +1037,14 @@ export class ObstacleManager {
         // update: y = 0.5 + |sin(t·1.5)|·2.0; опасно при y <= 1.2
         return 0.5 + Math.abs(Math.sin(t * 1.5)) * 2.0 <= 1.2;
       case 'axe_pendulum':
-        // update: rot.z = sin(t)·1.1; опасно при |rot| < 0.55
-        return Math.abs(Math.sin(t) * 1.1) < 0.55;
+        // update: rot.z = sin(t)·1.1; опасно при |rot| < 0.72
+        return Math.abs(Math.sin(t) * 1.1) < 0.72;
       case 'barrier_gate':
         // update: gateY = 1.4 + 1.15·sin(t·1.6); опасно при baseY + gateY < 2.4
         return obsVis.mesh.position.y + (1.4 + 1.15 * Math.sin(t * 1.6)) < 2.4;
       case 'swinging_hammer':
-        // update: rot.x = sin(t·1.8)·1.25; опасно при |rot| < 0.25
-        return Math.abs(Math.sin(t * 1.8) * 1.25) < 0.25;
+        // update: rot.x = sin(t·1.8)·1.25; опасно при |rot| < 0.55
+        return Math.abs(Math.sin(t * 1.8) * 1.25) < 0.55;
       case 'laser_wall':
         return Math.sin(t * 1.2) > 0;
       default:

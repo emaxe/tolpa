@@ -172,28 +172,20 @@ export class LevelGenerator {
       const addVal = Math.max(3, Math.round(6 + Math.floor(rng() * 8) + Math.floor(levelNum * 0.12)));
       const divVal = 2 + Math.floor(rng() * 2); // 2 или 3
 
-      // Выбор операции: на старте безопасный add, дальше add/divide/multiply.
-      // multiply (×N) — редкая награда за риск (N∈{2,3}), не раньше 3-х ворот.
+      // Выбор операции: только «плюс» (+N) и «минус» (÷N) — по запросу игроков
+      // multiply (×N) и mystery убраны из генерации (хендлеры остались в GateManager
+      // на случай возврата). На старте (первые 2 ряда) — всегда add.
       let op: GateOp;
       let value: number;
       if (g < 2) {
         op = 'add';
         value = addVal;
       } else {
-        // add/divide поровну, с лёгким перекосом в add на ранних уровнях.
-        // mystery — редкая операция риска/награды (~12%).
-        // multiply — редкая награда за риск (~10%), N∈{2,3}.
-        const addChance = levelNum < 5 ? 0.6 : 0.45;
-        const roll = rng();
-        if (roll < addChance) {
+        // add/divide: поровну, с лёгким перекосом в add на ранних уровнях.
+        const addChance = levelNum < 5 ? 0.6 : 0.5;
+        if (rng() < addChance) {
           op = 'add';
           value = addVal;
-        } else if (roll < addChance + 0.1) {
-          op = 'multiply';
-          value = 2 + Math.floor(rng() * 2); // 2 или 3
-        } else if (roll < addChance + 0.22) {
-          op = 'mystery';
-          value = 8 + Math.floor(rng() * 6);
         } else {
           op = 'divide';
           value = divVal;
@@ -441,6 +433,20 @@ export class LevelGenerator {
 
     coins.sort((a, b) => a.z - b.z);
     if (coins.length > 360) coins.length = 360;
+
+    // Финальная зачистка монет: монеты, вставленные паттернами (choke/bastion),
+    // на момент вставки видели только часть списка препятствий — ловушка в
+    // центральный луч (секира, x=0) могла добавиться позже. Перепроверяем каждую
+    // монету по итоговому списку: уводим в безопасную полосу либо удаляем.
+    for (let i = coins.length - 1; i >= 0; i--) {
+      const coin = coins[i];
+      const safeX = this.findSafeCoinX(coin.x, coin.z, obstacles, trackWidth);
+      if (safeX === null) {
+        coins.splice(i, 1);
+        continue;
+      }
+      coin.x = safeX;
+    }
 
     // Данные босса для юбилейных уровней (10, 20, 30, 40, 50)
     let boss: BossData | undefined;
@@ -732,7 +738,7 @@ export class LevelGenerator {
       }
     );
 
-    // +3 монеты по центру (свободная зона)
+    // +3 монеты по центру (свободная зона; финальная зачистка coin-проходом ниже)
     if (ctx.coins.length <= 350) {
       for (let i = 0; i < 3; i++) {
         ctx.coins.push({
@@ -1436,8 +1442,8 @@ export class LevelGenerator {
     // Детерминированный PRNG для бесконечного режима
     const rng = createRng(segmentIndex * 7919 + 9973);
 
-    // 2-3 независимых ворот в сегменте (add/divide/multiply)
-    // multiply (×N) возрождён: редкая награда за риск, N∈{2,3}.
+    // 2-3 независимых ворот в сегменте: только add (+N) / divide (÷N) —
+    // multiply и mystery убраны из генерации по запросу игроков.
     const motionTypes: GateMotion[] = ['none', 'none', 'none', 'horizontal', 'vertical', 'rotate'];
     const gateCount = 2 + (rng() < 0.5 ? 1 : 0);
     const gateSpacing = (length - 40) / Math.max(1, gateCount);
@@ -1446,18 +1452,10 @@ export class LevelGenerator {
       let op: GateOp;
       let value: number;
 
-      // add/divide поровну — ворота +, ÷ и редкий multiply (×N).
-      // mystery — редкая операция риска/награды (~12%).
       const roll = rng();
-      if (roll < 0.45) {
+      if (roll < 0.5) {
         op = 'add';
         value = 10 + Math.floor(rng() * 8);
-      } else if (roll < 0.55) {
-        op = 'multiply';
-        value = 2 + Math.floor(rng() * 2); // 2 или 3
-      } else if (roll < 0.67) {
-        op = 'mystery';
-        value = 8 + Math.floor(rng() * 6);
       } else {
         op = 'divide';
         value = 2 + Math.floor(rng() * 2);
