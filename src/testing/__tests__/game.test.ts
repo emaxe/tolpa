@@ -543,6 +543,37 @@ describe('Save System', () => {
     }
   });
 
+  it('slam босса: урон только мобам внутри кольца телеграфа (паритет с laser/meteors)', () => {
+    // Регрессия на глобальный killMobs в slam-ветке: раньше гибли первые по z
+    // мобы всей толпы — моб далеко впереди умирал от удара, а моб в самом
+    // кольце выживал. Теперь косим только собранных внутри кольца.
+    const fx = { emitBurst: () => {}, emitShockwave: () => {} };
+    const boss = new BossManager(null as any, fx as any);
+    (boss as any).bossMesh = {};
+    (boss as any).bossArenaZ = 100;
+    const centerZ = 96; // bossArenaZ - 4
+    const mobIn = { x: 0, z: centerZ } as any; // в центре кольца r=3.5 → гибнет
+    const mobFarFront = { x: 5, z: centerZ + 2 } as any; // вне кольца, но ПЕРВЫЙ по z
+    const mobBack = { x: 0, z: centerZ - 20 } as any; // глубоко сзади, вне кольца
+    const killed: any[] = [];
+    const crowd = {
+      leaderX: 9, leaderZ: 78, // далеко от кольца — near-miss не участвует
+      getAliveMobs: () => [mobIn, mobFarFront, mobBack],
+      getAliveCount: () => 3,
+      killMobsFromGroup: (group: any[], count: number) => {
+        killed.push(...group.slice(0, count));
+        return Math.min(count, group.length);
+      },
+    } as any;
+    (boss as any).executeBossAttack(
+      { type: 'slam', damage: 15, areaRadius: 3.5, duration: 0.8, telegraphTime: 1 },
+      crowd,
+      fx
+    );
+    expect(killed.length).toBe(1);
+    expect(killed[0]).toBe(mobIn);
+  });
+
   it('телеграф метеоров: точки пре-роллятся на телеграфе и не пере-ролливаются ударом', () => {
     // Регрессия на spatial-телеграф: execute обязан использовать точки,
     // рассчитанные в телеграф-фазе (иначе визуал колец расходится с хитбоксом).

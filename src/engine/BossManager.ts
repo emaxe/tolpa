@@ -671,18 +671,25 @@ export class BossManager {
       const slamDx = crowd.leaderX;
       const slamDz = crowd.leaderZ - centerZ;
       this.checkBossNearMiss(Math.sqrt(slamDx * slamDx + slamDz * slamDz) - radius, slamDx, crowd.leaderZ);
+      // Пространственный урон (паритет с laser/meteors): раньше killMobs косил
+      // глобальный фронт толпы — мобы вне кольца гибли, а попавшие в кольцо
+      // выживали (визуал телеграфа расходился с хитбоксом). Теперь: собираем в
+      // scratch только мобов внутри кольца и бьём по ним, кап по attack.damage.
+      // laserScratch переиспользуется: ветки slam/laser/meteors не активны одновременно.
       const aliveMobs = crowd.getAliveMobs();
-      let hitCount = 0;
+      const inRing = this.laserScratch;
+      inRing.length = 0;
       for (let i = 0; i < aliveMobs.length; i++) {
         const mob = aliveMobs[i];
         const dx = mob.x;
         const dz = mob.z - centerZ;
         if (dx * dx + dz * dz <= rSq) {
-          hitCount++;
+          inRing.push(mob);
         }
       }
-      if (hitCount > 0) {
-        const killed = crowd.killMobs(Math.max(1, Math.round(hitCount * 0.35)), 'boss_slam');
+      if (inRing.length > 0) {
+        const capped = Math.max(1, Math.min(attack.damage, Math.round(inRing.length * 0.35)));
+        const killed = crowd.killMobsFromGroup(inRing, capped, 'boss_slam');
         if (killed > 0) this.breakNearMissStreak(0, centerZ);
       }
     } else if (attack.type === 'laser') {
