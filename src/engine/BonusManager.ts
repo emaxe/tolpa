@@ -289,9 +289,10 @@ export class BonusManager {
       case 'coins': {
         const coinValue = Math.round(b.value * ovalMult);
         stateManager.runAddCoins(coinValue);
-        // Бонус-монеты всегда кристальные: звон + золотой burst.
+        // Бонус-монеты всегда кристальные: звон. Золотой burst не нужен —
+        // тот же янтарный BONUS_COLORS.coins уже дан в начале applyEffect
+        // (второй бурст давал 50 частиц на одну сферу).
         soundEngine.playSound('gem_pickup');
-        particles.emitBurst(b.x, 1.0, b.z, 28, 0xf59e0b, 5.5);
         eventBus.emit('coinCollected', { value: coinValue, x: b.x, z: b.z, tier: 2 });
         break;
       }

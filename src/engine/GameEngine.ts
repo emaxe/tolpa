@@ -681,22 +681,15 @@ export class GameEngine {
       this.triggerHaptic([20, 20]);
     });
 
-    // VFX при сборе бонуса: вспышка частиц в цвет типа бонуса.
-    // bonusCollected эмитится BonusManager, но раньше не имел слушателя —
-    // подбор бонуса был заметен только по HUD. Теперь: короткий burst у позиции.
-    this.unsubBonusCollected = eventBus.on('bonusCollected', (data: { type?: string; value?: number; x?: number; z?: number }) => {
-      // Сфера гипер-режима уже получает полный VFX в потребителе adrenalineTriggered
+    // Тактильный отклик сбора бонуса. 3D-burst в цвет типа даёт BonusManager.applyEffect
+    // (единая точка, 22 частицы BONUS_COLORS) — здесь только хаптик, иначе каждый
+    // подбор давал сдвоенный burst (дубль фидбека, как у obstacleSmashed/coinCollected).
+    this.unsubBonusCollected = eventBus.on('bonusCollected', (data: { type?: string }) => {
+      // Сфера гипер-режима уже получает полный VFX+хаптик в потребителе adrenalineTriggered
       // (световой столб + ударная волна + burst + тряска + хаптик) — без раннего
-      // return сбор сферы давал сдвоенный burst и двойную вибрацию. Текст и звук
+      // return сбор сферы давал двойную вибрацию. Текст и звук
       // уже дедуплируются так же (FloatingText / BonusManager).
       if (data?.type === 'adrenaline') return;
-      // Цвета бурста должны совпадать с BONUS_COLORS (BonusManager): add_mobs — изумрудный,
-      // heal — светло-зелёный, adrenaline — жёлтый, coins — янтарный. Раньше add_mobs не было
-      // в карте (падал в дефолтный жёлтый 0xfde047), а мёртвый ключ 'score' не соответствовал
-      // ни одному BonusType.
-      const colors: Record<string, number> = { add_mobs: 0x10b981, heal: 0x34d399, adrenaline: 0xfacc15, coins: 0xf59e0b };
-      const color = colors[data?.type ?? ''] ?? 0xfde047;
-      this.particles.emitBurst(data.x ?? this.crowd.leaderX, 1.0, data.z ?? this.crowd.leaderZ, 14, color, 3.0);
       this.triggerHaptic(20);
     });
 
