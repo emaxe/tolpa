@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { GameEngine } from '../engine/GameEngine';
 import { eventBus } from '../core/EventBus';
 import { i18n } from '../core/Localization';
+import type { BossAttack } from '../types/game';
 
 interface FloatingItem {
   id: number;
@@ -14,6 +15,16 @@ interface FloatingItem {
 interface FloatingTextProps {
   engine: React.RefObject<GameEngine | null>;
 }
+
+// Стили 3D-телеграфа атак босса по типу атаки (union BossAttack из types/game).
+// Exhaustive Record: tsc не даст добавить/переименовать тип атаки без стиля.
+export const BOSS_TELEGRAPH_STYLE: Record<BossAttack['type'], { key: string; cls: string }> = {
+  slam: { key: 'bossAttackSlam', cls: 'text-orange-400 font-black text-2xl drop-shadow-[0_0_14px_rgba(249,115,22,1)]' },
+  laser: { key: 'bossAttackLaser', cls: 'text-cyan-300 font-black text-2xl drop-shadow-[0_0_14px_rgba(6,182,212,1)]' },
+  minions: { key: 'bossAttackMinions', cls: 'text-purple-400 font-black text-2xl drop-shadow-[0_0_14px_rgba(168,85,247,1)]' },
+  meteors: { key: 'bossAttackMeteors', cls: 'text-amber-400 font-black text-2xl drop-shadow-[0_0_14px_rgba(245,158,11,1)]' },
+  shield: { key: 'bossAttackShield', cls: 'text-sky-300 font-black text-2xl drop-shadow-[0_0_14px_rgba(56,189,248,1)]' },
+};
 
 const BIOME_BANNER_CONFIG: Record<string, { key: string; fallback: string; colorClass: string }> = {
   cyber_city: {
@@ -503,6 +514,31 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       }
     );
 
+    // Телеграф атаки босса: 3D-надпись типа атаки над ареной. Событие раньше
+    // потребляли только HUD (2D-баннер) + GameEngine (кольцо-предупреждение +
+    // звук) — появления/ярость/стан имели 3D-текст, а сигнала прямо над головой
+    // босса о том, какая атака последует, не было. Паттерн как у bossEnraged:
+    // проекция y=4.5, кап списка slice(-24), i18n-ключи уже существуют.
+    const unsubBossAttackTelegraph = eventBus.on(
+      'bossAttackTelegraph',
+      (data: { type?: string; x?: number; z?: number }) => {
+        const eng = engine.current;
+        if (!eng || !data?.type) return;
+        const style = BOSS_TELEGRAPH_STYLE[data.type as BossAttack['type']];
+        if (!style) return;
+        const pos = eng.projectToScreen(data.x ?? 0, 4.5, data.z ?? 0);
+        const id = idRef.current++;
+        setItems((prev) => [...prev.slice(-24), {
+          id, text: i18n.t(style.key),
+          colorClass: style.cls,
+          x: pos.x, y: pos.y,
+        }]);
+        window.setTimeout(() => {
+          setItems((prev) => prev.filter((it) => it.id !== id));
+        }, 1200);
+      }
+    );
+
     // 3D-бейдж при смене боевого построения: название строя всплывает над толпой.
     // Событие formationChanged эмитится CrowdManager.setFormation, но FloatingText
     // раньше не потреблял его — игрок видел только звук + частицы, без текстовой
@@ -672,6 +708,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubBossAppear();
       unsubBossEnraged();
       unsubBossDefeated();
+      unsubBossAttackTelegraph();
       unsubBossStaggered();
       unsubFormation();
       unsubFinishStep();

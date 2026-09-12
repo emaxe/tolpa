@@ -11,6 +11,9 @@ import { ParticleSystem } from '../../engine/ParticleSystem';
 import { GateManager } from '../../engine/GateManager';
 import type { MobInstance, ObstacleType } from '../../types/game';
 import { calculateFormationOffset, getFormationScale, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT, getMobFinishPower, getMobBossPower, mysteryPenaltyStep } from '../../utils/math';
+import { BOSS_TELEGRAPH_STYLE } from '../../components/FloatingText';
+import { i18n } from '../../core/Localization';
+import type { BossAttack } from '../../types/game';
 
 describe('Gate & Math Operations', () => {
   it('выполняет сложение мобов (+15 к 10 = 25)', () => {
@@ -1586,5 +1589,19 @@ describe('броня формаций (wedge/diamond) против ловуше�
     // Овал брони не имеет — 0.01 не спасает (обычный моб без щита/HP гибнет)
     expect(c.resolveObstacleImpact(mobO)).toBe(true);
     spy.mockRestore();
+  });
+});
+
+describe('3D-телеграф атак босса (FloatingText)', () => {
+  it('все типы атак обеспечены стилями, i18n-тексты существуют', () => {
+    // BOSS_TELEGRAPH_STYLE — exhaustive Record<BossAttack['type']>, полноту по
+    // union сторожит tsc. Здесь — рантайм-страховка: i18n.t возвращает сам ключ
+    // при его отсутствии, значит опечатка в key видна как равенство строке.
+    const types: BossAttack['type'][] = ['slam', 'laser', 'minions', 'meteors', 'shield'];
+    for (const t of types) {
+      const style = BOSS_TELEGRAPH_STYLE[t];
+      expect(style, `нет стиля для атаки ${t}`).toBeTruthy();
+      expect(i18n.t(style.key)).not.toBe(style.key);
+    }
   });
 });
