@@ -9,6 +9,7 @@ import { BossManager } from '../../engine/BossManager';
 import { CrowdManager } from '../../engine/CrowdManager';
 import { ParticleSystem } from '../../engine/ParticleSystem';
 import { GateManager } from '../../engine/GateManager';
+import { BonusManager } from '../../engine/BonusManager';
 import type { MobInstance, ObstacleType } from '../../types/game';
 import { calculateFormationOffset, getFormationScale, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT, getMobFinishPower, getMobBossPower, mysteryPenaltyStep, wallGrazedNearMiss } from '../../utils/math';
 import { BOSS_TELEGRAPH_STYLE } from '../../components/FloatingText';
@@ -1683,5 +1684,64 @@ describe('graze кинетических стен (wallGrazedNearMiss)', () => {
     expect(wallGrazedNearMiss(3.5, 7, 3.4)).toBe('award');
     // Лидер на 10.6 — зазор до правого края 0.2.
     expect(wallGrazedNearMiss(10.6, 7, 3.4)).toBe('award');
+  });
+});
+
+describe('Бонус-сферы: лут Ниндзя (паритет с монетами на трассе)', () => {
+  const stubCanvas = () => {
+    // node-окружение vitest: мини-stub canvas для процедурных текстур бонусов.
+    vi.stubGlobal('document', {
+      createElement: () => ({
+        width: 0,
+        height: 0,
+        getContext: () => ({
+          createRadialGradient: () => ({ addColorStop: () => {} }),
+          fillRect: () => {},
+          fillText: () => {},
+        }),
+      }),
+    });
+  };
+
+  it('сфера монет удваивается при Ниндзя в строю и эмитит classAbility loot', () => {
+    stubCanvas();
+    const scene = new THREE.Scene();
+    const crowd = new CrowdManager(scene);
+    crowd.formation = 'line'; // детерминированный ovalMult = 1.0
+    const bm = new BonusManager(scene);
+    crowd.addMobsNear(1, 0, 0);
+    const mob = crowd.getAliveMobs()[0];
+    expect(mob).toBeTruthy();
+    mob.type = 'ninja';
+    bm.appendBonuses([{ id: 't-ninja-loot', type: 'coins', x: 0, y: 1, z: 0, value: 25 }]);
+    const lootEvents: any[] = [];
+    const unsub = eventBus.on('classAbility', (d: any) => lootEvents.push(d));
+    const spy = vi.spyOn(stateManager, 'runAddCoins').mockImplementation(() => {});
+    spy.mockClear(); // spyOn идемпотентен: чистим следы предыдущего теста
+    bm.update(0.016, crowd, new ParticleSystem(scene, 8));
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(50); // 25 × 2 (лут Ниндзя)
+    expect(lootEvents.some((e) => e.type === 'ninja' && e.ability === 'loot')).toBe(true);
+    spy.mockRestore();
+    unsub();
+    vi.unstubAllGlobals();
+  });
+
+  it('без Ниндзя сфера монет идёт с базовым значением (без ×2)', () => {
+    stubCanvas();
+    const scene = new THREE.Scene();
+    const crowd = new CrowdManager(scene);
+    crowd.formation = 'line';
+    const bm = new BonusManager(scene);
+    crowd.addMobsNear(1, 0, 0);
+    crowd.getAliveMobs().forEach((m) => (m.type = 'regular')); // спавн рандомит классы
+    bm.appendBonuses([{ id: 't-no-ninja', type: 'coins', x: 0, y: 1, z: 0, value: 25 }]);
+    const spy = vi.spyOn(stateManager, 'runAddCoins').mockImplementation(() => {});
+    spy.mockClear();
+    bm.update(0.016, crowd, new ParticleSystem(scene, 8));
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith(25);
+    spy.mockRestore();
+    vi.unstubAllGlobals();
   });
 });

@@ -627,7 +627,11 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
         const x = data.x ?? 0;
         const z = data.z ?? 0;
         if (data.type === 'ninja') {
-          spawn(x, z, i18n.t('ninjaDodge', 'УВОРОТ!'), 'text-purple-300 font-extrabold drop-shadow-[0_0_8px_rgba(168,85,247,0.9)]');
+          if (data.ability === 'loot') {
+            spawn(x, z, i18n.t('ninjaLoot', 'НИНДЗЯ: МОНЕТЫ ×2'), 'text-purple-300 font-extrabold drop-shadow-[0_0_8px_rgba(168,85,247,0.9)]');
+          } else {
+            spawn(x, z, i18n.t('ninjaDodge', 'УВОРОТ!'), 'text-purple-300 font-extrabold drop-shadow-[0_0_8px_rgba(168,85,247,0.9)]');
+          }
         } else if (data.type === 'tank') {
           spawn(x, z, i18n.t('tankShield', 'ЩИТ!'), 'text-amber-300 font-extrabold drop-shadow-[0_0_8px_rgba(245,158,11,0.9)]');
         } else if (data.type === 'mage') {

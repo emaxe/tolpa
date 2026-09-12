@@ -867,10 +867,18 @@ export class GameEngine {
         const z = data.z ?? this.crowd.leaderZ;
 
         if (data.type === 'ninja') {
-          // Уворот Ниндзя: фиолетовый бурст частиц (0xa855f7, ~12 шт) + звук near_miss с pitch 1.4
-          this.particles.emitBurst(x, 1.0, z, 12, 0xa855f7, 3.5);
-          soundEngine.playSound('near_miss', 1.4);
-          this.triggerHaptic(10);
+          if (data.ability === 'loot') {
+            // Лут-магнит на бонус-сфере: комбо-звон + короткий фиолетовый burst
+            // (звук gem_pickup уже играет BonusManager — своего кристального не надо).
+            soundEngine.playSound('combo_ding', 1.25);
+            this.particles.emitBurst(x, 1.2, z, 10, 0xa855f7, 3.0);
+            this.triggerHaptic(10);
+          } else {
+            // Уворот Ниндзя: фиолетовый бурст частиц (0xa855f7, ~12 шт) + звук near_miss с pitch 1.4
+            this.particles.emitBurst(x, 1.0, z, 12, 0xa855f7, 3.5);
+            soundEngine.playSound('near_miss', 1.4);
+            this.triggerHaptic(10);
+          }
         } else if (data.type === 'tank') {
           // Блок Щита Танка: янтарные искры (0xf59e0b, ~14 шт) + звук отражения (hammer_impact)
           this.particles.emitBurst(x, 1.0, z, 14, 0xf59e0b, 3.5);

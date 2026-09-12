@@ -169,7 +169,10 @@ export class BonusManager {
       if (bdz > BonusManager.BONUS_ANIM_CULL_AHEAD || bdz < -BonusManager.BONUS_ANIM_CULL_BACK) continue;
 
       // Магнитное притяжение бонусов к центру толпы при активном гипер-режиме
-      if (crowd.isHyperMode) {
+      // или наличии Ниндзя (лут-магнит: паритет с монетами на трассе в ObstacleManager,
+      // где Ниндзя уже притягивает и удваивает — UI-обещание «собирает двойные монеты»
+      // должно действовать и на бонус-сферы).
+      if (crowd.isHyperMode || crowd.hasMobType('ninja')) {
         const bdx = b.x - leaderX;
         if (Math.abs(bdz) < 16 && Math.abs(bdx) < 9) {
           const t = Math.min(1.0, 10.0 * dt);
@@ -287,13 +290,19 @@ export class BonusManager {
         break;
       }
       case 'coins': {
-        const coinValue = Math.round(b.value * ovalMult);
+        // Лут Ниндзя: сфера монет удваивается (паритет с ×2 на трассе) + фидбек способности.
+        const hasNinja = crowd.hasMobType('ninja');
+        const baseCoin = Math.round(b.value * ovalMult);
+        const coinValue = hasNinja ? baseCoin * 2 : baseCoin;
         stateManager.runAddCoins(coinValue);
         // Бонус-монеты всегда кристальные: звон. Золотой burst не нужен —
         // тот же янтарный BONUS_COLORS.coins уже дан в начале applyEffect
         // (второй бурст давал 50 частиц на одну сферу).
         soundEngine.playSound('gem_pickup');
         eventBus.emit('coinCollected', { value: coinValue, x: b.x, z: b.z, tier: 2 });
+        if (hasNinja) {
+          eventBus.emit('classAbility', { type: 'ninja', ability: 'loot', x: b.x, z: b.z, value: coinValue });
+        }
         break;
       }
     }
