@@ -4,6 +4,7 @@ import { i18n } from '../core/Localization';
 import { stateManager } from '../core/StateManager';
 import { soundEngine } from '../audio/SoundEngine';
 import { eventBus } from '../core/EventBus';
+import { getTargetMobsToWin } from '../engine/LevelGenerator';
 import { Zap, Users, Coins, Shield, ArrowUp, MoveHorizontal, CircleDot, Pause, Skull, TriangleAlert, Route, Trophy, Focus, Diamond } from 'lucide-react';
 
 interface HUDProps {
@@ -385,6 +386,23 @@ export const HUD: React.FC<HUDProps> = ({
               <span className="text-2xl font-bold font-orbitron text-slate-900">
                 {crowdCount}
               </span>
+              {/* Цель толпы уровня: 3★ при >=100% цели, 2★ при >=60% (формула генератора) */}
+              {!isEndless && (() => {
+                const target = getTargetMobsToWin(levelNumber);
+                const reached = crowdCount >= target;
+                const twoStars = !reached && crowdCount >= Math.ceil(target * 0.6);
+                return (
+                  <span
+                    className={`flex items-center gap-1 text-sm font-bold font-orbitron self-center ${
+                      reached ? 'text-emerald-600' : twoStars ? 'text-amber-600' : 'text-slate-400'
+                    }`}
+                    title={`3★: ${target}, 2★: ${Math.ceil(target * 0.6)}`}
+                  >
+                    / {target}
+                    {reached && <Trophy className="w-4 h-4" />}
+                  </span>
+                );
+              })()}
             </div>
           </div>
 
