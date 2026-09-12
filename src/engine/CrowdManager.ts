@@ -409,10 +409,14 @@ export class CrowdManager {
       const tankChance = upgrades.tankSpawnChance * 0.08;
       const ninjaChance = upgrades.ninjaSpawnChance * 0.08;
       const mageChance = upgrades.mageSpawnChance * 0.08;
+      // Кап суммарного шанса спец-классов: на полной прокачке (5+5+5) сумма
+      // давала 120% и regular не спавнился вообще. Пропорции классов сохраняются.
+      const classSum = tankChance + ninjaChance + mageChance;
+      const scale = classSum > 0.8 ? 0.8 / classSum : 1;
 
-      if (rand < tankChance) mobType = 'tank';
-      else if (rand < tankChance + ninjaChance) mobType = 'ninja';
-      else if (rand < tankChance + ninjaChance + mageChance) mobType = 'mage';
+      if (rand < tankChance * scale) mobType = 'tank';
+      else if (rand < (tankChance + ninjaChance) * scale) mobType = 'ninja';
+      else if (rand < classSum * scale) mobType = 'mage';
     }
 
     // Find first inactive slot

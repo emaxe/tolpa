@@ -1441,6 +1441,32 @@ describe('getAdrenalineMultiplier — множитель скорости наб
   });
 });
 
+// Кап суммарного шанса спец-классов: на полной прокачке 5+5+5 сумма была 120%,
+// и regular вообще не спавнился из ролла. Кап 80% сохраняет пропорции классов.
+describe('spawnMob — кап суммарного шанса спец-классов', () => {
+  it('regular спавнится при max-прокачке; пропорции tank/ninja/mage сохранены', () => {
+    const c = new CrowdManager(new THREE.Scene());
+    const upgrades = stateManager.getState().upgrades;
+    const saved = [upgrades.tankSpawnChance, upgrades.ninjaSpawnChance, upgrades.mageSpawnChance];
+    const realRandom = Math.random;
+    try {
+      upgrades.tankSpawnChance = 5;
+      upgrades.ninjaSpawnChance = 5;
+      upgrades.mageSpawnChance = 5;
+      // Ролл 0.9 > капа 0.8 — без капа попал бы в спец-класс.
+      Math.random = () => 0.9;
+      expect(c.spawnMob()?.type).toBe('regular');
+      // Ролл 0.3: окно tank = 0.4*(2/3) = 0.267, ninja до 0.533 — значит ninja,
+      // а не tank как без scale. Пропорции 1:1:1 сохранены.
+      Math.random = () => 0.3;
+      expect(c.spawnMob()?.type).toBe('ninja');
+    } finally {
+      Math.random = realRandom;
+      [upgrades.tankSpawnChance, upgrades.ninjaSpawnChance, upgrades.mageSpawnChance] = saved;
+    }
+  });
+});
+
 // Мистика: штраф ÷ не должен использовать сырой val (8..13) — это вайп крыла 88..92%
 // при награде всего +8..13. Делитель — в обычном диапазоне ÷-ворот (2..3).
 describe('mysteryPenaltyStep — делитель штрафа Мистики', () => {
