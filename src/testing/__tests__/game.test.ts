@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { ObstacleManager, HAZARD_HIT_PITCH } from '../../engine/ObstacleManager';
 import { LevelGenerator, DEFAULT_TRACK_WIDTH, getTargetMobsToWin, getStarsForFinish, phaseSpeedMult } from '../../engine/LevelGenerator';
 import { StateManager } from '../../core/StateManager';
+import { eventBus } from '../../core/EventBus';
 import { ObjectPool, Poolable } from '../../core/ObjectPool';
 import { BossManager } from '../../engine/BossManager';
 import { CrowdManager } from '../../engine/CrowdManager';
@@ -1516,5 +1517,46 @@ describe('кибер-щит Легиона (defenseAura) против ловуш
     expect(mob.alive).toBe(false);
     spy.mockRestore();
     sm.importSave(btoa(JSON.stringify({ ...sm.getState(), upgrades: { ...sm.getState().upgrades, defenseAura: prev } })));
+  });
+});
+
+describe('броня формаций (wedge/diamond) против ловушек', () => {
+  it('клин гасит контакт с шансом 40%, даёт i-frames и засчитывает спасение', () => {
+    const c = new CrowdManager(new THREE.Scene());
+    c.formation = 'wedge';
+    const mob = c.spawnMob('regular') as MobInstance;
+    mob.invulnerableTime = 0;
+    let defends = 0;
+    const offDefend = eventBus.on('formationDefend', () => defends++);
+    const spy = vi.spyOn(Math, 'random').mockReturnValue(0.01);
+    // 0.01 < 0.4 — броня клина гасит удар
+    expect(c.resolveObstacleImpact(mob)).toBe(false);
+    expect(mob.alive).toBe(true);
+    expect(mob.invulnerableTime).toBeGreaterThan(0);
+    expect(defends).toBe(1); // событие + runAddMobsSaved внутри emitFormationDefend
+    offDefend();
+    // Бросок мимо порога — моб гибнет, как и раньше
+    mob.invulnerableTime = 0;
+    spy.mockReturnValue(0.99);
+    expect(c.resolveObstacleImpact(mob)).toBe(true);
+    expect(mob.alive).toBe(false);
+    spy.mockRestore();
+  });
+
+  it('ромб гасит с шансом 25%, овальный строй — без брони', () => {
+    const c = new CrowdManager(new THREE.Scene());
+    c.formation = 'diamond';
+    const mobD = c.spawnMob('regular') as MobInstance;
+    mobD.invulnerableTime = 0;
+    const spy = vi.spyOn(Math, 'random').mockReturnValue(0.99);
+    // 0.99 >= 0.25 — мимо
+    expect(c.resolveObstacleImpact(mobD)).toBe(true);
+    c.formation = 'oval';
+    const mobO = c.spawnMob('regular') as MobInstance;
+    mobO.invulnerableTime = 0;
+    spy.mockReturnValue(0.01);
+    // Овал брони не имеет — 0.01 не спасает (обычный моб без щита/HP гибнет)
+    expect(c.resolveObstacleImpact(mobO)).toBe(true);
+    spy.mockRestore();
   });
 });

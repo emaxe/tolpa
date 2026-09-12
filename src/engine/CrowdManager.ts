@@ -894,6 +894,17 @@ export class CrowdManager {
       }
       return false;
     }
+    // Честная броня формаций: бейджи «Клин: урон −40%» / «Ромб: броня +25%» работали
+    // только на массовые удары (killMobs: боссы/таран/стены) — основной путь гибели
+    // от ловушек (этот метод) её обходил. Шанс погасить контакт зеркален множителю
+    // урона в killMobs: wedge 0.4, diamond 0.25. i-frames как у кибер-щита — иначе
+    // тот же многокадровый хитбокс убьёт моба на следующем кадре.
+    const formationArmor = this.formation === 'wedge' ? 0.4 : this.formation === 'diamond' ? 0.25 : 0;
+    if (formationArmor > 0 && Math.random() < formationArmor) {
+      mob.invulnerableTime = 0.35;
+      this.emitFormationDefend(this.formation as 'wedge' | 'diamond', 1);
+      return false;
+    }
     // Уворот ниндзя 50% — тратит удар опасности, не убивает
     if (mob.type === 'ninja' && Math.random() < 0.5) {
       this.emitClassAbility('ninja', 'dodge', mob.x, mob.z);
