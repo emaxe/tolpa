@@ -6,6 +6,8 @@ import { ParticleSystem } from './ParticleSystem';
 import { soundEngine } from '../audio/SoundEngine';
 import { eventBus } from '../core/EventBus';
 import { stateManager } from '../core/StateManager';
+import { wallGrazedNearMiss } from '../utils/math';
+import type { ObstacleManager } from './ObstacleManager';
 
 interface WallVisual {
   data: WallData;
@@ -19,9 +21,16 @@ interface WallVisual {
   // Анимация падения (когда счётчик дошёл до 0).
   falling: boolean;
   fallT: number;
+  // Near-miss graze: позиция лидера в предыдущем кадре (для детекта пересечения
+  // плоскости стены) и одноразовость вердикта на стену.
+  lastLeaderZ?: number;
+  nearMissJudged?: boolean;
 }
 
 const WALL_HEIGHT = 4.2;
+// Толеранс зоны поражения стены (моб считается задетым в пределах halfW + допуск).
+// Общий для батча убийств и graze-вердикта — синхронно в одном месте.
+const WALL_HIT_TOLERANCE = 0.4;
 
 export class WallManager {
   private static readonly PRUNE_MARGIN = 40;
@@ -111,7 +120,7 @@ export class WallManager {
     data.forEach((w) => this.walls.push(this.buildWall(w)));
   }
 
-  public update(dt: number, crowd: CrowdManager, particles: ParticleSystem): void {
+  public update(dt: number, crowd: CrowdManager, particles: ParticleSystem, obstacles: ObstacleManager): void {
     const leaderX = crowd.leaderX;
     const leaderZ = crowd.leaderZ;
     const aliveMobs = crowd.getAliveMobs();
@@ -144,6 +153,20 @@ export class WallManager {
 
       // Мобы, проходящие через стену: стена убивает по одному, пока счётчик > 0.
       const halfW = wall.width / 2;
+
+      // Паритет с ловушками: graze near-miss кинетической стены. Вердикт один раз
+      // на стену в момент пересечения лидером её плоскости: проход впритирку к
+      // краю зоны поражения — награда серии, безопасный объезд — сброс серии.
+      // Внутри зоны — 'none': там решает батч убийств ниже (смерть = сброс).
+      const lPrev = wv.lastLeaderZ ?? wall.z - 1000;
+      wv.lastLeaderZ = leaderZ;
+      if (!wv.nearMissJudged && lPrev < wall.z && leaderZ >= wall.z) {
+        wv.nearMissJudged = true;
+        const verdict = wallGrazedNearMiss(leaderX, wall.x, halfW + WALL_HIT_TOLERANCE);
+        if (verdict === 'award') obstacles.awardNearMiss(wall.x, wall.z);
+        else if (verdict === 'break') obstacles.breakNearMissStreak(wall.x, wall.z);
+      }
+
       this.throughScratch.length = 0;
       for (const mob of aliveMobs) {
         if (wv.processedMobs.has(mob.id)) continue;
@@ -152,7 +175,7 @@ export class WallManager {
         // стены) условие повторно срабатывает и стена «в спину» убивает выживших.
         const crossed = mob.prevZ < wall.z && mob.z >= wall.z;
         if (!crossed) continue;
-        if (Math.abs(mob.x - wall.x) > halfW + 0.4) continue;
+        if (Math.abs(mob.x - wall.x) > halfW + WALL_HIT_TOLERANCE) continue;
         wv.processedMobs.add(mob.id);
         this.throughScratch.push(mob);
       }
@@ -196,6 +219,9 @@ export class WallManager {
         if (killedCount > 0) {
           soundEngine.playSound('mob_death');
           eventBus.emit('mobsKilled', { count: killedCount, reason: 'wall', x: wall.x, z: wall.z });
+          // Паритет с ловушками: гибель толпы — урон, серия уворотов сбрасывается.
+          // Раньше стена была единственным источником потерь, не ломающим серию.
+          obstacles.breakNearMissStreak(wall.x, wall.z);
         }
         if (wall.killsRemaining <= 0) {
           // Стена сокрушена в этом кадре — breakWall() сам даёт полный фидбек

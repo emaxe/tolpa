@@ -20,7 +20,7 @@ import { ParticleSystem } from './ParticleSystem';
 import { soundEngine } from '../audio/SoundEngine';
 import { eventBus } from '../core/EventBus';
 import { stateManager } from '../core/StateManager';
-import { clamp, checkCircleRectCollision, circleRectGap, getNearMissMultiplier, lerp } from '../utils/math';
+import { clamp, checkCircleRectCollision, circleRectGap, getNearMissMultiplier, lerp, NEAR_MISS_GRANT_GAP, NEAR_MISS_BREAK_GAP } from '../utils/math';
 import { DEFAULT_TRACK_WIDTH } from './LevelGenerator';
 
 // Звуковая идентичность ловушек: тон удара/смерти по типу ловушки (pitchShift для
@@ -1246,12 +1246,32 @@ export class ObstacleManager {
     }
   }
 
-  /** Сбрасывает серию уворотов и при срыве серии >=2 даёт визуальный фидбек. */
-  private breakNearMissStreak(x: number, z: number): void {
+  /** Сбрасывает серию уворотов и при срыве серии >=2 даёт визуальный фидбек. Публично — общий хелп для стен. */
+  public breakNearMissStreak(x: number, z: number): void {
     const brokenStreak = stateManager.runResetNearMissStreak();
     if (brokenStreak >= 2) {
       eventBus.emit('nearMissBreak', { streak: brokenStreak, x, z });
     }
+  }
+
+  /**
+   * Централизованная награда near-miss «в упор»: серия, пороговый milestone-фидбек,
+   * монеты (x множитель серии), эскалация звука. Бурст/хаптик/тряска — в обработчике
+   * nearMiss на стороне GameEngine (не дублируем). Общая для ловушек и кинетических
+   * стен (WallManager) — пороги зазора заданы константами NEAR_MISS_*_GAP.
+   */
+  public awardNearMiss(x: number, z: number): void {
+    const { streak, multiplier } = stateManager.runRecordNearMissStreak();
+    const prevMult = getNearMissMultiplier(streak - 1);
+    if (multiplier > prevMult) {
+      eventBus.emit('nearMissMilestone', { x, z, streak, multiplier });
+    }
+    const coins = 8 * multiplier;
+    stateManager.runAddCoins(coins);
+    eventBus.emit('coinCollected', { value: coins, x, z, tier: 2 });
+    // Эскалация звука по уровню серии (pitch выше на каждом увороте).
+    soundEngine.playSound('near_miss', 1.0 + Math.min(1.0, streak * 0.05));
+    eventBus.emit('nearMiss', { x, z, coins, streak, multiplier });
   }
 
   // Near-Miss (уворот в упор): награда за проход лидера вплотную к АКТИВНОЙ ловушке
@@ -1303,20 +1323,10 @@ export class ObstacleManager {
         const minGap = obsVis.nmMinGap;
         obsVis.nmMinGap = undefined;
         obsVis.nearMissAwarded = true;
-        if (minGap <= 0.35) {
-          // Весь мах пройден хотя бы раз в упор (<0.35 м) без касания — награда.
-          const { streak, multiplier } = stateManager.runRecordNearMissStreak();
-          const prevMult = getNearMissMultiplier(streak - 1);
-          if (multiplier > prevMult) {
-            eventBus.emit('nearMissMilestone', { x: obsVis.hazardX, z: rz, streak, multiplier });
-          }
-          const coins = 8 * multiplier;
-          stateManager.runAddCoins(coins);
-          eventBus.emit('coinCollected', { value: coins, x: obsVis.hazardX, z: rz, tier: 2 });
-          soundEngine.playSound('near_miss', 1.0 + Math.min(1.0, streak * 0.05));
-          // Бурст/хаптик/тряска — централизованно в обработчике nearMiss (не дублируем).
-          eventBus.emit('nearMiss', { x: obsVis.hazardX, z: rz, coins, streak, multiplier });
-        } else if (minGap <= 2.2) {
+        if (minGap <= NEAR_MISS_GRANT_GAP) {
+          // Весь мах пройден хотя бы раз в упор (<GRANT м) без касания — награда.
+          this.awardNearMiss(obsVis.hazardX, rz);
+        } else if (minGap <= NEAR_MISS_BREAK_GAP) {
           // Прошёл мах на безопасной дистанции — риск не нужен, серия сбрасывается.
           this.breakNearMissStreak(obsVis.hazardX, obsVis.hazardZ);
         }
@@ -1349,20 +1359,10 @@ export class ObstacleManager {
         const minGap = obsVis.nmMinGap;
         obsVis.nmMinGap = undefined;
         obsVis.nearMissAwarded = true;
-        if (minGap <= 0.35) {
-          // Весь проход пройден хотя бы раз в упор (<0.35 м) без касания — награда.
-          const { streak, multiplier } = stateManager.runRecordNearMissStreak();
-          const prevMult = getNearMissMultiplier(streak - 1);
-          if (multiplier > prevMult) {
-            eventBus.emit('nearMissMilestone', { x: obsVis.hazardX, z: rz, streak, multiplier });
-          }
-          const coins = 8 * multiplier;
-          stateManager.runAddCoins(coins);
-          eventBus.emit('coinCollected', { value: coins, x: obsVis.hazardX, z: rz, tier: 2 });
-          soundEngine.playSound('near_miss', 1.0 + Math.min(1.0, streak * 0.05));
-          // Бурст/хаптик/тряска — централизованно в обработчике nearMiss (не дублируем).
-          eventBus.emit('nearMiss', { x: obsVis.hazardX, z: rz, coins, streak, multiplier });
-        } else if (minGap <= 2.2) {
+        if (minGap <= NEAR_MISS_GRANT_GAP) {
+          // Весь проход пройден хотя бы раз в упор (<GRANT м) без касания — награда.
+          this.awardNearMiss(obsVis.hazardX, rz);
+        } else if (minGap <= NEAR_MISS_BREAK_GAP) {
           // Пропустил шар на безопасной дистанции — риск не нужен, серия сбрасывается.
           this.breakNearMissStreak(obsVis.hazardX, obsVis.hazardZ);
         }
@@ -1383,27 +1383,12 @@ export class ObstacleManager {
         obsVis.hazardW,
         obsVis.hazardD
       );
-      // Прошёл в зазоре (0..0.35 м от края активного хитбокса), не коснувшись.
-      if (gap >= 0 && gap <= 0.35) {
+      // Прошёл в зазоре (0..GRANT м от края активного хитбокса), не коснувшись.
+      if (gap >= 0 && gap <= NEAR_MISS_GRANT_GAP) {
         obsVis.nearMissAwarded = true;
-        // Серия уворотов: инкремент + множитель награды (x1/x2/x5/x10).
-        const { streak, multiplier } = stateManager.runRecordNearMissStreak();
-        // Порог серии (пересечение x2/x5/x10) — отдельное событие для праздничного
-        // фидбека: крик толпы, крупный бурст частиц, тряска экрана, баннер в HUD.
-        const prevMult = getNearMissMultiplier(streak - 1);
-        if (multiplier > prevMult) {
-          eventBus.emit('nearMissMilestone', { x: obsVis.hazardX, z: rz, streak, multiplier });
-        }
-        const coins = 8 * multiplier;
-        stateManager.runAddCoins(coins);
-        eventBus.emit('coinCollected', { value: coins, x: obsVis.hazardX, z: rz, tier: 2 });
-        // Эскалация звука по уровню серии (pitch выше на каждом увороте).
-        soundEngine.playSound('near_miss', 1.0 + Math.min(1.0, streak * 0.05));
-        // Визуальный бурст частиц НЕ дублируем здесь — GameEngine уже централизованно
-        // обрабатывает событие nearMiss (бурст + хаптик + тряска). Локальный emitBurst
-        // давал двойной всплеск частиц на каждый уворот.
-        eventBus.emit('nearMiss', { x: obsVis.hazardX, z: rz, coins, streak, multiplier });
-      } else if (gap > 0.35 && gap <= 2.2) {
+        // Серия уворотов: инкремент + множитель награды (x1/x2/x5/x10), монеты, звук.
+        this.awardNearMiss(obsVis.hazardX, rz);
+      } else if (gap > NEAR_MISS_GRANT_GAP && gap <= NEAR_MISS_BREAK_GAP) {
         // Безопасный объезд в той же полосе (0.35..2.2 м от хитбокса) — игрок не
         // рискнул, серия уворотов сбрасывается. Полноширинные ловушки (gap <= 0)
         // серию НЕ ломают — там награда невозможна в принципе.

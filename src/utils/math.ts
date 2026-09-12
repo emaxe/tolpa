@@ -29,6 +29,30 @@ export function getNearMissMultiplier(streak: number): number {
   return m;
 }
 
+// Пороги зазора near-miss (м): <=GRANT — «в упор» (награда серии), <=BREAK —
+// безопасный объезд в той же полосе (серия сбрасывается), дальше — без эффекта.
+// Единый источник правды для ловушек (ObstacleManager) и кинетических стен (WallManager).
+export const NEAR_MISS_GRANT_GAP = 0.35;
+export const NEAR_MISS_BREAK_GAP = 2.2;
+
+/**
+ * Вердикт серии в момент пересечения лидером плоскости кинетической стены.
+ * effHalfW — эффективная полуширина зоны поражения (визуал + толеранс хита).
+ * Внутри зоны — 'none' (там работает путь убийства/сброса); снаружи по расстоянию
+ * до ближайшего края: 'award' | 'break' | 'none'. Чистая функция, 0 аллокаций.
+ */
+export function wallGrazedNearMiss(
+  leaderX: number,
+  wallX: number,
+  effHalfW: number
+): 'award' | 'break' | 'none' {
+  if (leaderX >= wallX - effHalfW && leaderX <= wallX + effHalfW) return 'none';
+  const gap = leaderX < wallX ? wallX - effHalfW - leaderX : leaderX - (wallX + effHalfW);
+  if (gap <= NEAR_MISS_GRANT_GAP) return 'award';
+  if (gap <= NEAR_MISS_BREAK_GAP) return 'break';
+  return 'none';
+}
+
 // Минимальный зазор между кругом (моб/лидер) и прямоугольником (активный хитбокс
 // препятствия) в плоскости XZ. >=0 — снаружи (зазор), <0 — пересечение/касание.
 // Чистая числовая функция, 0 аллокаций — безопасна для горячего цикла.

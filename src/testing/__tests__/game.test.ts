@@ -10,7 +10,7 @@ import { CrowdManager } from '../../engine/CrowdManager';
 import { ParticleSystem } from '../../engine/ParticleSystem';
 import { GateManager } from '../../engine/GateManager';
 import type { MobInstance, ObstacleType } from '../../types/game';
-import { calculateFormationOffset, getFormationScale, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT, getMobFinishPower, getMobBossPower, mysteryPenaltyStep } from '../../utils/math';
+import { calculateFormationOffset, getFormationScale, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT, getMobFinishPower, getMobBossPower, mysteryPenaltyStep, wallGrazedNearMiss } from '../../utils/math';
 import { BOSS_TELEGRAPH_STYLE } from '../../components/FloatingText';
 import { i18n } from '../../core/Localization';
 import type { BossAttack } from '../../types/game';
@@ -1627,5 +1627,41 @@ describe('3D-телеграф атак босса (FloatingText)', () => {
       expect(style, `нет стиля для атаки ${t}`).toBeTruthy();
       expect(i18n.t(style.key)).not.toBe(style.key);
     }
+  });
+});
+
+describe('graze кинетических стен (wallGrazedNearMiss)', () => {
+  // effHalfW = halfW + WALL_HIT_TOLERANCE; здесь 3 + 0.4 = 3.4, край зоны = ±3.4.
+  const WALL_X = 0;
+  const EFF_HALF = 3.4;
+
+  it('внутри зоны поражения — none (решает батч убийств)', () => {
+    expect(wallGrazedNearMiss(0, WALL_X, EFF_HALF)).toBe('none');
+    expect(wallGrazedNearMiss(3.0, WALL_X, EFF_HALF)).toBe('none');
+    expect(wallGrazedNearMiss(-3.4, WALL_X, EFF_HALF)).toBe('none'); // ровно на краю = внутри
+  });
+
+  it('впритирку к краю (0..NEAR_MISS_GRANT_GAP) — award', () => {
+    expect(wallGrazedNearMiss(3.5, WALL_X, EFF_HALF)).toBe('award'); // зазор 0.1
+    expect(wallGrazedNearMiss(3.7, WALL_X, EFF_HALF)).toBe('award'); // зазор 0.3
+    expect(wallGrazedNearMiss(-3.7, WALL_X, EFF_HALF)).toBe('award'); // симметрия слева
+  });
+
+  it('безопасный объезд (GRANT..BREAK] — break', () => {
+    expect(wallGrazedNearMiss(4.5, WALL_X, EFF_HALF)).toBe('break'); // зазор 1.1
+    expect(wallGrazedNearMiss(5.5, WALL_X, EFF_HALF)).toBe('break'); // зазор 2.1
+    expect(wallGrazedNearMiss(-5.5, WALL_X, EFF_HALF)).toBe('break');
+  });
+
+  it('далеко от стены (> BREAK) — none', () => {
+    expect(wallGrazedNearMiss(5.7, WALL_X, EFF_HALF)).toBe('none'); // 2.3
+    expect(wallGrazedNearMiss(10, WALL_X, EFF_HALF)).toBe('none');
+  });
+
+  it('смещённая стена: вердикт по ближнему краю', () => {
+    // Стена на x=7, зона [3.6, 10.4]; лидер на 3.5 — graze левого края (зазор 0.1).
+    expect(wallGrazedNearMiss(3.5, 7, 3.4)).toBe('award');
+    // Лидер на 10.6 — зазор до правого края 0.2.
+    expect(wallGrazedNearMiss(10.6, 7, 3.4)).toBe('award');
   });
 });

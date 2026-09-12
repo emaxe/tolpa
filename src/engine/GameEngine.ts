@@ -2853,7 +2853,7 @@ export class GameEngine {
 
     // Update Sub-systems
     this.gates.update(dt, this.crowd, this.particles);
-    this.walls.update(dt, this.crowd, this.particles);
+    this.walls.update(dt, this.crowd, this.particles, this.obstacles);
     this.bonus.update(dt, this.crowd, this.particles);
     this.obstacles.update(dt, this.crowd, this.particles);
     // Индикатор ловушек в HUD пассивен и скрыт на мобильных (max-sm:hidden) — сигналим
