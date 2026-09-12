@@ -39,6 +39,10 @@ export class BossManager {
   private laserScratch: MobInstance[] = [];
   // Точки падения метеоров (x,z парами) — предвыделены, 0-GC в ветке meteors.
   private meteorPts = new Float64Array(16);
+  // Число рассчитанных точек удара метеоритов для текущего телеграфа (до 8).
+  private meteorStrikes = 0;
+  // Пул колец пространственного телеграфа метеоритного залпа (0-GC: создаются один раз).
+  private meteorTelegraphRings: THREE.Mesh[] = [];
   private bossArenaZ: number = 0;
   public isActive(): boolean { return !!this.bossData && !this.isDefeated && !this.isDefeatCollapsing; }
   public getArenaZ(): number { return this.bossArenaZ; }
@@ -176,6 +180,33 @@ export class BossManager {
     this.telegraphMesh.position.set(0, 0.05, arenaZ - 5);
     this.telegraphMesh.visible = false;
     this.scene.add(this.telegraphMesh);
+
+    // Create Meteor Telegraph Ring Meshes (пул 8 колец для пространственного телеграфа метеоров, 0-GC)
+    if (this.meteorTelegraphRings.length === 0) {
+      const meteorGeo = new THREE.RingGeometry(0.15, 2.0, 24);
+      for (let i = 0; i < 8; i++) {
+        const meteorMat = new THREE.MeshBasicMaterial({
+          color: 0xf97316,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        });
+        const ring = new THREE.Mesh(meteorGeo, meteorMat);
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.set(0, 0.05, 0);
+        ring.visible = false;
+        this.scene.add(ring);
+        this.meteorTelegraphRings.push(ring);
+      }
+    } else {
+      for (let i = 0; i < this.meteorTelegraphRings.length; i++) {
+        const ring = this.meteorTelegraphRings[i];
+        ring.visible = false;
+        (ring.material as THREE.MeshBasicMaterial).opacity = 0;
+      }
+    }
+    this.meteorStrikes = 0;
 
     // Create Laser Telegraph & Laser Beam Meshes (0-GC: живут весь бой)
     this.laserTelegraphMesh = createBossLaserTelegraphMesh(arenaZ);
@@ -331,6 +362,11 @@ export class BossManager {
       if (this.laserBeamMesh) {
         this.laserBeamMesh.visible = false;
       }
+      for (let i = 0; i < this.meteorTelegraphRings.length; i++) {
+        const ring = this.meteorTelegraphRings[i];
+        ring.visible = false;
+        (ring.material as THREE.MeshBasicMaterial).opacity = 0;
+      }
     } else {
       this.attackTimer += dt;
       const attacks = this.bossData.attacks;
@@ -340,6 +376,9 @@ export class BossManager {
         // Однократный сигнал и эмит события при старте telegraph-фазы атаки босса
         if (!this.telegraphAnnounced) {
           this.telegraphAnnounced = true;
+          if (currentAttack.type === 'meteors') {
+            this.rollMeteorPoints(currentAttack);
+          }
           eventBus.emit('bossAttackTelegraph', { type: currentAttack.type, x: 0, z: this.bossArenaZ });
           soundEngine.playSound('boss_attack_telegraph', 1, 0.8);
         }
@@ -355,6 +394,11 @@ export class BossManager {
             this.telegraphMesh.visible = false;
             (this.telegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
           }
+          for (let i = 0; i < this.meteorTelegraphRings.length; i++) {
+            const ring = this.meteorTelegraphRings[i];
+            ring.visible = false;
+            (ring.material as THREE.MeshBasicMaterial).opacity = 0;
+          }
           if (this.laserTelegraphMesh) {
             this.laserTelegraphMesh.visible = true;
             const pulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.02);
@@ -363,14 +407,43 @@ export class BossManager {
             const scaleX = 1.0 + Math.sin(Date.now() * 0.025) * 0.15;
             this.laserTelegraphMesh.scale.set(scaleX, 1.0, 1.0);
           }
-        } else {
+        } else if (currentAttack.type === 'meteors') {
           if (this.laserTelegraphMesh) {
             this.laserTelegraphMesh.visible = false;
             (this.laserTelegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
           }
           if (this.telegraphMesh) {
-            const color = currentAttack.type === 'meteors' ? 0xf97316
-              : currentAttack.type === 'minions' ? 0xa855f7
+            this.telegraphMesh.visible = false;
+            (this.telegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+          }
+          const pulse = 0.5 + 0.5 * Math.sin(Date.now() * 0.02);
+          const alpha = Math.min(0.75, prog * 0.5 + pulse * 0.25);
+          const scale = 0.3 + 0.7 * prog;
+          const pts = this.meteorPts;
+          for (let i = 0; i < this.meteorTelegraphRings.length; i++) {
+            const ring = this.meteorTelegraphRings[i];
+            if (i < this.meteorStrikes) {
+              ring.position.set(pts[i * 2], 0.05, pts[i * 2 + 1]);
+              ring.scale.set(scale, scale, scale);
+              ring.visible = true;
+              (ring.material as THREE.MeshBasicMaterial).opacity = alpha;
+            } else {
+              ring.visible = false;
+              (ring.material as THREE.MeshBasicMaterial).opacity = 0;
+            }
+          }
+        } else {
+          if (this.laserTelegraphMesh) {
+            this.laserTelegraphMesh.visible = false;
+            (this.laserTelegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+          }
+          for (let i = 0; i < this.meteorTelegraphRings.length; i++) {
+            const ring = this.meteorTelegraphRings[i];
+            ring.visible = false;
+            (ring.material as THREE.MeshBasicMaterial).opacity = 0;
+          }
+          if (this.telegraphMesh) {
+            const color = currentAttack.type === 'minions' ? 0xa855f7
               : currentAttack.type === 'shield' ? 0x00f0ff
               : 0xef4444;
             (this.telegraphMesh.material as THREE.MeshBasicMaterial).color.setHex(color);
@@ -394,6 +467,11 @@ export class BossManager {
           if (this.laserTelegraphMesh) {
             this.laserTelegraphMesh.visible = false;
             (this.laserTelegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+          }
+          for (let i = 0; i < this.meteorTelegraphRings.length; i++) {
+            const ring = this.meteorTelegraphRings[i];
+            ring.visible = false;
+            (ring.material as THREE.MeshBasicMaterial).opacity = 0;
           }
           this.executeBossAttack(currentAttack, crowd, particles);
         }
@@ -553,6 +631,22 @@ export class BossManager {
     }
   }
 
+  /**
+   * Пре-ролл пространственных координат падения метеоритов для телеграфа и удара.
+   * Вызывается один раз на старте telegraph-фазы атаки 'meteors' (0-GC).
+   */
+  private rollMeteorPoints(attack: BossAttack): void {
+    const strikes = Math.min(8, attack.areaRadius ? Math.floor(attack.areaRadius) : 3);
+    this.meteorStrikes = strikes;
+    const pts = this.meteorPts;
+    for (let i = 0; i < strikes; i++) {
+      const sx = (Math.random() - 0.5) * 8;
+      const sz = this.bossArenaZ - 4 - Math.random() * 4;
+      pts[i * 2] = sx;
+      pts[i * 2 + 1] = sz;
+    }
+  }
+
   private executeBossAttack(
     attack: BossAttack,
     crowd: CrowdManager,
@@ -631,15 +725,17 @@ export class BossManager {
       // удар взрыва (низкий питч boss_slam, чтобы не путать с тараном).
       soundEngine.playSound('boss_slam', 0.85, 0.9);
       eventBus.emit('screenShake', { intensity: 0.5 });
-      const strikes = Math.min(8, attack.areaRadius ? Math.floor(attack.areaRadius) : 3);
+      // Страховка: если атака вызвана без предварительного телеграфа — генерируем точки сейчас
+      if (this.meteorStrikes === 0) {
+        this.rollMeteorPoints(attack);
+      }
+      const strikes = this.meteorStrikes;
       const BLAST_R = 2.0;
       const blastSq = BLAST_R * BLAST_R;
       const pts = this.meteorPts;
       for (let i = 0; i < strikes; i++) {
-        const sx = (Math.random() - 0.5) * 8;
-        const sz = this.bossArenaZ - 4 - Math.random() * 4;
-        pts[i * 2] = sx;
-        pts[i * 2 + 1] = sz;
+        const sx = pts[i * 2];
+        const sz = pts[i * 2 + 1];
         particles.emitBurst(sx, 0.6, sz, 22, 0xf97316, 7.0);
       }
       // Near-miss лидера по ближайшему эпицентру (замер от края круга взрыва).
@@ -891,6 +987,11 @@ export class BossManager {
       this.laserTelegraphMesh.visible = false;
       (this.laserTelegraphMesh.material as THREE.MeshBasicMaterial).opacity = 0;
     }
+    for (let i = 0; i < this.meteorTelegraphRings.length; i++) {
+      const ring = this.meteorTelegraphRings[i];
+      ring.visible = false;
+      (ring.material as THREE.MeshBasicMaterial).opacity = 0;
+    }
     this.particles.emitLightPillar(0, this.bossArenaZ, 40, 0xfacc15);
     this.particles.emitShockwave(0, this.bossArenaZ, 0xfacc15);
     particles.emitBurst(0, 2.0, this.bossArenaZ, 30, 0xfacc15, 7.0);
@@ -946,6 +1047,11 @@ export class BossManager {
     if (this.isShielded) {
       this.setShielded(false);
     }
+    for (let i = 0; i < this.meteorTelegraphRings.length; i++) {
+      const ring = this.meteorTelegraphRings[i];
+      ring.visible = false;
+      (ring.material as THREE.MeshBasicMaterial).opacity = 0;
+    }
 
     particles.emitBurst(0, 3.0, this.bossArenaZ, 40, 0xfacc15, 8.0);
     eventBus.emit('screenShake', { intensity: 0.6 });
@@ -987,6 +1093,12 @@ export class BossManager {
       (this.shieldMesh.material as THREE.Material).dispose();
       this.shieldMesh = null;
     }
+    for (let i = 0; i < this.meteorTelegraphRings.length; i++) {
+      const ring = this.meteorTelegraphRings[i];
+      ring.visible = false;
+      (ring.material as THREE.MeshBasicMaterial).opacity = 0;
+    }
+    this.meteorStrikes = 0;
     this.cachedMaterials = [];
     this.isShielded = false;
     this.bossData = null;

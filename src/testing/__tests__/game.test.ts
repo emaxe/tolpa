@@ -537,6 +537,44 @@ describe('Save System', () => {
     }
   });
 
+  it('телеграф метеоров: точки пре-роллятся на телеграфе и не пере-ролливаются ударом', () => {
+    // Регрессия на spatial-телеграф: execute обязан использовать точки,
+    // рассчитанные в телеграф-фазе (иначе визуал колец расходится с хитбоксом).
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+    try {
+      const boss = new BossManager(null as any, null as any);
+      (boss as any).bossMesh = {};
+      (boss as any).bossArenaZ = 100;
+      (boss as any).rollMeteorPoints({ type: 'meteors', areaRadius: 5 });
+      expect((boss as any).meteorStrikes).toBe(5);
+      expect((boss as any).meteorPts[0]).toBeCloseTo(-4); // (0-0.5)*8
+      expect((boss as any).meteorPts[1]).toBeCloseTo(96); // 100-4-0*4
+      // На ударе random изменился, точки должны остаться телеграфными:
+      // моб в (0,94) вне круга (-4,96) радиуса 2 → выживает.
+      randomSpy.mockReturnValue(0.5);
+      const mob = { x: 0, z: 94 } as any;
+      const killed: any[] = [];
+      const crowd = {
+        leaderX: 9, leaderZ: 78,
+        getAliveMobs: () => [mob],
+        getAliveCount: () => 1,
+        killMobsFromGroup: (group: any[], count: number) => {
+          killed.push(...group.slice(0, count));
+          return Math.min(count, group.length);
+        },
+      } as any;
+      (boss as any).executeBossAttack(
+        { type: 'meteors', damage: 5, areaRadius: 5, duration: 0.9, telegraphTime: 1 },
+        crowd,
+        { emitBurst: () => {}, emitShockwave: () => {} }
+      );
+      expect(killed.length).toBe(0);
+      expect((boss as any).meteorPts[0]).toBeCloseTo(-4);
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+
   it('стойкость классов при ударе по площади (паритет meteor_rain с бомбами): гипер/щит/HP не ваншотятся', () => {
     // Регрессия на meteor_rain: он звал killMobById напрямую и сносил гипер-режим,
     // щиты и запас HP танков. Наведённый удар площади теперь идёт через
