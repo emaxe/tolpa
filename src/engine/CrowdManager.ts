@@ -691,6 +691,15 @@ export class CrowdManager {
     return spawned;
   }
 
+  /** Комбо-добавка в тот же кадр, что и базовый спавн ворот: без второго звука
+   *  mob_spawn (базовый уже прозвучал этим же кадром — паттерн batch-фидбека
+   *  из multiplyGroup), но с обновлением рекорда толпы по итоговому составу. */
+  public addMobsNearBonus(count: number, x: number, z: number): number {
+    const spawned = this.addMobsNearSilent(count, x, z);
+    if (spawned > 0) stateManager.runRecordMaxCrowd(this.getAliveCount());
+    return spawned;
+  }
+
   /** Умножает ТОЛЬКО группу створки: для каждого её моба спавнит (factor-1) копий рядом.
    *  Исправлено: раньше брался Math.floor(factor)-1, что давало 0 новых мобов при factor < 2
    *  (multVal падал до 1.4 на высоких уровнях) — ворота "не срабатывали". Теперь дробная

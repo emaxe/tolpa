@@ -323,7 +323,7 @@ export class GateManager {
       }
       if (base > 0) {
         const bonus = Math.floor(base * (comboFactor - 1));
-        netChange = bonus > 0 ? base + crowd.addMobsNear(bonus, gateX, gateZ) : base;
+        netChange = bonus > 0 ? base + crowd.addMobsNearBonus(bonus, gateX, gateZ) : base;
       }
       if (isFirstTrigger && netChange > 0) soundEngine.playSound('gate_pass_positive');
       if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 25 : 6, 0x10b981, netChange > 0 ? 5.0 : 2.0);
@@ -342,7 +342,7 @@ export class GateManager {
       // не на каждый кадр пересечения растянутой формации (fix double-counting).
       if (isFirstTrigger && base > 0) {
         const bonus = Math.floor(base * (comboFactor - 1));
-        netChange = bonus > 0 ? base + crowd.addMobsNear(bonus, gateX, gateZ) : base;
+        netChange = bonus > 0 ? base + crowd.addMobsNearBonus(bonus, gateX, gateZ) : base;
       }
       if (isFirstTrigger && netChange > 0) soundEngine.playSound('gate_pass_multiplier');
       if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 35 : 6, 0x00f0ff, netChange > 0 ? 6.0 : 2.0);
@@ -364,7 +364,7 @@ export class GateManager {
         }
         if (base > 0) {
           const bonus = Math.floor(base * (comboFactor - 1));
-          netChange = bonus > 0 ? base + crowd.addMobsNear(bonus, gateX, gateZ) : base;
+          netChange = bonus > 0 ? base + crowd.addMobsNearBonus(bonus, gateX, gateZ) : base;
         }
         if (isFirstTrigger && netChange > 0) soundEngine.playSound('gate_pass_positive');
         if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 25 : 6, 0xa855f7, netChange > 0 ? 5.0 : 2.0);
@@ -398,7 +398,7 @@ export class GateManager {
           }
           if (base > 0) {
             const bonus = Math.floor(base * (comboFactor - 1));
-            netChange = bonus > 0 ? base + crowd.addMobsNear(bonus, gateX, gateZ) : base;
+            netChange = bonus > 0 ? base + crowd.addMobsNearBonus(bonus, gateX, gateZ) : base;
             soundEngine.playSound('gate_pass_positive');
             particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 25, 0x10b981, 5.0);
           }
@@ -452,7 +452,7 @@ export class GateManager {
         }
         if (base > 0) {
           const bonus = Math.floor(base * (comboFactor - 1));
-          netChange = bonus > 0 ? base + crowd.addMobsNear(bonus, gateX, gateZ) : base;
+          netChange = bonus > 0 ? base + crowd.addMobsNearBonus(bonus, gateX, gateZ) : base;
           soundEngine.playSound('gate_pass_positive');
           particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 25, 0x10b981, 5.0);
         }
