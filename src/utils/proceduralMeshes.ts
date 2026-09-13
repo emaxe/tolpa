@@ -1542,69 +1542,6 @@ export function getBillboardTexture(accent: number): THREE.CanvasTexture {
   return texture;
 }
 
-// Procedural Billboard Mesh — рекламный щит: рама + панель с CanvasTexture
-// (текст на градиентном фоне, как в createGateTexture).
-export function createBillboardMesh(text: string, accent: number): THREE.Group {
-  const group = new THREE.Group();
-
-  // Рама
-  const frameGeo = new THREE.BoxGeometry(3.0, 2.0, 0.15);
-  const frameMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8, roughness: 0.3 });
-  const frame = new THREE.Mesh(frameGeo, frameMat);
-  frame.position.y = 2.0;
-  group.add(frame);
-
-  // Панель с CanvasTexture
-  const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 256;
-  const ctx = canvas.getContext('2d')!;
-
-  // Градиентный фон
-  const grad = ctx.createLinearGradient(0, 0, 0, 256);
-  grad.addColorStop(0, `rgba(${(accent >> 16) & 255}, ${(accent >> 8) & 255}, ${accent & 255}, 0.9)`);
-  grad.addColorStop(1, 'rgba(226, 232, 240, 0.95)'); // slate-200 — светлый низ, согласован со светлой сценой
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 512, 256);
-
-  // Светящаяся рамка
-  ctx.lineWidth = 10;
-  ctx.strokeStyle = '#ffffff';
-  ctx.strokeRect(8, 8, 496, 240);
-
-  // Текст
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-  ctx.shadowBlur = 12;
-  ctx.font = 'bold 64px Orbitron, sans-serif';
-  ctx.lineWidth = 8;
-  ctx.strokeStyle = 'rgba(15, 23, 42, 0.9)';
-  ctx.strokeText(text, 256, 128);
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(text, 256, 128);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.needsUpdate = true;
-
-  const panelGeo = new THREE.PlaneGeometry(2.8, 1.8);
-  const panelMat = new THREE.MeshBasicMaterial({ map: texture });
-  const panel = new THREE.Mesh(panelGeo, panelMat);
-  panel.position.set(0, 2.0, 0.08);
-  group.add(panel);
-
-  // Опорные ножки
-  const legGeo = new THREE.CylinderGeometry(0.1, 0.12, 1.0, 6);
-  const legMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.85, roughness: 0.3 });
-  const legL = new THREE.Mesh(legGeo, legMat);
-  legL.position.set(-1.2, 0.5, 0);
-  group.add(legL);
-  const legR = new THREE.Mesh(legGeo, legMat);
-  legR.position.set(1.2, 0.5, 0);
-  group.add(legR);
-
-  return group;
-}
 
 // ============================================================================
 // МОДЕЛИ СКИНОВ (уникальные 3D-формы для лидера)
