@@ -733,10 +733,6 @@ export class StateManager {
     if (this.run) this.run.obstaclesSmashed += 1;
   }
 
-  public runRecordNearMiss(count: number = 1): void {
-    if (this.run) this.run.nearMisses += count;
-  }
-
   /**
    * Фиксирует апекс серии из 12 монет (награда +1 гем уже выдана вызывающим кодом).
    * Без notify() — значение попадёт в сейв пакетом в commitRun().

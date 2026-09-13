@@ -470,11 +470,12 @@ describe('Save System', () => {
     expect(result).toBe(false);
   });
 
-  it('runRecordNearMiss накапливает счётчик уворотов в упор в RunStats', () => {
+  it('увороты в упор накапливают счётчик в RunStats', () => {
     const mgr = StateManager.getInstance();
     mgr.beginRun();
-    mgr.runRecordNearMiss(1);
-    mgr.runRecordNearMiss(2);
+    mgr.runRecordNearMissStreak();
+    mgr.runRecordNearMissStreak();
+    mgr.runRecordNearMissStreak();
     expect(mgr.getRun()?.nearMisses).toBe(3);
     // Новый забег сбрасывает счётчик.
     mgr.beginRun();
@@ -1216,12 +1217,10 @@ describe('Skin Rewards (бонусные скины)', () => {
     const initial = mgr.getState().stats.totalNearMisses || 0;
 
     mgr.beginRun();
-    mgr.runRecordNearMiss(5);
-    mgr.runRecordNearMissStreak();
-    mgr.runRecordNearMissStreak();
-    mgr.runRecordNearMissStreak();
-    mgr.runRecordNearMissStreak();
-    mgr.runRecordNearMissStreak();
+    // Сид «5 + 5 со сбросом серии»: total = 10, lifetime-рекорд серии остаётся 5.
+    for (let i = 0; i < 5; i++) mgr.runRecordNearMissStreak();
+    mgr.runResetNearMissStreak();
+    for (let i = 0; i < 5; i++) mgr.runRecordNearMissStreak();
     mgr.commitRun();
 
     const st = mgr.getState();
