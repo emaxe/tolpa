@@ -143,8 +143,6 @@ export class GameEngine {
   // башен/кристаллов/монолитов. Предаллоцированы при постройке.
   private decorFxAnchors: Float32Array = new Float32Array(0);
   private decorFxAccum: number = 0;
-  // Накапливаемая фаза бегущей волны по пилонам (смещается по Z — волна «едет»).
-  private pylonWavePhase: number = 0;
 
   // State
   public isRunning: boolean = false;
@@ -1490,7 +1488,6 @@ export class GameEngine {
     this.decorAnimated = [];
     this.decorFxAnchors = new Float32Array(0);
     this.decorFxAccum = 0;
-    this.pylonWavePhase = 0;
   }
 
   private buildTrack(length: number, width: number, biome: BiomeType): void {
