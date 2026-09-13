@@ -1880,17 +1880,18 @@ describe('Бейджи формаций синхронны с реальными
   });
 
   it('числовые перки из движка отражены в бейджах (Стрела/Фаланга/Овал/Клин/Ромб)', () => {
-    // GateManager:336 — Стрела: multFactor +0.5; CrowdManager:956 — заряд ×1.5.
-    expect(ru.formationArrowBadge).toMatch(/\+0\.5/);
+    // CrowdManager:956 — Стрела: заряд ×1.5. Перк ×+0.5 из бейджа убран:
+    // multiply-ворота выведены из генерации по фидбеку игроков (8c37e39), бейдж обязан
+    // показывать только достижимые перки.
     expect(ru.formationArrowBadge).toMatch(/1\.5/);
-    expect(en.formationArrowBadge).toMatch(/\+0\.5/);
     expect(en.formationArrowBadge).toMatch(/1\.5/);
     // GateManager:307 — Фаланга: add ×1.3 (+30%).
     expect(ru.formationCircleBadge).toMatch(/30/);
     expect(en.formationCircleBadge).toMatch(/30/);
-    // GateManager:358 — Овал: удача Мистики 85%.
-    expect(ru.formationOvalBadge).toMatch(/85/);
-    expect(en.formationOvalBadge).toMatch(/85/);
+    // GateManager:310-321 — Овал: живые перки — ворота/сферы +25% (oval_buff).
+    // Удача Мистики 85% из бейджа убрана: mystery-ворота не спавнятся (8c37e39).
+    expect(ru.formationOvalBadge).toMatch(/25/);
+    expect(en.formationOvalBadge).toMatch(/25/);
     // GateManager:415-421 — удержание деления: Клин 10%, Ромб 15%, Фаланга 20%.
     expect(ru.formationWedgeBadge).toMatch(/10/);
     expect(ru.formationDiamondBadge).toMatch(/15/);

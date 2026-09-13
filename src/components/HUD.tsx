@@ -676,8 +676,8 @@ export const HUD: React.FC<HUDProps> = ({
             {currentFormation === 'wedge' && i18n.t('formationWedgeBadge', '🛡️ Урон −40% · Деление −10%')}
             {currentFormation === 'wide' && i18n.t('formationWideBadge', '🧲 Охват +60% · Сложение +50% · Монеты → заряд')}
             {currentFormation === 'circle' && i18n.t('formationCircleBadge', '💥 Таран ×1.35 · Стен ×2 · Сложение +30% · Деление −20%')}
-            {currentFormation === 'arrow' && i18n.t('formationArrowBadge', '⚡ Скорость +15% · Заряд ×1.5 · Умножение +0.5 · Стен ×2')}
-            {currentFormation === 'oval' && i18n.t('formationOvalBadge', '⚖️ Баланс · Ворота и сферы +25% · Мистика 85%')}
+            {currentFormation === 'arrow' && i18n.t('formationArrowBadge', '⚡ Скорость +15% · Заряд ×1.5 · Стен ×2')}
+            {currentFormation === 'oval' && i18n.t('formationOvalBadge', '⚖️ Баланс · Ворота и сферы +25%')}
             {currentFormation === 'diamond' && i18n.t('formationDiamondBadge', '💎 Броня +25% · Стены ×2 · Таран · Деление −15%')}
           </div>
           <div className="pointer-events-auto grid grid-cols-6 gap-2 bg-slate-100/80 backdrop-blur-md p-1.5 rounded-xl border border-slate-300 max-sm:order-1 max-sm:grid-cols-1 max-sm:gap-1 max-sm:p-1 max-sm:rounded-2xl">
