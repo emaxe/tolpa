@@ -52,7 +52,6 @@ function createRng(seed: number) {
 }
 
 export interface PhaseInfo {
-  phaseIndex: number;
   phaseName: 'warmup' | 'ramp' | 'peak' | 'corridor' | 'climax';
   phaseMult: number;
   densityMult: number;
@@ -74,7 +73,6 @@ export interface PatternContext {
   z0: number;
   levelNum: number;
   trackWidth: number;
-  playableHalf: number;
   phaseMult: number;
   rng: () => number;
   rawGates: GateData[];
@@ -121,15 +119,15 @@ export class LevelGenerator {
   public static getPhaseInfo(z: number, trackLength: number): PhaseInfo {
     const ratio = z / Math.max(1, trackLength);
     if (ratio < 0.15) {
-      return { phaseIndex: 0, phaseName: 'warmup', phaseMult: 1.0, densityMult: 1.0 };
+      return { phaseName: 'warmup', phaseMult: 1.0, densityMult: 1.0 };
     } else if (ratio < 0.45) {
-      return { phaseIndex: 1, phaseName: 'ramp', phaseMult: 1.15, densityMult: 1.15 };
+      return { phaseName: 'ramp', phaseMult: 1.15, densityMult: 1.15 };
     } else if (ratio < 0.70) {
-      return { phaseIndex: 2, phaseName: 'peak', phaseMult: 1.30, densityMult: 1.30 };
+      return { phaseName: 'peak', phaseMult: 1.30, densityMult: 1.30 };
     } else if (ratio < 0.85) {
-      return { phaseIndex: 3, phaseName: 'corridor', phaseMult: 1.45, densityMult: 0.85 };
+      return { phaseName: 'corridor', phaseMult: 1.45, densityMult: 0.85 };
     } else {
-      return { phaseIndex: 4, phaseName: 'climax', phaseMult: 1.60, densityMult: 1.45 };
+      return { phaseName: 'climax', phaseMult: 1.60, densityMult: 1.45 };
     }
   }
 
@@ -137,7 +135,6 @@ export class LevelGenerator {
     const rng = createRng(levelNum * 7919 + 12345);
     const biome = this.getBiomeForLevel(levelNum);
     const trackWidth = DEFAULT_TRACK_WIDTH;
-    const playableHalf = trackWidth / 2 - TRACK_RAIL_MARGIN;
     const trackLength = 1100 + Math.min(32, levelNum) * 50;
     const isBossLevel = levelNum % 10 === 0;
 
@@ -290,7 +287,6 @@ export class LevelGenerator {
           z0: sectionZ,
           levelNum,
           trackWidth,
-          playableHalf,
           phaseMult: phase.phaseMult,
           rng,
           rawGates,
@@ -1523,7 +1519,6 @@ export class LevelGenerator {
       z0: zSlot1,
       levelNum: segmentIndex,
       trackWidth,
-      playableHalf,
       phaseMult: this.endlessPhaseMult(segmentIndex),
       rng,
       rawGates,
@@ -1542,7 +1537,6 @@ export class LevelGenerator {
       z0: zSlot2,
       levelNum: segmentIndex,
       trackWidth,
-      playableHalf,
       phaseMult: this.endlessPhaseMult(segmentIndex),
       rng,
       rawGates,
@@ -1567,7 +1561,6 @@ export class LevelGenerator {
         z0: zSlot3,
         levelNum: segmentIndex,
         trackWidth,
-        playableHalf,
         phaseMult: this.endlessPhaseMult(segmentIndex),
         rng,
         rawGates,

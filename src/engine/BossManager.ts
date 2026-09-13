@@ -72,7 +72,6 @@ export class BossManager {
   private isCoolingDown: boolean = false;
   private attackCooldown: number = 0;
   private attackInterval: number = 2.5;
-  private bossLevel: number = 10;
   // Флаг однократного аудио-визуального оповещения о начале telegraph-фазы атаки босса
   private telegraphAnnounced: boolean = false;
   // Boss Stagger: накопитель урона толпы в окне телеграфа текущей атаки.
@@ -132,7 +131,6 @@ export class BossManager {
     this.telegraphAnnounced = false;
     this.isEnraged = false;
     this.enrageTelegraphed = false;
-    this.bossLevel = level;
     this.attackInterval = this.computeAttackInterval(level);
     this.staggerThreshold = Math.max(
       BossManager.STAGGER_MIN_DMG,

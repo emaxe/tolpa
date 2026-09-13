@@ -831,7 +831,30 @@ export class CrowdManager {
       }
     }
     if (this.groupScratch.length === 0) return 0;
-    return this.killMobsFromGroup(this.groupScratch, this.groupScratch.length, reason);
+    // Гиперрежим = неуязвимость: списания нет (счётчик шага уже прокручен — паритет
+    // с прежним ранним return внутри killMobsFromGroup).
+    if (this.isHyperMode) return 0;
+    // Прямое списание приговорённых. Боевая логика killMobsFromGroup (аура защиты,
+    // множители Клина/Ромба, щиты, уворот ниндзя) здесь НЕ применяется: единственная
+    // милость деления — retentionBonus формаций (контракт ворот и HUD).
+    let killed = 0;
+    for (let i = 0; i < this.groupScratch.length; i++) {
+      const mob = this.groupScratch[i];
+      if (mob.invulnerableTime > 0) continue; // спавн-и-фреймы (контракт теста mysteryPenaltyStep)
+      mob.alive = false;
+      this.aliveCount--;
+      this.invalidateAliveSnapshot();
+      mob.y = -100;
+      this.dummy.position.set(0, -100, 0);
+      this.dummy.updateMatrix();
+      this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
+      killed++;
+    }
+    if (killed > 0) {
+      if (!reason.startsWith('boss')) soundEngine.playSound('mob_death');
+      eventBus.emit('mobsKilled', { count: killed, reason, x: this.leaderX, z: this.leaderZ });
+    }
+    return killed;
   }
 
   /**

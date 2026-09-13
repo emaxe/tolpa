@@ -1561,6 +1561,32 @@ describe('mysteryPenaltyStep — делитель штрафа Мистики', 
     const killedWithBonus = c2.divideMobsByStep(wing2, mysteryPenaltyStep(13), 'gate', { step: 0 }, 0.2);
     expect(killedWithBonus).toBeLessThanOrEqual(8);
   });
+
+  it('деление не поглощает боевые смягчения (аура/строй/щиты)', () => {
+    const prevAura = stateManager.getState().upgrades.defenseAura;
+    stateManager.importSave(btoa(JSON.stringify({ ...stateManager.getState(), upgrades: { ...stateManager.getState().upgrades, defenseAura: 5 } })));
+    const c = new CrowdManager(new THREE.Scene());
+    const savedFormation = c.formation;
+    c.formation = 'wedge';
+    try {
+      const wing: MobInstance[] = [];
+      for (let i = 0; i < 10; i++) {
+        const type = i % 2 === 1 ? 'tank' : 'regular';
+        const mob = c.spawnMob(type) as MobInstance;
+        mob.invulnerableTime = 0;
+        wing.push(mob);
+      }
+      const killed = c.divideMobsByStep(wing, 2, 'gate', { step: 0 }, 0);
+      expect(killed).toBe(5);
+      expect(c.getAliveCount()).toBe(5);
+      const liveTank = wing.find((m) => m.alive && m.type === 'tank');
+      expect(liveTank).toBeDefined();
+      expect(liveTank?.shieldHp).toBeGreaterThan(0);
+    } finally {
+      c.formation = savedFormation;
+      stateManager.importSave(btoa(JSON.stringify({ ...stateManager.getState(), upgrades: { ...stateManager.getState().upgrades, defenseAura: prevAura } })));
+    }
+  });
 });
 
 describe('Идентичность ловушек: покрытие таблиц фидбека (тон/VFX смерти)', () => {
