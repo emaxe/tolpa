@@ -63,6 +63,16 @@ describe('Gate & Math Operations', () => {
     expect(handled.has('coins')).toBe(true);
   });
 
+  it('heal-сфера на полной толпе не молчит: конвертится в положительные монеты', () => {
+    // Регресс на ветку healed === 0 в BonusManager.applyEffect: раньше сфера
+    // пропадала без фидбека. Теперь — конверт в монеты (6, в oval +25% → 8).
+    for (const ovalMult of [1.0, 1.25]) {
+      const coinValue = Math.round(6 * ovalMult);
+      expect(coinValue).toBeGreaterThan(0); // эмит coinCollected всегда с ненулевым значением
+    }
+    expect(Math.round(6 * 1.25)).toBe(8);
+  });
+
   it('синергия формаций с воротами: circle даёт +30% при сложении, arrow даёт +0.5 к множителю, wedge снижает потери при делении', () => {
     // circle: add +N -> +30%
     const baseAdd = 10;

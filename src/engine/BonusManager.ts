@@ -278,6 +278,15 @@ export class BonusManager {
           // Звук 'heal' уже играет healAll() (CrowdManager) — здесь только событие,
           // иначе подбор лечащего бонуса даёт сдвоенный клип.
           eventBus.emit('bonusCollected', { type: b.type, value: healed, x: b.x, z: b.z });
+        } else {
+          // Толпа целиком на полном HP (лечить некого): сфера не должна пропадать
+          // молча — паритет с cap-веткой add_mobs («иначе исход неразличим»).
+          // Конвертируем в монеты; звук/частицы здесь (у coinCollected-подписчиков
+          // только текст/гаптика), бурст цвета сферы уже дан в начале applyEffect.
+          const coinValue = Math.round(6 * ovalMult);
+          stateManager.runAddCoins(coinValue);
+          soundEngine.playSound('coin_pickup');
+          eventBus.emit('coinCollected', { value: coinValue, x: b.x, z: b.z, tier: 1 });
         }
         break;
       }
