@@ -237,6 +237,9 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               const isCurrent = lvl === state.currentLevel;
               const isBoss = lvl % 10 === 0;
               const stars = state.levelStars[lvl] || 0;
+              // Рекорд уровня: поле levelHighScores писалось в сейв, но нигде не
+              // показывалось — выводим его на карточке (данные уже собраны).
+              const bestScore = state.levelHighScores[lvl] || 0;
 
               return (
                 <button
@@ -268,6 +271,11 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                             <Star key={s} className="w-2 h-2 text-amber-600 fill-amber-600" />
                           ))}
                         </div>
+                      )}
+                      {bestScore > 0 && (
+                        <span className="text-[7px] font-mono opacity-70 leading-none mt-0.5">
+                          {i18n.t('endlessRecord')} {bestScore.toLocaleString()}
+                        </span>
                       )}
                     </>
                   )}
