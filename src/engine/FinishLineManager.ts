@@ -139,6 +139,13 @@ export class FinishLineManager {
         step.fallT += dt;
         step.group.rotation.x = Math.min(Math.PI / 2, step.fallT * 3.5);
         step.group.position.y = -step.fallT * 0.8;
+        // Паритет с WallManager: коллапс завершён — останавливаем анимацию и скрываем
+        // группу. Иначе все пробитые стены продолжали тонуть и обновляться каждый кадр
+        // до конца уровня (бесконечный рост fallT/position.y, лишние matrix-обновления).
+        if (step.fallT >= 1.2) {
+          step.falling = false;
+          step.group.visible = false;
+        }
       }
     }
 
