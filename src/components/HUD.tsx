@@ -172,9 +172,12 @@ export const HUD: React.FC<HUDProps> = ({
       showAlert('bossDefeated');
     });
 
-    // Босс проснулся (первый вход толпы в арену) — центральный баннер-тост.
-    const unsubBossAppear = eventBus.on('bossAppear', () => {
+    // Босс проснулся (первый вход толпы в арену) — центральный баннер-тост
+    // + инициализация полосы HP: payload содержит hp/maxHp/nameKey/titleKey,
+    // иначе полоса появляется только с первого bossDamaged (слепая зона 35м..6м).
+    const unsubBossAppear = eventBus.on('bossAppear', (data) => {
       showAlert('bossAppear');
+      if (data && typeof data.maxHp === 'number') setBossInfo(data);
     });
 
     // Босс впал в ярость (HP <= 45%) — красный баннер-тост предупреждения.
@@ -347,8 +350,9 @@ export const HUD: React.FC<HUDProps> = ({
   }, []);
 
   const handleAdrenalineClick = () => {
-    // Активация возможна только при полном заряде и вне активного гипер-режима:
-    // клик во время «Ярости» был мёртвым (движок молча возвращал false).
+    // Парити с handleFormationClick: клик не должен пропадать беззвучно,
+    // когда кнопка не готова (движок молча вернёт false — гейт в tryActivateAdrenaline).
+    soundEngine.playSound('button_click');
     if (adrenalineCharge >= 100 && !isHyperActive) {
       onActivateAdrenaline();
     }
@@ -631,7 +635,6 @@ export const HUD: React.FC<HUDProps> = ({
         <div className="pointer-events-auto max-sm:order-2">
           <button
             onClick={handleAdrenalineClick}
-            disabled={adrenalineCharge < 100 || isHyperActive}
             className={`relative overflow-hidden rounded-xl border font-orbitron font-extrabold uppercase tracking-wider transition-all duration-300 flex items-center justify-between shadow-lg ${
               isHyperActive
                 ? 'bg-gradient-to-r from-yellow-500 via-amber-400 to-orange-500 text-zinc-950 border-yellow-300 animate-pulse scale-[1.02]'

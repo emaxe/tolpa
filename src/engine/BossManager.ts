@@ -336,7 +336,17 @@ export class BossManager {
       eventBus.emit('screenShake', { intensity: 0.5 });
       // Центральный баннер-тост "БОСС ПРОСНУЛСЯ" — раньше появление босса было
       // заметно только по VFX/звуку, без текстового объявления в HUD.
-      eventBus.emit('bossAppear', { x: 0, z: this.bossArenaZ });
+      // hp/maxHp/nameKey/titleKey в payload: HUD инициализирует полосу HP при
+      // пробуждении, а не с первого мили-удара — иначе на отрезке от 35 м (вход
+      // в зону, гасит чип дистанции) до ~6 м (дальность мили) полоса молчит.
+      eventBus.emit('bossAppear', {
+        hp: this.bossData.hp,
+        maxHp: this.bossData.maxHp,
+        nameKey: this.bossData.nameKey,
+        titleKey: this.bossData.titleKey,
+        x: 0,
+        z: this.bossArenaZ,
+      });
     }
 
     // 1. Attack cycle (с паузой между атаками, масштабируемой по уровню босса).
