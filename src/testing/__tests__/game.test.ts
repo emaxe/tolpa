@@ -638,14 +638,21 @@ describe('Save System', () => {
     expect(hyperMob.alive).toBe(true);
     (c as any).isHyperMode = false;
     // Танк 3-го уровня (щит 2 + HP 3): два щита, потом HP, гибнет только на 4-м ударе.
+    // Сброс invulnerableTime перед каждым ударом = удары разнесены за окно
+    // i-frames (0.35с): спасение щитом/HP теперь взводит их наравне с аурой,
+    // броней формаций и уворотом ниндзя (паритет с непрерывными ловушками).
     const tank = c.spawnMob('tank') as MobInstance;
     tank.invulnerableTime = 0;
     tank.shieldHp = 2;
     tank.hp = 3;
     expect(c.resolveObstacleImpact(tank)).toBe(false); // щит 1
+    tank.invulnerableTime = 0;
     expect(c.resolveObstacleImpact(tank)).toBe(false); // щит 2
+    tank.invulnerableTime = 0;
     expect(c.resolveObstacleImpact(tank)).toBe(false); // HP 3→2
+    tank.invulnerableTime = 0;
     expect(c.resolveObstacleImpact(tank)).toBe(false); // HP 2→1
+    tank.invulnerableTime = 0;
     expect(c.resolveObstacleImpact(tank)).toBe(true);  // последний удар — смерть
     expect(tank.alive).toBe(false);
   });

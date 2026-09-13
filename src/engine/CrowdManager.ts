@@ -907,17 +907,22 @@ export class CrowdManager {
       return this.wallImpactScratch;
     }
 
-    // Щит (танк/маг): поглощает контакт, моб выживает, урон стене наносится
+    // Щит (танк/маг): поглощает контакт, моб выживает, урон стене наносится.
+    // Короткие i-frames (паритет с ветками ауры/брони/уворота выше): иначе
+    // следующий тик той же стены (killsRemaining > 1) сжигал ещё один щит.
     if (mob.shieldHp > 0) {
       mob.shieldHp--;
+      mob.invulnerableTime = 0.35;
       this.emitClassAbility(mob.type === 'mage' ? 'mage' : 'tank', 'shield', mob.x, mob.z);
       this.wallImpactScratch.killed = false;
       return this.wallImpactScratch;
     }
 
-    // Запас HP > 1: теряет 1 HP, выживает, урон стене наносится
+    // Запас HP > 1: теряет 1 HP, выживает, урон стене наносится. Те же
+    // i-frames, что у щита — без них HP таял по единице за кадр.
     if (mob.hp > 1) {
       mob.hp--;
+      mob.invulnerableTime = 0.35;
       this.wallImpactScratch.killed = false;
       return this.wallImpactScratch;
     }
@@ -971,15 +976,21 @@ export class CrowdManager {
       this.emitClassAbility('ninja', 'dodge', mob.x, mob.z);
       return false;
     }
-    // Щит танка/мага поглощает контакт
+    // Щит танка/мага поглощает контакт. Короткие i-frames (паритет с уворотом
+    // ниндзя выше): непрерывные ловушки зовут резолвер каждый кадр, без них
+    // щиты танка сгорали за 2-3 кадра в пиле — обещание «поглощает контакт»
+    // обесценивалось, танк уступал в выживаемости 1-HP ниндзя.
     if (mob.shieldHp > 0) {
       mob.shieldHp--;
+      mob.invulnerableTime = 0.35;
       this.emitClassAbility(mob.type === 'mage' ? 'mage' : 'tank', 'shield', mob.x, mob.z);
       return false;
     }
-    // Запас HP (прокачанный танк): −1 HP, выживает
+    // Запас HP (прокачанный танк): −1 HP, выживает. Те же i-frames, что у щита —
+    // иначе HP таял по единице за кадр в той же непрерывной ловушке.
     if (mob.hp > 1) {
       mob.hp--;
+      mob.invulnerableTime = 0.35;
       return false;
     }
     return this.killMobById(mob.id);
