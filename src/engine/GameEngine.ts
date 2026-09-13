@@ -867,7 +867,13 @@ export class GameEngine {
         const x = data.x ?? this.crowd.leaderX;
         const z = data.z ?? this.crowd.leaderZ;
 
-        if (data.type === 'ninja') {
+        if (data.ability === 'aura') {
+          // Апгрейд «Кибер-щит Легиона»: спасённый моб любого класса — циановые искры
+          // + вариант звука щита (отличим от изумрудного Мага и янтарного Танка).
+          this.particles.emitBurst(x, 1.0, z, 14, 0x00f0ff, 3.5);
+          soundEngine.playSound('mage_shield', 1.35);
+          this.triggerHaptic(15);
+        } else if (data.type === 'ninja') {
           if (data.ability === 'loot') {
             // Лут-магнит на бонус-сфере: комбо-звон + короткий фиолетовый burst
             // (звук gem_pickup уже играет BonusManager — своего кристального не надо).

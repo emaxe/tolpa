@@ -1707,6 +1707,25 @@ describe('кибер-щит Легиона (defenseAura) против ловуш
     spy.mockRestore();
     sm.importSave(btoa(JSON.stringify({ ...sm.getState(), upgrades: { ...sm.getState().upgrades, defenseAura: prev } })));
   });
+
+  it('спасение ауры эмитит фидбек-событие classAbility ability=aura для моба без класса', () => {
+    const sm = StateManager.getInstance();
+    const prev = sm.getState().upgrades.defenseAura;
+    sm.importSave(btoa(JSON.stringify({ ...sm.getState(), upgrades: { ...sm.getState().upgrades, defenseAura: 5 } })));
+    const c = new CrowdManager(new THREE.Scene());
+    const mob = c.spawnMob('regular') as MobInstance;
+    mob.invulnerableTime = 0;
+    const auras: any[] = [];
+    const unsub = eventBus.on('classAbility', (d: any) => { if (d?.ability === 'aura') auras.push(d); });
+    const spy = vi.spyOn(Math, 'random').mockReturnValue(0.02);
+    expect(c.resolveObstacleImpact(mob)).toBe(false);
+    spy.mockRestore();
+    unsub();
+    // Раньше фидбек был только у mage/tank; regular-моб — основной состав толпы.
+    expect(auras.length).toBe(1);
+    expect(auras[0].type).toBe('regular');
+    sm.importSave(btoa(JSON.stringify({ ...sm.getState(), upgrades: { ...sm.getState().upgrades, defenseAura: prev } })));
+  });
 });
 
 describe('броня формаций (wedge/diamond) против ловушек', () => {

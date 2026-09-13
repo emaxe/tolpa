@@ -280,13 +280,14 @@ export class CrowdManager {
     this.aliveSnapshotValid = false;
   }
 
-  /** Троттлинг-эмит визуально-звукового фидбека classAbility (уворот ниндзя / щит танка).
+  /** Троттлинг-эмит визуально-звукового фидбека classAbility (уворот ниндзя / щит танка /
+   *  кибер-щит Легиона 'aura').
    *  Не чаще одного события за CLASS_ABILITY_EMIT_INTERVAL_MS — при массовой гибели
    *  толпы за один кадр это убирает десятки частиц/звуков/haptic и связанные фризы.
    *  Игровой смысл не меняется: способность уже сработала логически (бюджет списан),
    *  здесь ограничивается только частота фидбека. Зовётся и из групповых киллов, и из
    *  killOneFromGroup — единая точка, чтобы не дублировать условие троттлинга. */
-  private emitClassAbility(type: 'ninja' | 'tank' | 'mage', ability: 'dodge' | 'shield' | 'transmute', x: number, z: number): void {
+  private emitClassAbility(type: MobType, ability: 'dodge' | 'shield' | 'transmute' | 'aura', x: number, z: number): void {
     const now = performance.now();
     if (now - this.lastClassAbilityEmitMs < CrowdManager.CLASS_ABILITY_EMIT_INTERVAL_MS) return;
     this.lastClassAbilityEmitMs = now;
@@ -880,9 +881,7 @@ export class CrowdManager {
     const defenseAuraLvl = stateManager.getState().upgrades.defenseAura;
     if (defenseAuraLvl > 0 && Math.random() < defenseAuraLvl * 0.1) {
       mob.invulnerableTime = 0.35;
-      if (mob.type === 'mage' || mob.type === 'tank') {
-        this.emitClassAbility(mob.type, 'shield', mob.x, mob.z);
-      }
+      this.emitClassAbility(mob.type, 'aura', mob.x, mob.z);
       this.wallImpactScratch.killed = false;
       return this.wallImpactScratch;
     }
@@ -945,9 +944,7 @@ export class CrowdManager {
       // Короткие i-frames: спасённый моб не должен погибнуть от того же
       // многокадрового хитбокса ловушки на следующем кадре.
       mob.invulnerableTime = 0.35;
-      if (mob.type === 'mage' || mob.type === 'tank') {
-        this.emitClassAbility(mob.type, 'shield', mob.x, mob.z);
-      }
+      this.emitClassAbility(mob.type, 'aura', mob.x, mob.z);
       return false;
     }
     // Честная броня формаций: бейджи «Клин: урон −40%» / «Ромб: броня +25%» работали
