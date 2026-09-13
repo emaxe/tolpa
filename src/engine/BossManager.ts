@@ -825,16 +825,30 @@ export class BossManager {
       // Урон за тик — доля от полного урона атаки, чтобы за всю длительность
       // (обычно 2-3с) суммарный урон был сопоставим с slam/laser.
       const perTick = Math.max(1, Math.round((currentAttack.damage / 3) * tickInterval));
-      const killed = crowd.killMobs(perTick, 'boss_minions');
-      if (killed > 0) this.breakNearMissStreak(crowd.leaderX, crowd.leaderZ);
-      particles.emitBurst(
-        (Math.random() - 0.5) * 4,
-        0.8 + Math.random(),
-        this.bossArenaZ - 3 + (Math.random() - 0.5) * 4,
-        8,
-        0xa855f7,
-        3.0
-      );
+      // Пространственный укус (паритет с slam/laser/meteors): центр тика один и
+      // тот же для визуала и хитбокса — раньше killMobs косил глобальный фронт
+      // толпы независимо от точки укуса роя, уклонение не работало.
+      // Near-miss-грант сюда НЕ добавляем специально: тики идут каждые 0.5с,
+      // per-tick checkBossNearMiss фармил бы монеты у края роя (дыра экономики).
+      // laserScratch переиспользуется: ветки атак босса взаимоисключающи.
+      const biteX = (Math.random() - 0.5) * 4;
+      const biteZ = this.bossArenaZ - 3 + (Math.random() - 0.5) * 4;
+      const biteRSq = 2.5 * 2.5;
+      const aliveMobs = crowd.getAliveMobs();
+      const inBite = this.laserScratch;
+      inBite.length = 0;
+      for (let i = 0; i < aliveMobs.length; i++) {
+        const m = aliveMobs[i];
+        const dx = m.x - biteX;
+        const dz = m.z - biteZ;
+        if (dx * dx + dz * dz <= biteRSq) inBite.push(m);
+      }
+      particles.emitBurst(biteX, 0.8 + Math.random(), biteZ, 8, 0xa855f7, 3.0);
+      if (inBite.length > 0) {
+        const capped = Math.min(perTick, inBite.length);
+        const killed = crowd.killMobsFromGroup(inBite, capped, 'boss_minions');
+        if (killed > 0) this.breakNearMissStreak(crowd.leaderX, crowd.leaderZ);
+      }
     }
   }
 

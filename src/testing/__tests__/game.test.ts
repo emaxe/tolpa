@@ -587,6 +587,66 @@ describe('Save System', () => {
     expect(killed[0]).toBe(mobIn);
   });
 
+  it('minions босса: укус бьёт только по мобам у точки роя (spatial-паритет)', () => {
+    // Регрессия на глобальный killMobs в minion-тиках: раньше рой косил
+    // глобальный фронт толпы, а частицы летели в случайную точку. Теперь
+    // центр тика общий для визуала и хитбокса; кап = perTick.
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    try {
+      const boss = new BossManager(null as any, null as any);
+      (boss as any).bossArenaZ = 100;
+      (boss as any).isDefeated = false;
+      (boss as any).currentAttackIndex = 0;
+      (boss as any).minionTickAccum = 0.5; // тик срабатывает на этом вызове
+      (boss as any).bossData = { attacks: [{ type: 'minions', damage: 3, duration: 2, telegraphTime: 1 }] };
+      // random=0.5 → центр укуса (0, 97), R=2.5
+      const mobIn = { x: 0, z: 97 } as any;
+      const mobEdge = { x: 2.4, z: 97 } as any; // в радиусе, но перечебит кап
+      const mobFarFront = { x: 5, z: 99 } as any; // впереди по z, вне радиуса → жив
+      const killed: any[] = [];
+      let bursts = 0;
+      const crowd = {
+        leaderX: 9, leaderZ: 78,
+        getAliveMobs: () => [mobFarFront, mobIn, mobEdge],
+        killMobsFromGroup: (group: any[], count: number) => {
+          killed.push(...group.slice(0, count));
+          return Math.min(count, group.length);
+        },
+      } as any;
+      (boss as any).breakNearMissStreak = () => {};
+      (boss as any).tickMinionDamage(0, crowd, { emitBurst: () => { bursts++; } });
+      expect(bursts).toBe(1);
+      expect(killed.length).toBe(1); // cap = perTick = max(1, round(3/3*0.5)) = 1
+      expect(killed[0]).toBe(mobIn);
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+
+  it('minions босса: пустая зона укуса — мобы не гибнут (dodge-агентность)', () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    try {
+      const boss = new BossManager(null as any, null as any);
+      (boss as any).bossArenaZ = 100;
+      (boss as any).isDefeated = false;
+      (boss as any).currentAttackIndex = 0;
+      (boss as any).minionTickAccum = 0.5;
+      (boss as any).bossData = { attacks: [{ type: 'minions', damage: 3, duration: 2, telegraphTime: 1 }] };
+      const mobAway = { x: 8, z: 80 } as any; // далеко от центра укуса (0, 97)
+      let bursts = 0;
+      const crowd = {
+        leaderX: 9, leaderZ: 78,
+        getAliveMobs: () => [mobAway],
+        killMobsFromGroup: () => { throw new Error('убийство вне радиуса укуса'); },
+      } as any;
+      (boss as any).breakNearMissStreak = () => {};
+      (boss as any).tickMinionDamage(0, crowd, { emitBurst: () => { bursts++; } });
+      expect(bursts).toBe(1); // визуал укуса остаётся, даже если рой грызёт воздух
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+
   it('телеграф метеоров: точки пре-роллятся на телеграфе и не пере-ролливаются ударом', () => {
     // Регрессия на spatial-телеграф: execute обязан использовать точки,
     // рассчитанные в телеграф-фазе (иначе визуал колец расходится с хитбоксом).
