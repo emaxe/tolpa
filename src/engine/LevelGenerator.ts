@@ -670,7 +670,9 @@ export class LevelGenerator {
 
   // 1. Слалом из 3 препятствий (чередование сторон X=±3.6, шаг Z=12м)
   private static patternSlalomCascade(ctx: PatternContext): { count: number; spanZ: number } {
-    const types: ObstacleType[] = ['saw_blade', 'rolling_spike_ball', 'axe_pendulum'];
+    // Секира (axe_pendulum) исключена: pushObs принудительно центрирует её по X
+    // (П-рама со стойками ±6), что схлопывало слалом в тройной завал на X=0.
+    const types: ObstacleType[] = ['saw_blade', 'rolling_spike_ball', 'crusher'];
     const chosenType = types[Math.floor(ctx.rng() * types.length)];
     const side = ctx.rng() < 0.5 ? -1 : 1;
     const idPrefix = ctx.idPrefix;
@@ -689,7 +691,8 @@ export class LevelGenerator {
         ctx.phaseMult,
         ctx.rng,
         {
-          range: 1.0,
+          // У пресса range мёртв (бьёт строго по Y) — оставляем 0 (инвариант теста).
+          range: chosenType === 'crusher' ? 0 : 1.0,
           initialOffset,
           ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
         }
