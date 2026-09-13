@@ -974,6 +974,10 @@ export class StateManager {
   public addGems(amount: number): void {
     this.state.gems += amount;
     this.state.stats.totalGemsEarned += amount;
+    // Паритет с addCoins/rich_boy: прогресс gem_collector в реальном времени.
+    // Иначе кристаллы вне commitRun (бонус победы, награды ачивок) не двигают
+    // ачивку и не дают toast до следующей синхронизации (fix).
+    this.updateAchievementProgress('gem_collector', this.state.stats.totalGemsEarned);
     this.notify();
   }
 
