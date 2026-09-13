@@ -1979,3 +1979,20 @@ describe('Геометрия ловушек: синхрон генератора
     }
   });
 });
+
+// Регрессия молчаливого Охотника: раньше proximityVolume глушил всё с dz<-1,
+// из-за чего рык пробуждения (dz≈-2.5) и петля погони (dz∈[-16,-1]) не играли
+// никогда — «честное окно реакции на звук» было только визуальным.
+describe('ObstacleManager — тыловая слышимость (Охотник)', () => {
+  it('proximityVolume не глушит угрозу сзади в пределах камеры', () => {
+    const mgr = new ObstacleManager(new THREE.Scene());
+    const vol = (mgr as any).proximityVolume.bind(mgr) as (z: number, l: number) => number;
+    expect(vol(10, 7.5)).toBe(1); // dz=+2.5 — прямо перед толпой
+    expect(vol(10, 12.5)).toBe(1); // dz=-2.5 — момент пробуждения: рёв полный
+    expect(vol(2, 16)).toBe(1); // dz=-14 — край тылового плато
+    expect(vol(-4, 12)).toBeCloseTo(0.5, 6); // dz=-16 — край петли погони
+    expect(vol(-6, 12)).toBe(0); // dz=-18 — за камерой — тишина
+    expect(vol(52, 12)).toBe(0); // dz=+40 — за передним радиусом
+    expect(vol(38, 12)).toBeCloseTo(1 - 22 / 22, 6); // dz=+26 — ноль на границе
+  });
+});
