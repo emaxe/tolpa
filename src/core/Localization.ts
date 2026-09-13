@@ -264,6 +264,7 @@ export const translations = {
     guideFeat3: 'ObjectPool для частиц и векторов без сборщика мусора (0-GC)',
     guideFeat4: 'Сохранение состояния в localStorage с миграцией версий',
     unitM: 'м',
+    unitS: 'с',
     importBad: 'Ошибка: неверный формат данных сохранения.',
     importPlaceholder: 'Вставьте код сохранения...',
 
@@ -657,6 +658,7 @@ export const translations = {
     guideFeat3: 'ObjectPool for particles & vectors with zero GC pressure',
     guideFeat4: 'State persistence in localStorage with versioned migration',
     unitM: 'm',
+    unitS: 's',
     importBad: 'Error: invalid save data format.',
     importPlaceholder: 'Paste save code...',
 

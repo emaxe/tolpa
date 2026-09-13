@@ -495,7 +495,7 @@ export const HUD: React.FC<HUDProps> = ({
         <div
           className={`absolute right-4 top-24 z-20 pointer-events-none px-3 py-1.5 rounded-lg border-2 bg-slate-100/85 backdrop-blur-md font-orbitron font-bold text-xs tracking-wider shadow-lg ${EVENT_ALERT_MAP[activeEventType].cls}`}
         >
-          {i18n.t(EVENT_ALERT_MAP[activeEventType].key)} · {Math.ceil(activeEventTimer)}с
+          {i18n.t(EVENT_ALERT_MAP[activeEventType].key)} · {Math.ceil(activeEventTimer)}{i18n.t('unitS')}
         </div>
       )}
 
@@ -647,7 +647,7 @@ export const HUD: React.FC<HUDProps> = ({
               <Zap className={`w-5 h-5 ${isHyperActive || adrenalineCharge >= 100 ? 'fill-zinc-950' : 'fill-amber-400'}`} />
               <span>
                 {isHyperActive
-                  ? `${i18n.t('hyperActive')} · ${Math.max(0, hyperTimeLeft).toFixed(1)}s`
+                  ? `${i18n.t('hyperActive')} · ${Math.max(0, hyperTimeLeft).toFixed(1)}${i18n.t('unitS')}`
                   : adrenalineCharge >= 100
                   ? i18n.t('hyperModeReady')
                   : `${i18n.t('adrenaline')} (${Math.round(adrenalineCharge)}%)`}
