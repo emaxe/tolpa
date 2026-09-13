@@ -547,46 +547,41 @@ export const HUD: React.FC<HUDProps> = ({
         </div>
       )}
 
-      {/* Компактная строка дистанции/босса/препятствия — внизу слева, pointer-events-none,
-          чтобы не перехватывать свайпы. На мобильном скрыта (инфа не критична в бою). */}
-      {!isEndless && (
-        <div className="absolute bottom-24 left-4 max-sm:hidden pointer-events-none flex items-center gap-3">
-          {metersLeft >= 0 && (
-            <span className="text-[10px] font-orbitron text-slate-600">
-              {metersLeft} {i18n.t('metersToFinish', 'м до финиша')}
-            </span>
-          )}
-          {nextHazardDistance >= 0 && nextHazardDistance < 25 && (
-            <span className="text-[10px] font-orbitron text-amber-400 flex items-center gap-1 animate-pulse">
-              <TriangleAlert className="w-3 h-3" />
-              {Math.round(nextHazardDistance)} {i18n.t('unitM')}
-            </span>
-          )}
-          {!bossInfo && bossDistance >= 0 && bossDistance > 35 && bossDistance <= 400 && (
-            <span className="text-[10px] font-orbitron text-red-400 flex items-center gap-1 animate-pulse">
-              <Skull className="w-3 h-3" />
-              {i18n.t('bossApproach', 'БОСС')} {bossDistance} {i18n.t('unitM')}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Бесконечный режим: живой счётчик пройденной дистанции + рекорд.
-          В endless нет финиша/босса, поэтому metersLeft/boss скрыты — показываем
-          основной core-loop (дистанция) и личный рекорд как цель побить. */}
-      {isEndless && (
-        <div className="absolute bottom-24 left-4 max-sm:hidden pointer-events-none flex items-center gap-3">
-          <span className="text-[11px] font-orbitron text-teal-700 flex items-center gap-1">
-            <Route className="w-3 h-3" />
-            {distanceTraveled.toLocaleString()} {i18n.t('unitM')}
+      {/* Компактная строка метрик режима + общих алертов (ловушка/босс) — один блок
+          на оба режима: движок считает bossDistance/nextHazardDistance и в endless тоже.
+          Внизу слева, pointer-events-none, чтобы не перехватывать свайпы. */}
+      <div className="absolute bottom-24 left-4 max-sm:hidden pointer-events-none flex items-center gap-2.5 flex-wrap">
+        {!isEndless && metersLeft >= 0 && (
+          <span className="text-[10px] font-orbitron text-slate-600">
+            {metersLeft} {i18n.t('metersToFinish', 'м до финиша')}
           </span>
-          {stateManager.getState().endlessHighScore > 0 && (
-            <span className="text-[10px] font-orbitron text-slate-600">
-              {i18n.t('endlessRecord')}: {stateManager.getState().endlessHighScore.toLocaleString()} {i18n.t('unitM')}
+        )}
+        {isEndless && (
+          <>
+            <span className="text-[11px] font-orbitron text-teal-700 flex items-center gap-1">
+              <Route className="w-3 h-3" />
+              {distanceTraveled.toLocaleString()} {i18n.t('unitM')}
             </span>
-          )}
-        </div>
-      )}
+            {stateManager.getState().endlessHighScore > 0 && (
+              <span className="text-[10px] font-orbitron text-slate-600">
+                {i18n.t('endlessRecord')}: {stateManager.getState().endlessHighScore.toLocaleString()} {i18n.t('unitM')}
+              </span>
+            )}
+          </>
+        )}
+        {nextHazardDistance >= 0 && nextHazardDistance < 25 && (
+          <span className="text-[10px] font-orbitron text-amber-400 flex items-center gap-1 animate-pulse">
+            <TriangleAlert className="w-3 h-3" />
+            {Math.round(nextHazardDistance)} {i18n.t('unitM')}
+          </span>
+        )}
+        {!bossInfo && bossDistance >= 0 && bossDistance > 35 && bossDistance <= 400 && (
+          <span className="text-[10px] font-orbitron text-red-400 flex items-center gap-1 animate-pulse">
+            <Skull className="w-3 h-3" />
+            {i18n.t('bossApproach', 'БОСС')} {bossDistance} {i18n.t('unitM')}
+          </span>
+        )}
+      </div>
 
       {/* Boss Health Bar if Active */}
       {bossInfo && (() => {

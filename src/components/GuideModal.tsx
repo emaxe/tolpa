@@ -90,6 +90,28 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
             </div>
           </section>
 
+          {/* Tactics: незадокументированные в бестиарии механики — near-miss серия, адреналиновый гипер, финишные стены */}
+          <section className="space-y-3">
+            <h3 className="font-orbitron font-bold text-slate-900 text-sm flex items-center gap-2">
+              <Target className="w-4 h-4 text-rose-400" />
+              <span>{i18n.t('loreTacticsTitle')}</span>
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
+                <strong className="text-teal-700 font-orbitron">{i18n.t('tacticNearMissTitle')}:</strong>
+                <p className="text-slate-600 mt-1">{i18n.t('tacticNearMiss')}</p>
+              </div>
+              <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
+                <strong className="text-teal-700 font-orbitron">{i18n.t('tacticAdrenalineTitle')}:</strong>
+                <p className="text-slate-600 mt-1">{i18n.t('tacticAdrenaline')}</p>
+              </div>
+              <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
+                <strong className="text-teal-700 font-orbitron">{i18n.t('tacticFinishTitle')}:</strong>
+                <p className="text-slate-600 mt-1">{i18n.t('tacticFinish')}</p>
+              </div>
+            </div>
+          </section>
+
           {/* Specialized Mob Classes */}
           <section className="space-y-3">
             <h3 className="font-orbitron font-bold text-slate-900 text-sm flex items-center gap-2">
