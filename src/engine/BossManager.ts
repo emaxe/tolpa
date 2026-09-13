@@ -10,7 +10,7 @@ import { ParticleSystem } from './ParticleSystem';
 import { soundEngine } from '../audio/SoundEngine';
 import { eventBus } from '../core/EventBus';
 import { stateManager } from '../core/StateManager';
-import { getNearMissMultiplier } from '../utils/math';
+import { getNearMissMultiplier, NEAR_MISS_GRANT_GAP, NEAR_MISS_BREAK_GAP } from '../utils/math';
 
 // Пауза между атаками босса, масштабируемая по уровню (tier = level/10, 1..5).
 // L10 — заметная пауза (обучающий ритм), к L50 почти исчезает (эскалация).
@@ -592,14 +592,14 @@ export class BossManager {
     }
   }
 
-  // Near-miss на атаке босса: лидер ушёл впритирку (зазор 0..0.75 м от края зоны
+  // Near-miss на атаке босса: лидер ушёл впритирку (зазор 0..NEAR_MISS_GRANT_GAP м от края зоны
   // поражения) и не получил урон — пополняет существующую серию уворотов (общую с
-  // дорожными препятствиями, те же события/награда/эскалация pitch). Широкий
-  // безопасный уход (0.75..3.0 м) серию сбрасывает, как препятствия. Попадание
-  // (gap <= 0) серию не трогает. Верхняя граница окна сброса — защита от ложных
+  // дорожными препятствиями, те же события/награда/эскалация pitch). Окна как у
+  // дороги (NEAR_MISS_GRANT_GAP/NEAR_MISS_BREAK_GAP) — безопасный уход серию сбрасывает,
+  // как препятствия. Попадание (gap <= 0) серию не трогает. Верхняя граница окна сброса — защита от ложных
   // сбросов, когда толпа ещё далеко от эпицентра атаки.
   private checkBossNearMiss(gap: number, x: number, z: number): void {
-    if (gap > 0 && gap <= 0.75) {
+    if (gap > 0 && gap <= NEAR_MISS_GRANT_GAP) {
       const { streak, multiplier } = stateManager.runRecordNearMissStreak();
       const prevMult = getNearMissMultiplier(streak - 1);
       if (multiplier > prevMult) {
@@ -611,7 +611,7 @@ export class BossManager {
       soundEngine.playSound('near_miss', 1.0 + Math.min(1.0, streak * 0.05));
       // Бурст/тряска/хаптик — на стороне подписчика 'nearMiss' в GameEngine, не дублируем.
       eventBus.emit('nearMiss', { x, z, coins, streak, multiplier });
-    } else if (gap > 0.75 && gap <= 3.0) {
+    } else if (gap > NEAR_MISS_GRANT_GAP && gap <= NEAR_MISS_BREAK_GAP) {
       const brokenStreak = stateManager.runResetNearMissStreak();
       if (brokenStreak >= 2) {
         eventBus.emit('nearMissBreak', { streak: brokenStreak, x, z });

@@ -512,10 +512,12 @@ describe('Save System', () => {
     const boss = new BossManager(null as any, null as any);
     const check = (gap: number) => (boss as any).checkBossNearMiss(gap, 1, 0);
     const coinsBase = mgr.getRun()?.coins ?? 0;
-    check(0.4); // уворот x1 → +8
-    check(0.4); // streak=2 → x2 → +16
+    check(0.3); // уворот впритирку (≤ NEAR_MISS_GRANT_GAP=0.35) x1 → +8
+    check(0.3); // streak=2 → x2 → +16
     expect(mgr.getRun()?.nearMissStreak).toBe(2);
     expect((mgr.getRun()?.coins ?? 0) - coinsBase).toBe(24);
+    check(0.5); // зазор 0.5 > 0.35 — награды нет, но это уже широкий уход → сброс серии
+    expect(mgr.getRun()?.nearMissStreak).toBe(0);
     check(1.5); // широкий безопасный уход → сброс серии
     expect(mgr.getRun()?.nearMissStreak).toBe(0);
     expect(mgr.getRun()?.maxNearMissStreak).toBe(2);

@@ -15,7 +15,7 @@ import { soundEngine } from '../audio/SoundEngine';
 import { MusicTheme } from '../types/audio';
 import { eventBus } from '../core/EventBus';
 import { perfMonitor } from '../core/Performance';
-import { clamp, getNearMissMultiplier, TRACK_RAIL_MARGIN } from '../utils/math';
+import { clamp, getNearMissMultiplier, NEAR_MISS_GRANT_GAP, NEAR_MISS_BREAK_GAP, TRACK_RAIL_MARGIN } from '../utils/math';
 import { createSpectatorGeometry, getBillboardTexture } from '../utils/proceduralMeshes';
 
 /** h→rgb для радужного треила (HSL, s=1/l=0.55). Модульный уровень: без создания замыкания на каждый кадр. */
@@ -253,6 +253,7 @@ export class GameEngine {
   private activeEvent: { event: LevelDynamicEvent; timer: number } | null = null;
   private eventSpeedMult: number = 1.0; // множитель скорости толпы от событий (boost>1, ambush<1)
   private meteorAccum: number = 0;
+  private meteorNearMissAccum: number = 0;
   private meteorRings: THREE.Mesh[] = [];
   // Тела болидов (1:1 с кольцами по индексу): падают сверху в телеграф-зону.
   private meteorBodies: THREE.Mesh[] = [];
@@ -2446,6 +2447,7 @@ export class GameEngine {
     this.activeEvent = null;
     this.eventSpeedMult = 1.0;
     this.meteorAccum = 0;
+    this.meteorNearMissAccum = 0;
     this.eventFxAccum = 0;
     for (let i = 0; i < this.meteorRings.length; i++) {
       this.meteorRings[i].visible = false;
@@ -2539,12 +2541,19 @@ export class GameEngine {
               mesh: freeMesh,
               body: freeBody,
             });
+            // Аудио-телеграф: у падения метеора был только визуальный ринг — в отличие от
+            // телеграфов атак босса. Паритет предупреждения (питч 1.3, тихая громкость —
+            // фоновое событие, не крик).
+            soundEngine.playSound('boss_attack_telegraph', 1.3, 0.45);
           }
         }
 
         // Обновляем активные телеграф-зоны и обрабатываем детонации
         let writeIdx = 0;
         const impactRadiusSq = GameEngine.METEOR_IMPACT_RADIUS * GameEngine.METEOR_IMPACT_RADIUS;
+        this.meteorNearMissAccum += dt;
+        const grazeCheckAllowed = this.meteorNearMissAccum >= 0.3;
+        if (grazeCheckAllowed) this.meteorNearMissAccum = 0;
 
         for (let i = 0; i < this.activeMeteorStrikes.length; i++) {
           const strike = this.activeMeteorStrikes[i];
@@ -2600,6 +2609,28 @@ export class GameEngine {
               }
               // Фидбек потерь (виньетка + "-N") — метеорит не эмитил mobsKilled.
               eventBus.emit('mobsKilled', { count: meteorKilled, reason: 'meteor_rain', x: strike.x, z: strike.z });
+            } else if (grazeCheckAllowed && meteorKilled === 0) {
+              // Graze-паритет: детонация рядом с лидером (в пределах 2.2 м от края радиуса)
+              // раньше была «мёртвой зоной» фидбека — пролетел в метре от взрыва, серия не
+              // начисляется (в отличие от стен/ловушек/ворот).
+              const gap = Math.hypot(this.crowd.leaderX - strike.x, this.crowd.leaderZ - strike.z) - GameEngine.METEOR_IMPACT_RADIUS;
+              if (gap >= 0 && gap <= NEAR_MISS_GRANT_GAP) {
+                const { streak, multiplier } = stateManager.runRecordNearMissStreak();
+                const prevMult = getNearMissMultiplier(streak - 1);
+                if (multiplier > prevMult) {
+                  eventBus.emit('nearMissMilestone', { x: strike.x, z: strike.z, streak, multiplier });
+                }
+                const coins = 8 * multiplier;
+                stateManager.runAddCoins(coins);
+                eventBus.emit('coinCollected', { value: coins, x: strike.x, z: strike.z, tier: 2 });
+                soundEngine.playSound('near_miss', 1.0 + Math.min(1.0, streak * 0.05));
+                eventBus.emit('nearMiss', { x: strike.x, z: strike.z, coins, streak, multiplier });
+              } else if (gap > NEAR_MISS_GRANT_GAP && gap <= NEAR_MISS_BREAK_GAP) {
+                const brokenStreak = stateManager.runResetNearMissStreak();
+                if (brokenStreak >= 2) {
+                  eventBus.emit('nearMissBreak', { streak: brokenStreak, x: strike.x, z: strike.z });
+                }
+              }
             }
           } else {
             // Сохраняем не завершившийся страйк (0-GC компакция)
@@ -2796,6 +2827,7 @@ export class GameEngine {
   /** Откатывает эффекты события по его окончании. */
   private cleanupEvent(evt: LevelDynamicEvent): void {
     this.meteorAccum = 0;
+    this.meteorNearMissAccum = 0;
     this.eventFxAccum = 0;
     for (let i = 0; i < this.meteorRings.length; i++) {
       this.meteorRings[i].visible = false;
