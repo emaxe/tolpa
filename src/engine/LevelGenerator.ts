@@ -1498,16 +1498,21 @@ export class LevelGenerator {
 
     // 1 стена (−N со счётчиком) в сегменте.
     const wallZ = currentZ + 30 + rng() * (length - 50);
-    const wallWidth = Math.min(trackWidth - 2.4, 3.5 + rng() * 3.5);
-    const wallCount = 5 + Math.floor(rng() * 6);
-    rawWalls.push({
-      id: `endless_wall_${segmentIndex}`,
-      z: wallZ,
-      x: (rng() * 2 - 1) * (trackWidth / 2 - wallWidth / 2 - 0.4),
-      width: wallWidth,
-      count: wallCount,
-      killsRemaining: wallCount,
-    });
+    // Стриминг-контракт кампании (generateChunk): стена не ставится впритык к
+    // воротам, иначе она срезает толпу в створе ворот в тот же тик.
+    const wallNearGate = rawGates.some((g) => Math.abs(wallZ - g.z) < 8);
+    if (!wallNearGate) {
+      const wallWidth = Math.min(trackWidth - 2.4, 3.5 + rng() * 3.5);
+      const wallCount = 5 + Math.floor(rng() * 6);
+      rawWalls.push({
+        id: `endless_wall_${segmentIndex}`,
+        z: wallZ,
+        x: (rng() * 2 - 1) * (trackWidth / 2 - wallWidth / 2 - 0.4),
+        width: wallWidth,
+        count: wallCount,
+        killsRemaining: wallCount,
+      });
+    }
 
     // 3 слота паттернов препятствий в 120м сегменте
     // Слот 1 (Z+10..Z+40): движение (slalom/pendulum)

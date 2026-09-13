@@ -439,8 +439,8 @@ export class GameEngine {
     // Агрегатный фидбек при гибели мобов (финишная стена, атаки боссов)
     this.unsubMobsKilled = eventBus.on('mobsKilled', (data: { reason?: string; x?: number; z?: number }) => {
       if (data?.reason === 'finish_wall') {
-        // Ударная волна при пробитии финишной стены
-        this.particles.emitShockwave(data.x ?? 0, data.z ?? this.crowd.leaderZ, 0xffd700);
+        // Шоквейв уже даёт обработчик finishStepSmashed в том же кадре/точке —
+        // не дублируем; хаптик остаётся как отклик на потери толпы.
         this.triggerHaptic([30, 20, 40]);
       } else if (data?.reason === 'boss_minions') {
         // Рой миньонов босса грызёт толпу тиками: фиолетовый бурст + звук с высоким питчем
