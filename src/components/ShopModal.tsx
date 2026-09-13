@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import confetti from 'canvas-confetti';
 import { PlayerUpgrades } from '../types/game';
-import { stateManager, INITIAL_SKINS } from '../core/StateManager';
+import { stateManager, INITIAL_SKINS, UPGRADE_MAX_LEVELS } from '../core/StateManager';
 import { i18n } from '../core/Localization';
 import { soundEngine } from '../audio/SoundEngine';
 import { X, Sparkles, ShieldCheck, Zap, Coins, Gem, Users, TrendingUp, Check, Lock } from 'lucide-react';
@@ -14,61 +14,55 @@ export const ShopModal: React.FC<ShopModalProps> = ({ onClose }) => {
   const [tab, setTab] = useState<'upgrades' | 'skins'>('upgrades');
   const state = stateManager.getState();
 
+  // maxLvl убран из таблицы: единый источник — UPGRADE_MAX_LEVELS в StateManager
+  // (раньше дубль мог разойтись с движком: UI показывал «не MAX», покупка молчала).
   const upgradeList: {
     key: keyof PlayerUpgrades;
     titleKey: string;
     descKey: string;
     icon: any;
-    maxLvl: number;
   }[] = [
     {
       key: 'startingMobs',
       titleKey: 'upgStartingMobs',
       descKey: 'upgStartingMobsDesc',
       icon: Users,
-      maxLvl: 10,
     },
     {
       key: 'incomeMultiplier',
       titleKey: 'upgIncome',
       descKey: 'upgIncomeDesc',
       icon: TrendingUp,
-      maxLvl: 10,
     },
     {
       key: 'adrenalineDuration',
       titleKey: 'upgAdrenaline',
       descKey: 'upgAdrenalineDesc',
       icon: Zap,
-      maxLvl: 10,
     },
     {
       key: 'tankSpawnChance',
       titleKey: 'upgTankSpawn',
       descKey: 'upgTankSpawnDesc',
       icon: ShieldCheck,
-      maxLvl: 5,
     },
     {
       key: 'ninjaSpawnChance',
       titleKey: 'upgNinjaSpawn',
       descKey: 'upgNinjaSpawnDesc',
       icon: Sparkles,
-      maxLvl: 5,
     },
     {
       key: 'mageSpawnChance',
       titleKey: 'upgMageSpawn',
       descKey: 'upgMageSpawnDesc',
       icon: Sparkles,
-      maxLvl: 5,
     },
     {
       key: 'defenseAura',
       titleKey: 'upgDefenseAura',
       descKey: 'upgDefenseAuraDesc',
       icon: ShieldCheck,
-      maxLvl: 5,
     },
   ];
 
@@ -170,7 +164,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({ onClose }) => {
           {tab === 'upgrades' ? (
             upgradeList.map((item) => {
               const currentLvl = state.upgrades[item.key] || 0;
-              const isMax = currentLvl >= item.maxLvl;
+              const isMax = currentLvl >= UPGRADE_MAX_LEVELS[item.key];
               const cost = stateManager.getUpgradeCost(item.key);
               const canAfford = state.coins >= cost;
               const Icon = item.icon;
@@ -190,7 +184,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({ onClose }) => {
                           {i18n.t(item.titleKey)}
                         </h4>
                         <span className="text-[11px] font-orbitron text-amber-300 bg-amber-950/70 px-2 py-0.5 rounded border border-amber-700/60">
-                          LVL {currentLvl}/{item.maxLvl}
+                          LVL {currentLvl}/{UPGRADE_MAX_LEVELS[item.key]}
                         </span>
                       </div>
                       <p className="text-xs text-slate-600 mt-0.5">

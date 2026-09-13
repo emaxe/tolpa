@@ -29,6 +29,20 @@ export const INITIAL_UPGRADES: PlayerUpgrades = {
   defenseAura: 0,
 };
 
+// Максимальные уровни апгрейдов — единый источник правды: его читает и движок
+// (upgradeStat), и магазин (ShopModal). Раньше кап был продублирован тернарником
+// в upgradeStat и полем maxLvl в таблице магазина — при правке одного места
+// второе молча расходилось (кнопка «не MAX», но покупка не проходит).
+export const UPGRADE_MAX_LEVELS: Record<keyof PlayerUpgrades, number> = {
+  startingMobs: 10,
+  incomeMultiplier: 10,
+  adrenalineDuration: 10,
+  tankSpawnChance: 5,
+  ninjaSpawnChance: 5,
+  mageSpawnChance: 5,
+  defenseAura: 5,
+};
+
 export const INITIAL_STATS: GameStats = {
   totalMobsSpawned: 0,
   totalGatesPassed: 0,
@@ -1068,7 +1082,7 @@ export class StateManager {
 
   public upgradeStat(upgradeKey: keyof PlayerUpgrades): boolean {
     const cost = this.getUpgradeCost(upgradeKey);
-    const maxLvl = upgradeKey === 'startingMobs' || upgradeKey === 'incomeMultiplier' || upgradeKey === 'adrenalineDuration' ? 10 : 5;
+    const maxLvl = UPGRADE_MAX_LEVELS[upgradeKey];
     
     if (this.state.upgrades[upgradeKey] < maxLvl && this.spendCoins(cost)) {
       this.state.upgrades[upgradeKey] += 1;
