@@ -897,8 +897,11 @@ export class CrowdManager {
       return this.wallImpactScratch;
     }
 
-    // Додж ниндзя: уворачивается от гибели, но урон стене наносит
+    // Додж ниндзя: уворачивается от гибели, но урон стене наносит. Те же
+    // i-frames, что у ауры/брони формаций в этом резолвере — спас от тарана
+    // стены, моб не должен мгновенно умереть от липкой ловушки сразу за ней.
     if (mob.type === 'ninja' && Math.random() < 0.5) {
+      mob.invulnerableTime = 0.35;
       this.emitClassAbility('ninja', 'dodge', mob.x, mob.z);
       this.wallImpactScratch.killed = false;
       return this.wallImpactScratch;
@@ -958,8 +961,13 @@ export class CrowdManager {
       this.emitFormationDefend(this.formation as 'wedge' | 'diamond', 1);
       return false;
     }
-    // Уворот ниндзя 50% — тратит удар опасности, не убивает
+    // Уворот ниндзя 50% — тратит удар опасности, не убивает. Короткие i-frames
+    // (паритет с ветками ауры/брони формаций выше): непрерывные ловушки
+    // (пила/лазер/лава) зовут этот резолвер каждый кадр контакта, и без них
+    // уворот тихо превращался в переролл 50% гибели каждые 16мс — ниндзя
+    // умирал в той же пиле за 3-4 кадра, обещание класса обесценивалось.
     if (mob.type === 'ninja' && Math.random() < 0.5) {
+      mob.invulnerableTime = 0.35;
       this.emitClassAbility('ninja', 'dodge', mob.x, mob.z);
       return false;
     }

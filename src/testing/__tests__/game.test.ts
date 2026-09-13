@@ -1794,6 +1794,27 @@ describe('броня формаций (wedge/diamond) против ловуше�
   });
 });
 
+describe('уворот ниндзя от непрерывной ловушки', () => {
+  it('даёт i-frames: тот же многокадровый хитбокс не перекатывает 50% шанс каждый кадр', () => {
+    const c = new CrowdManager(new THREE.Scene());
+    const mob = c.spawnMob('ninja') as MobInstance;
+    mob.invulnerableTime = 0;
+    const spy = vi.spyOn(Math, 'random').mockReturnValue(0.01);
+    // Кадр 1: 0.01 < 0.5 — уворот успешен, моб выживает…
+    expect(c.resolveObstacleImpact(mob)).toBe(false);
+    expect(mob.alive).toBe(true);
+    // …и взводит i-frames (паритет с аурой/броней формаций)
+    expect(mob.invulnerableTime).toBeGreaterThan(0);
+    // Кадр 2 того же хитбокса: бросок промазал бы по увороту (0.99), но
+    // входной страж по i-frames обязан проглотить удар — без фикса ниндзя
+    // умирал в пиле за 3-4 кадра, обесценивая обещание класса.
+    spy.mockReturnValue(0.99);
+    expect(c.resolveObstacleImpact(mob)).toBe(false);
+    expect(mob.alive).toBe(true);
+    spy.mockRestore();
+  });
+});
+
 describe('3D-телеграф атак босса (FloatingText)', () => {
   it('все типы атак обеспечены стилями, i18n-тексты существуют', () => {
     // BOSS_TELEGRAPH_STYLE — exhaustive Record<BossAttack['type']>, полноту по
