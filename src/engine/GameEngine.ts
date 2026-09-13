@@ -2437,7 +2437,7 @@ export class GameEngine {
     // не протекли в следующий забег.
     if (this.gates.isEmpActive()) this.gates.clearEmpStorm();
     this.resetEventState();
-    stateManager.commitRun();
+    stateManager.commitRun(this.isEndless);
     if (win) {
       this.onLevelWinCb?.(score, mult, mobs, this.finishLine.sacrificedTotal, runStats);
     } else {
@@ -3503,7 +3503,7 @@ export class GameEngine {
     // Если забег так и не завершился явно (например, игрок вышел в меню посреди игры) —
     // всё равно зачисляем накопленные за забег монеты, не молча теряем прогресс.
     if (!this.runEnded) {
-      stateManager.commitRun();
+      stateManager.commitRun(this.isEndless);
     }
 
     window.removeEventListener('resize', this.onResize);

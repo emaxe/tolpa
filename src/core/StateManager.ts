@@ -821,8 +821,11 @@ export class StateManager {
    * Коммитит накопленные за забег счётчики в сейв ОДНИМ пакетом: один notify(), одна
    * запись на диск. Безопасно вызывать без активного забега (no-op) и повторно
    * (второй вызов подряд ничего не делает — run уже обнулён).
+   * endless=true — забег в Бесконечном режиме: тем же пакетом фиксируется рекорд
+   * дистанции и ачивки 1000м/5000м. При выходе в меню из паузы (dispose) колбэк
+   * onLevelLoseCb не срабатывает, и раньше рекорд там молча терялся.
    */
-  public commitRun(): void {
+  public commitRun(endless = false): void {
     const r = this.run;
     if (!r) return;
     this.run = null;
@@ -843,6 +846,18 @@ export class StateManager {
     this.state.stats.totalMobsSavedByFormation += r.mobsSavedByFormation;
     if (r.maxNearMissStreak > this.state.stats.maxNearMissStreak) this.state.stats.maxNearMissStreak = r.maxNearMissStreak;
     if (r.maxCombo > this.state.stats.highestCombo) this.state.stats.highestCombo = r.maxCombo;
+
+    // Рекорд «Бесконечного режима» и ачивки дистанции — тем же пакетом. Раньше
+    // записывались только из UI-колбэка handleLevelLost, которое не вызывается при
+    // выходе в меню из паузы (dispose → commitRun) — рекорд терялся там.
+    if (endless) {
+      if (r.distance > this.state.endlessHighScore) {
+        this.state.endlessHighScore = r.distance;
+      }
+      this.updateAchievementProgressSilent('endless_runner_1000', this.state.endlessHighScore);
+      this.updateAchievementProgressSilent('endless_runner_5000', this.state.endlessHighScore);
+    }
+
     if (r.maxCrowd > this.state.stats.maxCrowdReached) this.state.stats.maxCrowdReached = r.maxCrowd;
 
     // Счётчик сыгранных игр: раньше инкрементировался только в completeLevel() (победа

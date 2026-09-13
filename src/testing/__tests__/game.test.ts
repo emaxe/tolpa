@@ -1235,6 +1235,31 @@ describe('Skin Rewards (бонусные скины)', () => {
     expect(st.achievements['near_miss_streak_10']?.progress).toBeLessThan(10);
   });
 
+  it('commitRun(endless) фиксирует рекорд Endless и ачивки дистанции (паритет выхода из паузы)', () => {
+    const mgr = StateManager.getInstance();
+    mgr.resetProgress();
+    // Забег Endless: дистанция 1200 м попадает в сейв пакетом commitRun(true) —
+    // раньше рекорд писался только из UI-колбэка handleLevelLost и терялся при
+    // выходе в меню из паузы (dispose → commitRun без колбэка).
+    mgr.beginRun();
+    mgr.runRecordDistance(1200);
+    mgr.commitRun(true);
+    let st = mgr.getState();
+    expect(st.endlessHighScore).toBe(1200);
+    expect(st.achievements['endless_runner_1000']?.progress).toBe(1200);
+    // Кампейн-забег (endless=false) не трогает рекорд Endless, даже если длиннее.
+    mgr.beginRun();
+    mgr.runRecordDistance(2000);
+    mgr.commitRun(false);
+    st = mgr.getState();
+    expect(st.endlessHighScore).toBe(1200);
+    // Более короткий Endless-забег рекорд не перебивает.
+    mgr.beginRun();
+    mgr.runRecordDistance(500);
+    mgr.commitRun(true);
+    expect(mgr.getState().endlessHighScore).toBe(1200);
+  });
+
   it('combo-бонус за серию позитивных ворот каппится на +80% (фактор ≤ 1.8)', () => {
     // Формула бонуса из GateManager.executeGateEffect: comboFactor = 1 + min((streak-1)*0.08, 0.8).
     // Проверяем чистую математику без движка.

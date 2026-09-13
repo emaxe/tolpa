@@ -178,8 +178,10 @@ export const App: React.FC = () => {
       // runStats.distance уже зафиксирован до commitRun() (см. endRun в GameEngine).
       if (isEndless) {
         const distance = runStats?.distance ?? 0;
-        const isNewRecord = distance > stateManager.getState().endlessHighScore;
-        if (isNewRecord) stateManager.setEndlessHighScore(distance);
+        // Рекорд и дистанционные ачивки уже зафиксированы пакетом commitRun(true)
+        // (см. endRun в GameEngine) — здесь только детект для экрана итогов:
+        // забег, чья дистанция стала (или догнала) рекорд.
+        const isNewRecord = distance > 0 && distance >= stateManager.getState().endlessHighScore;
         // Награда за дистанцию: ~10 монет за 100 м + монеты, собранные на трассе
         // (их уже зачислил commitRun — раньше в итоге не показывались).
         const rawCoins = Math.floor(distance / 10);
