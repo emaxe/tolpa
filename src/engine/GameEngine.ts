@@ -304,6 +304,8 @@ export class GameEngine {
   private unsubCrowdMilestone: (() => void) | null = null;
   private unsubCrowdLow: (() => void) | null = null;
   private unsubSettings: (() => void) | null = null;
+  private unsubPerfLow: (() => void) | null = null;
+  private autoLowDone = false;
   private unsubFormation: (() => void) | null = null;
   private unsubClassAbility: (() => void) | null = null;
   private unsubFormationDefend: (() => void) | null = null;
@@ -622,6 +624,24 @@ export class GameEngine {
     // Живое применение настроек графики: смена качества/теней в настройках сразу
     // влияет на рендер, без перезапуска забега.
     this.unsubSettings = eventBus.on('settingsChanged', () => this.applyGraphicsSettings());
+
+    // Авто-деградация качества: perfMonitor годами детектировал «FPS<25 три секунды
+    // подряд», но его onLowPerformance() не был подписан нигде — API мертво. Теперь
+    // при стабильных просадках качество принудительно опускается до «низкого»
+    // (DPR 1.0 + тени off) ровно один раз за сессию движка, с баннером в HUD.
+    this.unsubPerfLow = (() => {
+      perfMonitor.onLowPerformance(() => {
+        if (this.autoLowDone) return;
+        const s = stateManager.getState().settings;
+        if (s.graphicsQuality === 'low') return; // и так минимум — нечего снижать
+        this.autoLowDone = true;
+        stateManager.updateSettings({ graphicsQuality: 'low', enableShadows: false });
+        eventBus.emit('perfAutoLow', {});
+      });
+      return () => {
+        perfMonitor.onLowPerformance(() => {});
+      };
+    })();
 
     // VFX при смене боевого построения (formationChanged): событие эмитится
     // CrowdManager.setFormation при переключении строя игроком (клавиши 1-6 / HUD).
@@ -3552,6 +3572,7 @@ export class GameEngine {
     this.unsubRetaliationTelegraph?.();
     this.unsubHunterWake?.();
     this.unsubSettings?.();
+    this.unsubPerfLow?.();
     this.unsubFormation?.();
     this.unsubClassAbility?.();
     this.unsubFormationDefend?.();

@@ -127,6 +127,7 @@ export const HUD: React.FC<HUDProps> = ({
     finishLineCrossed: { key: 'finishLineCrossed', cls: 'border-cyan-400 text-cyan-600' },
     finishStepSmashed: { key: 'finishStepSmashed', cls: 'border-cyan-400 text-cyan-600' },
     finishChestOpened: { key: 'apexChestOpened', cls: 'border-yellow-400 text-yellow-600' },
+    autoQualityLow: { key: 'autoQualityLow', cls: 'border-cyan-400 text-slate-600' },
     bossDefeated: { key: 'bossDefeated', cls: 'border-yellow-400 text-yellow-600' },
     bossAppear: { key: 'bossAppear', cls: 'border-red-500 text-red-600' },
     bossEnraged: { key: 'bossEnraged', cls: 'border-rose-600 text-rose-700' },
@@ -324,6 +325,12 @@ export const HUD: React.FC<HUDProps> = ({
       showAlert(`biomeEntered_${data.biome}`);
     });
 
+    // Движок сам уронил графику на «низкое» из-за стабильных просадок FPS —
+    // честный баннер, иначе игрок видит молчаливую смену качества в настройках.
+    const unsubPerfAutoLow = eventBus.on('perfAutoLow', () => {
+      showAlert('autoQualityLow');
+    });
+
     return () => {
       if (eventAlertTimerRef.current !== null) window.clearTimeout(eventAlertTimerRef.current);
       unsubBoss();
@@ -354,6 +361,7 @@ export const HUD: React.FC<HUDProps> = ({
       unsubFinishChest();
       unsubNewClass();
       unsubBiomeEntered();
+      unsubPerfAutoLow();
     };
   }, []);
 
