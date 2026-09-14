@@ -907,7 +907,7 @@ export class GameEngine {
     // Аудиовизуальный фидбек брони формаций (Щит Клина wedge / Броня Ромба diamond)
     this.unsubFormationDefend = eventBus.on(
       'formationDefend',
-      (data: { formation?: 'wedge' | 'diamond'; saved?: number; x?: number; z?: number }) => {
+      (data: { formation?: 'wedge' | 'diamond'; saved?: number; x?: number; z?: number; divide?: boolean }) => {
         if (!data) return;
         const x = data.x ?? this.crowd.leaderX;
         const z = data.z ?? this.crowd.leaderZ;

@@ -1679,6 +1679,33 @@ describe('mysteryPenaltyStep — делитель штрафа Мистики', 
       stateManager.importSave(btoa(JSON.stringify({ ...stateManager.getState(), upgrades: { ...stateManager.getState().upgrades, defenseAura: prevAura } })));
     }
   });
+
+  it('удержание на ÷-воротах засчитывается в «Щит Легиона» и эмитит divide-фидбек', () => {
+    stateManager.beginRun();
+    const c = new CrowdManager(new THREE.Scene());
+    c.formation = 'wedge';
+    let defends = 0;
+    let last: any = null;
+    const off = eventBus.on('formationDefend', (d: any) => { defends++; last = d; });
+    const spy = vi.spyOn(Math, 'random').mockReturnValue(0.01);
+    const wing: MobInstance[] = [];
+    for (let i = 0; i < 12; i++) {
+      const mob = c.spawnMob('regular') as MobInstance;
+      mob.invulnerableTime = 0;
+      wing.push(mob);
+    }
+    // ÷3: приговорены 8 из 12; ролл удержания 0.01 < 10% (Клин) — спасены все 8.
+    const killed = c.divideMobsByStep(wing, 3, 'gate', { step: 0 }, 0.10);
+    spy.mockRestore();
+    off();
+    expect(killed).toBe(0);
+    expect(c.getAliveCount()).toBe(12);
+    expect(defends).toBe(1);
+    expect(last?.divide).toBe(true);
+    expect(last?.saved).toBe(8);
+    expect(stateManager.getRun()?.mobsSavedByFormation).toBe(8);
+    stateManager.commitRun(); // run -> null, счётчики в stats (паритет с боевым фидбеком)
+  });
 });
 
 describe('Идентичность ловушек: покрытие таблиц фидбека (тон/VFX смерти)', () => {

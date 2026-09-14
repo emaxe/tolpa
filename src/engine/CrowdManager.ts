@@ -295,15 +295,17 @@ export class CrowdManager {
   }
 
   /** Троттлинг-эмит визуально-звукового фидбека брони формаций (wedge -40% / diamond -25%).
-   *  Ограничиваем частоту FORMATION_DEFEND_EMIT_INTERVAL_MS = 200 мс. */
-  private emitFormationDefend(formation: 'wedge' | 'diamond', saved: number): void {
+   *  Ограничиваем частоту FORMATION_DEFEND_EMIT_INTERVAL_MS = 200 мс.
+   *  divide=true — спасение удержанием на ÷-воротах (нейтральная всплывашка вместо
+   *  процента блокировки: при делении работают шансы удержания 10/15/20%). */
+  private emitFormationDefend(formation: FormationType, saved: number, divide = false): void {
     // Lifetime-учёт («Щит Легиона») ведём ДО троттлинг-гейта: фидбек, проглоченный
     // 200-мс окном, не должен съедать реальный счёт спасённых мобов.
     stateManager.runAddMobsSaved(saved);
     const now = performance.now();
     if (now - this.lastFormationDefendEmitMs < CrowdManager.FORMATION_DEFEND_EMIT_INTERVAL_MS) return;
     this.lastFormationDefendEmitMs = now;
-    eventBus.emit('formationDefend', { formation, saved, x: this.leaderX, z: this.leaderZ });
+    eventBus.emit('formationDefend', { formation, saved, x: this.leaderX, z: this.leaderZ, divide });
   }
 
   /** Возвращает живых мобов. ВАЖНО: возвращает переиспользуемый внутренний буфер —
@@ -814,6 +816,7 @@ export class CrowdManager {
     if (!hasAlive) return 0;
 
     this.groupScratch.length = 0;
+    let savedByRetention = 0;
     // Счётчик: 1,2,...,N — когда счётчик достигает N, этот моб ВЫЖИВАЕТ (каждый N-й),
     // все остальные мобы убираются. Счётчик персистентен между кадрами (stepState).
     // retentionBonus [0,1): синергия формаций — шанс, что «приговорённый» моб всё же
@@ -827,9 +830,18 @@ export class CrowdManager {
         stepState.step = 0; // этот моб выживает — сбрасываем отсчёт
       } else if (retentionBonus > 0 && Math.random() < retentionBonus) {
         // приговорён, но формация спасает (не сбрасываем счётчик — он про этот шаг)
+        savedByRetention++;
       } else {
         this.groupScratch.push(mob); // не N-й — умирает
       }
+    }
+    // Паритет с боевой броней формаций: удержание на ÷-воротах идёт в lifetime-стату
+    // «Щит Легиона» (runAddMobsSaved внутри emitFormationDefend) и триггерит
+    // formationDefend-фидбек (частицы/звук/хаптика + всплывашка). До раннего return
+    // по пустому scratch: пригонённые могут быть спасены полностью. В гиперрежиме
+    // списаний нет — «спасение» было бы засчитано за неуязвимость.
+    if (savedByRetention > 0 && !this.isHyperMode) {
+      this.emitFormationDefend(this.formation, savedByRetention, true);
     }
     if (this.groupScratch.length === 0) return 0;
     // Гиперрежим = неуязвимость: списания нет (счётчик шага уже прокручен — паритет

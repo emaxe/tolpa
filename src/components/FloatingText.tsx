@@ -660,11 +660,15 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
     // Броня формаций (Щит Клина wedge / Броня Ромба diamond)
     const unsubFormationDefend = eventBus.on(
       'formationDefend',
-      (data: { formation?: 'wedge' | 'diamond'; saved?: number; x?: number; z?: number }) => {
+      (data: { formation?: 'wedge' | 'diamond'; saved?: number; x?: number; z?: number; divide?: boolean }) => {
         if (!data) return;
         const x = data.x ?? 0;
         const z = data.z ?? 0;
-        if (data.formation === 'wedge') {
+        // Удержание на ÷-воротах: нейтральная метка — процент блокировки тут не показан,
+        // работают шансы удержания строя (10/15/20%).
+        if (data.divide) {
+          spawn(x, z, `${i18n.t('formationKeep', 'СТРОЙ УДЕРЖАЛ!')} +${data.saved ?? 0}`, 'text-emerald-300 font-extrabold drop-shadow-[0_0_8px_rgba(16,185,129,0.9)]');
+        } else if (data.formation === 'wedge') {
           spawn(x, z, `${i18n.t('wedgeBlock', 'ЩИТ КЛИНА! -40%')} +${data.saved ?? 0}`, 'text-purple-300 font-extrabold drop-shadow-[0_0_8px_rgba(168,85,247,0.9)]');
         } else if (data.formation === 'diamond') {
           spawn(x, z, `${i18n.t('diamondArmor', 'БРОНЯ РОМБА! -25%')} +${data.saved ?? 0}`, 'text-slate-200 font-extrabold drop-shadow-[0_0_8px_rgba(148,163,184,0.9)]');
