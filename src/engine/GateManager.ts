@@ -366,7 +366,11 @@ export class GateManager {
           const bonus = Math.floor(base * (comboFactor - 1));
           netChange = bonus > 0 ? base + crowd.addMobsNearBonus(bonus, gateX, gateZ) : base;
         }
-        if (isFirstTrigger && netChange > 0) soundEngine.playSound('gate_pass_positive');
+        // Звуковая идентичность Mystery-ворот: это рискованный гамбл (60/40), а не
+        // гарантированный add/divide — питч-сдвиг отличает исход ставки тем же
+        // синтезированным звуком (0 новых ассетов): выигрыш звонче (1.3),
+        // проигрыш — тревожнее и выше бузера деления (1.25).
+        if (isFirstTrigger && netChange > 0) soundEngine.playSound('gate_pass_positive', 1.3);
         if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, netChange > 0 ? 25 : 6, 0xa855f7, netChange > 0 ? 5.0 : 2.0);
         // Перк удачи Овала: 85% вместо 60% на mystery-воротах. Прошлая удача
         // игрока молча повышала шанс без фидбека — всплывающий текст делает
@@ -399,7 +403,7 @@ export class GateManager {
           if (base > 0) {
             const bonus = Math.floor(base * (comboFactor - 1));
             netChange = bonus > 0 ? base + crowd.addMobsNearBonus(bonus, gateX, gateZ) : base;
-            soundEngine.playSound('gate_pass_positive');
+            soundEngine.playSound('gate_pass_positive', 1.25);
             particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 25, 0x10b981, 5.0);
           }
           isPositive = true;
@@ -423,7 +427,8 @@ export class GateManager {
             perk = 'circle_div';
           }
           netChange = -crowd.divideMobsByStep(wing, penaltyDiv, 'gate', gateVisual.divideStep, retentionBonus);
-          if (isFirstTrigger) soundEngine.playSound('gate_pass_negative');
+          // 1.25: риск-проигрыш звучит тревожнее гарантированного деления (этот же бузер на 1.0).
+          if (isFirstTrigger) soundEngine.playSound('gate_pass_negative', 1.25);
           if (isFirstTrigger) particles.emitBurst(gateX, (gateY || 0) + 1.5, gateZ, 20, 0xef4444, 4.0);
           if (isFirstTrigger) eventBus.emit('screenShake', { intensity: 0.3 });
         }
