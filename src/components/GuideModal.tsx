@@ -1,7 +1,7 @@
 import React from 'react';
 import { i18n } from '../core/Localization';
 import { soundEngine } from '../audio/SoundEngine';
-import { X, BookOpen, Shield, Sparkles, Cpu, Target, AlertTriangle } from 'lucide-react';
+import { X, BookOpen, Shield, Sparkles, Cpu, Target, AlertTriangle, Zap } from 'lucide-react';
 
 interface GuideModalProps {
   onClose: () => void;
@@ -17,6 +17,15 @@ const HAZARDS: Array<[string, string]> = [
   ['hazDog', 'border-lime-600/30 text-lime-700'],
   ['hazHunter', 'border-rose-600/30 text-rose-700'],
   ['hazClass', 'border-teal-500/30 text-teal-700'],
+];
+
+// Динамические события трассы: [key, стили рамки/заголовка] — копирайт в Localization.
+const EVENTS: Array<[string, string]> = [
+  ['evSpeedBoost', 'border-cyan-500/30 text-cyan-700'],
+  ['evAmbush', 'border-rose-500/30 text-rose-700'],
+  ['evCoinTrain', 'border-amber-500/30 text-amber-700'],
+  ['evEmpStorm', 'border-violet-500/30 text-violet-700'],
+  ['evMeteorRain', 'border-orange-500/30 text-orange-700'],
 ];
 
 export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
@@ -154,6 +163,23 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
             <p className="text-xs text-slate-600">{i18n.t('loreHazardsIntro')}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               {HAZARDS.map(([key, cls]) => (
+                <div key={key} className={`bg-slate-100/50 p-3 rounded-xl border ${cls.split(' ')[0]}`}>
+                  <strong className={`font-orbitron ${cls.split(' ')[1]}`}>{i18n.t(`${key}Name`)}</strong>
+                  <p className="text-slate-600 mt-1">{i18n.t(`${key}Desc`)}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Dynamic Track Events — справочник событий */}
+          <section className="space-y-3">
+            <h3 className="font-orbitron font-bold text-slate-900 text-sm flex items-center gap-2">
+              <Zap className="w-4 h-4 text-violet-400" />
+              <span>{i18n.t('loreEventsTitle')}</span>
+            </h3>
+            <p className="text-xs text-slate-600">{i18n.t('loreEventsIntro')}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              {EVENTS.map(([key, cls]) => (
                 <div key={key} className={`bg-slate-100/50 p-3 rounded-xl border ${cls.split(' ')[0]}`}>
                   <strong className={`font-orbitron ${cls.split(' ')[1]}`}>{i18n.t(`${key}Name`)}</strong>
                   <p className="text-slate-600 mt-1">{i18n.t(`${key}Desc`)}</p>
