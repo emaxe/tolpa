@@ -1215,7 +1215,7 @@ export class GameEngine {
       // это -X: экранное "вправо" достигается УМЕНЬШЕНИЕМ leaderX. Свайп вправо
       // (deltaX > 0) должен снижать leaderX, отсюда знак минус ниже.
       const invertMult = settings.invertX ? -1 : 1;
-      const baseFactor = (deltaX / window.innerWidth) * 45 * settings.controlsSensitivity;
+      const baseFactor = (deltaX / window.innerWidth) * 45;
       this.steerInput = clamp(-baseFactor * invertMult, -1, 1);
     };
 
@@ -2901,12 +2901,13 @@ export class GameEngine {
     // D увеличивала leaderX и толпа визуально ехала влево — знаки здесь намеренно
     // противоположны наивному "D = вправо = +1".
     const settings = stateManager.getState().settings;
+    // Руление: +/-1 без клампа чувствительности здесь — настройки применяются
+    // в CrowdManager (steerSpeed), иначе кламп [-1,1] глушил всё выше 1.0x.
     const invertMult = settings.invertX ? -1 : 1;
-
     if (this.keyLeft && !this.keyRight) {
-      this.steerInput = clamp(1.0 * invertMult * settings.controlsSensitivity, -1, 1);
+      this.steerInput = invertMult;
     } else if (this.keyRight && !this.keyLeft) {
-      this.steerInput = clamp(-1.0 * invertMult * settings.controlsSensitivity, -1, 1);
+      this.steerInput = -invertMult;
     } else if (!this.isPointerDown) {
       this.steerInput = 0;
     } else {
@@ -2917,7 +2918,7 @@ export class GameEngine {
 
     // Update Crowd. eventSpeedMult — временный множитель скорости от динамических
     // событий (speed_boost ускоряет, ambush замедляет).
-    this.crowd.update(dt, this.baseSpeed * this.eventSpeedMult, this.steerInput, trackWidth);
+    this.crowd.update(dt, this.baseSpeed * this.eventSpeedMult, this.steerInput, trackWidth, settings.controlsSensitivity);
 
     // Пройденная дистанция забега (метры) — обновляем по leaderZ, чтобы в Бесконечном
     // режиме было чем побить рекорд. leaderZ монотонно растёт вдоль +Z (1 unit = 1 м).

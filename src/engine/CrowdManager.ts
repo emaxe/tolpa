@@ -1030,7 +1030,7 @@ export class CrowdManager {
     return (this.formation === 'circle' && this.aliveCount >= 8) || (this.formation === 'diamond' && this.aliveCount >= 10);
   }
 
-  public update(dt: number, speed: number, steerInput: number, trackWidth: number): void {
+  public update(dt: number, speed: number, steerInput: number, trackWidth: number, steerSensitivity: number = 1.0): void {
     this.animTime += dt * 15;
 
     // Hyper mode countdown
@@ -1050,7 +1050,10 @@ export class CrowdManager {
     this.leaderZ += speed * speedMult * dt;
 
     // Steer leader left/right
-    const steerSpeed = 12.0;
+    // Скорость руления с учётом настройки чувствительности (0.5..2.5). Ранее
+    // чувствительность резалась клампом steerInput в [-1,1] в GameEngine и
+    // ползунок выше 1.0x не давал ничего — теперь она применяется здесь.
+    const steerSpeed = 12.0 * steerSensitivity;
     this.playableHalfWidth = trackWidth / 2 - TRACK_RAIL_MARGIN;
     this.trackHalfWidth = trackWidth / 2;
     this.leaderX = clamp(

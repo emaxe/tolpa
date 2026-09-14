@@ -1593,6 +1593,30 @@ describe('getAdrenalineMultiplier — множитель скорости наб
   });
 });
 
+// Настройка «Чувствительность управления» ранее молча не работала выше 1.0x:
+// GameEngine обрезал steerInput клампом [-1,1] ПОСЛЕ умножения на чувствительность.
+// Множитель перенесён в CrowdManager.update (steerSpeed) — проверяем линейность.
+describe('update — чувствительность руления (steerSensitivity)', () => {
+  const displacement = (sens: number) => {
+    const c = new CrowdManager(new THREE.Scene());
+    c.update(0.1, 10, 1, 14, sens);
+    return Math.abs(c.leaderX);
+  };
+  it('смещение лидера линейно по чувствительности: 0.5x / 1x / 2x', () => {
+    const one = displacement(1.0);
+    expect(one).toBeGreaterThan(0);
+    expect(displacement(0.5)).toBeCloseTo(one * 0.5, 6);
+    expect(displacement(2.0)).toBeCloseTo(one * 2.0, 6);
+    // Регрессия бага: до фикса 2.0x давал ровно то же смещение, что 1.0x.
+    expect(displacement(2.0)).toBeGreaterThan(one);
+  });
+  it('параметр по умолчанию — обратная совместимость со старыми вызовами', () => {
+    const c = new CrowdManager(new THREE.Scene());
+    c.update(0.1, 10, 1, 14);
+    expect(Math.abs(c.leaderX)).toBeCloseTo(displacement(1.0), 6);
+  });
+});
+
 // Кап суммарного шанса спец-классов: на полной прокачке 5+5+5 сумма была 120%,
 // и regular вообще не спавнился из ролла. Кап 80% сохраняет пропорции классов.
 describe('spawnMob — кап суммарного шанса спец-классов', () => {

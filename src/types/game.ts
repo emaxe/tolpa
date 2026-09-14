@@ -260,7 +260,7 @@ export interface GameSettings {
   enableShadows: boolean;
   enableScreenShake: boolean;
   enableHaptics: boolean;
-  controlsSensitivity: number; // 0.5 .. 2.0
+  controlsSensitivity: number; // 0.5 .. 2.5
   invertX: boolean;
   fpsLimit: 30 | 60;
   showFps: boolean;
