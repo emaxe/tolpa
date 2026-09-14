@@ -95,10 +95,12 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
   const idRef = useRef(0);
 
   useEffect(() => {
-    const spawn = (worldX: number, worldZ: number, text: string, colorClass: string) => {
+    // worldY — высота 3D-проекции: пехотинец 2.2 (по умолчанию), босс 4.5
+    // (его текст на 2.2 рендерился внутри 5-метрового тела — parity-баг).
+    const spawn = (worldX: number, worldZ: number, text: string, colorClass: string, worldY: number = 2.2) => {
       const eng = engine.current;
       if (!eng) return;
-      const pos = eng.projectToScreen(worldX, 2.2, worldZ);
+      const pos = eng.projectToScreen(worldX, worldY, worldZ);
       const id = idRef.current++;
       setItems((prev) => [...prev.slice(-24), { id, text, colorClass, x: pos.x, y: pos.y }]);
       window.setTimeout(() => {
@@ -437,13 +439,13 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
     const unsubBossShieldBlocked = eventBus.on(
       'bossShieldBlocked',
       (data: { x?: number; z?: number }) => {
-        spawn(data?.x ?? 0, data?.z ?? 0, i18n.t('bossShieldBlocked'), 'text-cyan-300 font-extrabold text-xl drop-shadow-[0_0_8px_rgba(0,240,255,0.9)]');
+        spawn(data?.x ?? 0, data?.z ?? 0, i18n.t('bossShieldBlocked'), 'text-cyan-300 font-extrabold text-xl drop-shadow-[0_0_8px_rgba(0,240,255,0.9)]', 4.5);
       }
     );
     const unsubBossShieldPierced = eventBus.on(
       'bossShieldPierced',
       (data: { x?: number; z?: number }) => {
-        spawn(data?.x ?? 0, data?.z ?? 0, i18n.t('bossShieldPierced'), 'text-amber-400 font-extrabold text-xl drop-shadow-[0_0_8px_rgba(245,158,11,0.9)]');
+        spawn(data?.x ?? 0, data?.z ?? 0, i18n.t('bossShieldPierced'), 'text-amber-400 font-extrabold text-xl drop-shadow-[0_0_8px_rgba(245,158,11,0.9)]', 4.5);
       }
     );
 
@@ -670,7 +672,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
         if (!data) return;
         const x = data.x ?? 0;
         const z = data.z ?? 0;
-        spawn(x, z, i18n.t('bossStaggered', 'АТАКА СБИТА!'), 'text-yellow-300 font-extrabold drop-shadow-[0_0_8px_rgba(250,204,21,0.9)]');
+        spawn(x, z, i18n.t('bossStaggered', 'АТАКА СБИТА!'), 'text-yellow-300 font-extrabold drop-shadow-[0_0_8px_rgba(250,204,21,0.9)]', 4.5);
       }
     );
 

@@ -56,6 +56,14 @@ const NEAR_MISS_ALERT_KEYS: Record<number, string> = {
   10: 'nearMissStreak10',
 };
 
+// Эскалация баннера серии ворот по тиру (паритет с near-miss): tier 1 — базовая
+// строка comboMilestone, 2+ — уникальные строки. Продюсер (GateManager) тир уже
+// пишет в payload, HUD раньше его игнорировал.
+const COMBO_ALERT_KEYS: Record<number, string> = {
+  2: 'comboMilestoneTier2',
+  3: 'comboMilestoneTier3',
+};
+
 export const HUD: React.FC<HUDProps> = ({
   crowdCount,
   coinCount,
@@ -245,8 +253,8 @@ export const HUD: React.FC<HUDProps> = ({
     });
 
     // Порог серии ворот (5/10/15...) — центральный баннер-тост.
-    const unsubComboMilestone = eventBus.on('comboMilestone', () => {
-      showAlert('comboMilestone');
+    const unsubComboMilestone = eventBus.on('comboMilestone', (data: { tier?: number }) => {
+      showAlert('comboMilestone', data?.tier && data.tier >= 2 ? data.tier : undefined);
     });
 
     // Потолок серии ворот (×1.8) — праздничный баннер-тост.
@@ -484,6 +492,8 @@ export const HUD: React.FC<HUDProps> = ({
         >
           {eventAlert.type === 'nearMissMilestone' && eventAlert.multiplier && eventAlert.multiplier >= 2
             ? i18n.t(NEAR_MISS_ALERT_KEYS[eventAlert.multiplier] || 'nearMissMilestone')
+            : eventAlert.type === 'comboMilestone' && eventAlert.multiplier && COMBO_ALERT_KEYS[eventAlert.multiplier]
+            ? i18n.t(COMBO_ALERT_KEYS[eventAlert.multiplier])
             : i18n.t(EVENT_ALERT_MAP[eventAlert.type].key)}
         </div>
       )}
