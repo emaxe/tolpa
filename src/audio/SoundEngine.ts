@@ -217,8 +217,8 @@ export class SoundEngine {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(220, t);
-        osc.frequency.exponentialRampToValueAtTime(80, t + 0.2);
+        osc.frequency.setValueAtTime(220 * pitchShift, t);
+        osc.frequency.exponentialRampToValueAtTime(80 * pitchShift, t + 0.2);
 
         gain.gain.setValueAtTime(0.3, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);

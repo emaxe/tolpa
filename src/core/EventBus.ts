@@ -1,8 +1,14 @@
+import type { FormationType } from '../types/game';
+
+/** Payload события formationDefend: эмится из CrowdManager.emitFormationDefend
+ *  (formation — ЛЮБАЯ формация: у ÷-ворот спасает и circle/wide тоже). */
 export interface FormationDefendPayload {
-  formation: 'wedge' | 'diamond';
+  formation: FormationType;
   saved: number;
   x: number;
   z: number;
+  /** true — спасение удержанием на ÷-воротах (нейтральная метка вместо %). */
+  divide?: boolean;
 }
 
 type EventCallback<T = any> = (data: T) => void;

@@ -13,7 +13,7 @@ import { LevelGenerator, DEFAULT_TRACK_WIDTH } from './LevelGenerator';
 import { stateManager, RunStats } from '../core/StateManager';
 import { soundEngine } from '../audio/SoundEngine';
 import { MusicTheme } from '../types/audio';
-import { eventBus } from '../core/EventBus';
+import { eventBus, type FormationDefendPayload } from '../core/EventBus';
 import { perfMonitor } from '../core/Performance';
 import { clamp, getNearMissMultiplier, NEAR_MISS_GRANT_GAP, NEAR_MISS_BREAK_GAP, TRACK_RAIL_MARGIN } from '../utils/math';
 import { createSpectatorGeometry, getBillboardTexture } from '../utils/proceduralMeshes';
@@ -941,7 +941,7 @@ export class GameEngine {
     // Аудиовизуальный фидбек брони формаций (Щит Клина wedge / Броня Ромба diamond)
     this.unsubFormationDefend = eventBus.on(
       'formationDefend',
-      (data: { formation?: 'wedge' | 'diamond'; saved?: number; x?: number; z?: number; divide?: boolean }) => {
+      (data: FormationDefendPayload | undefined) => {
         if (!data) return;
         const x = data.x ?? this.crowd.leaderX;
         const z = data.z ?? this.crowd.leaderZ;

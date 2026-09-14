@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { GameEngine } from '../engine/GameEngine';
-import { eventBus } from '../core/EventBus';
+import { eventBus, type FormationDefendPayload } from '../core/EventBus';
 import { i18n } from '../core/Localization';
 import type { BossAttack } from '../types/game';
 
@@ -660,7 +660,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
     // Броня формаций (Щит Клина wedge / Броня Ромба diamond)
     const unsubFormationDefend = eventBus.on(
       'formationDefend',
-      (data: { formation?: 'wedge' | 'diamond'; saved?: number; x?: number; z?: number; divide?: boolean }) => {
+      (data: FormationDefendPayload | undefined) => {
         if (!data) return;
         const x = data.x ?? 0;
         const z = data.z ?? 0;
