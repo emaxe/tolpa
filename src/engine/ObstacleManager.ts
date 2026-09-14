@@ -66,7 +66,6 @@ interface ObstacleVisual {
   exploded?: boolean;
   attackCooldown?: number;
   subX?: number;
-  subZ?: number;
   // Состояние кибер-собаки: свободное гуляние / отдых / атака.
   dogState?: 'wander' | 'idle' | 'attack';
   // Текущая целевая точка блуждания (локальные координаты вокруг анкера).
@@ -79,7 +78,6 @@ interface ObstacleVisual {
   dogTargetDuration?: number;
   dogAnimPhase?: number; // фаза анимации шага/хвоста
   dogFacing?: number; // куда повёрнута собака (радианы, мировой Y)
-  dogLungeT?: number; // прогресс броска при атаке (0..1), -1 когда не атакует
   // Охотник (hunter): фаза преследователя с тыла. sleep = стоит на трассе как
   // обычное препятствие (летален), wake = толпа прошла, встаёт (~2.5с, не летален),
   // chase = догоняет сзади. hunterTimer — обратный отсчёт текущей фазы/рычания.
@@ -306,7 +304,6 @@ export class ObstacleManager {
       exploded: false,
       attackCooldown: 0,
       subX: obs.x,
-      subZ: obs.z,
       // Кибер-собака стартует в состоянии «гуляет» с текущей целевой точкой.
       dogState: 'wander',
       dogTargetX: (Math.random() - 0.5) * 1.5,
@@ -315,7 +312,6 @@ export class ObstacleManager {
       dogTargetDuration: 4 + Math.random() * 2,
       dogAnimPhase: Math.random() * Math.PI * 2,
       dogFacing: Math.random() * Math.PI * 2,
-      dogLungeT: -1,
     };
 
     // Для time-invariant препятствий hazard-бокс константен — задаём его один раз
@@ -431,7 +427,6 @@ export class ObstacleManager {
       // Кулдаун задаётся скоростью атаки, чтобы собака не кусала мгновенно.
       vis.dogState = 'wander';
       vis.dogStateTime = 0;
-      vis.dogLungeT = -1;
       // новая случайная цель
       vis.dogTargetX = (Math.random() - 0.5) * obs.range * 1.5;
       vis.dogTargetZ = (Math.random() - 0.5) * obs.range * 1.5;
