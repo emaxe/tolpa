@@ -128,6 +128,7 @@ export const HUD: React.FC<HUDProps> = ({
     finishStepSmashed: { key: 'finishStepSmashed', cls: 'border-cyan-400 text-cyan-600' },
     finishChestOpened: { key: 'apexChestOpened', cls: 'border-yellow-400 text-yellow-600' },
     autoQualityLow: { key: 'autoQualityLow', cls: 'border-cyan-400 text-slate-600' },
+    autoQualityRecover: { key: 'autoQualityRecover', cls: 'border-emerald-400 text-emerald-600' },
     bossDefeated: { key: 'bossDefeated', cls: 'border-yellow-400 text-yellow-600' },
     bossAppear: { key: 'bossAppear', cls: 'border-red-500 text-red-600' },
     bossEnraged: { key: 'bossEnraged', cls: 'border-rose-600 text-rose-700' },
@@ -331,6 +332,11 @@ export const HUD: React.FC<HUDProps> = ({
       showAlert('autoQualityLow');
     });
 
+    // Авто-даунгрейд снят: FPS стабилен, watchdog вернул DPR/тени.
+    const unsubPerfAutoRecover = eventBus.on('perfAutoRecover', () => {
+      showAlert('autoQualityRecover');
+    });
+
     return () => {
       if (eventAlertTimerRef.current !== null) window.clearTimeout(eventAlertTimerRef.current);
       unsubBoss();
@@ -362,6 +368,7 @@ export const HUD: React.FC<HUDProps> = ({
       unsubNewClass();
       unsubBiomeEntered();
       unsubPerfAutoLow();
+      unsubPerfAutoRecover();
     };
   }, []);
 

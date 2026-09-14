@@ -305,7 +305,11 @@ export class GameEngine {
   private unsubCrowdLow: (() => void) | null = null;
   private unsubSettings: (() => void) | null = null;
   private unsubPerfLow: (() => void) | null = null;
-  private autoLowDone = false;
+  // Авто-даунгрейд активен прямо сейчас (флаг снимается watchdog-веткой при
+  // восстановлении FPS — в отличие от прежнего autoLowDone «один раз навсегда»,
+  // который оставлял игрока на низкой графике до перезапуска).
+  private autoLowActive = false;
+  private autoLowAt = 0;
   private unsubFormation: (() => void) | null = null;
   private unsubClassAbility: (() => void) | null = null;
   private unsubFormationDefend: (() => void) | null = null;
@@ -625,17 +629,27 @@ export class GameEngine {
     // влияет на рендер, без перезапуска забега.
     this.unsubSettings = eventBus.on('settingsChanged', () => this.applyGraphicsSettings());
 
-    // Авто-деградация качества: perfMonitor годами детектировал «FPS<25 три секунды
-    // подряд», но его onLowPerformance() не был подписан нигде — API мертво. Теперь
-    // при стабильных просадках качество принудительно опускается до «низкого»
-    // (DPR 1.0 + тени off) ровно один раз за сессию движка, с баннером в HUD.
+    // Авто-деградация качества: perfMonitor детектирует «FPS<25 три секунды
+    // подряд». Теперь при стабильных просадках рендер временно переводится в
+    // режим «низкого» качества (DPR 1.0 + тени off) с баннером в HUD. Настройки
+    // пользователя НЕ перезаписываются (иначе «low» персистился бы в localStorage
+    // и игрок оставался на минимуме даже после перезапуска на быстром устройстве):
+    // применяется напрямую к рендереру, а watchdog разрешения сам возвращает
+    // DPR/тени, когда кадр снова быстрый (см. updateAdaptiveResolution).
     this.unsubPerfLow = (() => {
       perfMonitor.onLowPerformance(() => {
-        if (this.autoLowDone) return;
+        if (this.autoLowActive) return;
         const s = stateManager.getState().settings;
-        if (s.graphicsQuality === 'low') return; // и так минимум — нечего снижать
-        this.autoLowDone = true;
-        stateManager.updateSettings({ graphicsQuality: 'low', enableShadows: false });
+        if (s.graphicsQuality === 'low') return; // и так минимум — watchdog на low не работает
+        this.autoLowActive = true;
+        this.autoLowAt = performance.now();
+        this.currentPixelRatio = Math.min(this.currentPixelRatio || 1.0, 1.0);
+        if (this.renderer) {
+          this.renderer.setPixelRatio(this.currentPixelRatio);
+          if (this.renderer.shadowMap) this.renderer.shadowMap.enabled = false;
+        }
+        if (this.dirLight) this.dirLight.castShadow = false;
+        this.adaptiveLastChange = this.autoLowAt; // точка отсчёта cooldown восстановления
         eventBus.emit('perfAutoLow', {});
       });
       return () => {
@@ -1102,6 +1116,12 @@ export class GameEngine {
         this.dirLight.castShadow = true;
         this.renderer.shadowMap.enabled = true;
         this.adaptiveLastChange = now;
+      }
+      // Кадр стабилен >5с после авто-даунгрейда — выходим из него: DPR и тени
+      // уже возвращены ветками выше, настройка пользователя не трогалась.
+      if (this.autoLowActive && now - this.autoLowAt > 5000) {
+        this.autoLowActive = false;
+        eventBus.emit('perfAutoRecover', {});
       }
     }
   }
