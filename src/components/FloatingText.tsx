@@ -369,6 +369,22 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       spawnScreen(text, cls, -40);
     });
 
+    // Порог серии сбора монет (6/12) — центральный баннер, паритет с crowd/nearMiss
+    // майлстонами: у HUD есть алерт, у движка — бурст и крик толпы, не хватало
+    // экранной плашки. На 12-й монете апекс-текст; гем-надпись от gemRewarded
+    // живёт в мировых координатах над монетой и не конфликтует с баннером.
+    const unsubCoinChainMilestone = eventBus.on('coinChainMilestone', (data: { count?: number; x?: number; z?: number }) => {
+      const count = data?.count ?? 6;
+      const apex = count >= 12;
+      const text = apex
+        ? i18n.t('coinChainMilestoneApex', 'ЗОЛОТАЯ ЛИХОРАДКА! +1💎')
+        : `${i18n.t('coinChainMilestone', 'СЕРИЯ МОНЕТ! ⚡')} ×${count}`;
+      const cls = apex
+        ? 'text-yellow-300 font-black text-xl drop-shadow-[0_0_14px_rgba(250,204,21,0.95)]'
+        : 'text-amber-300 font-extrabold text-lg drop-shadow-[0_0_10px_rgba(251,191,36,0.9)]';
+      spawnScreen(text, cls, -40);
+    });
+
     // Смена биома в бесконечном режиме — центральный всплывающий баннер с названием биома.
     const unsubBiomeEntered = eventBus.on('biomeEntered', (data: { biome?: string }) => {
       if (!data?.biome) return;
@@ -719,6 +735,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubAdrenalineReady();
       unsubFinishLine();
       unsubCrowdMilestone();
+      unsubCoinChainMilestone();
       unsubUpgrade();
       unsubSkin();
       unsubBossDamaged();
