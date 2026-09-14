@@ -126,11 +126,14 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
     const unsubGate = eventBus.on(
       'gatePassed',
       (data: { op?: string; netChange?: number; comboStreak?: number; x?: number; z?: number; perk?: string | null }) => {
-        if (!data || typeof data.netChange !== 'number' || data.netChange === 0) return;
+        // Нулевой исход больше НЕ глотаем целиком: если деление ворот спасло весь отряд
+        // (retention-перк клина/ромба/фаланги сработал идеально, netChange = 0), бейдж
+        // перка обязан показаться ровно в момент, когда защита принесла максимум пользы.
+        if (!data || typeof data.netChange !== 'number' || (data.netChange === 0 && !data.perk)) return;
         const { op, netChange, comboStreak = 0, x = 0, z = 0, perk } = data;
         // Мистические ворота (риск/награда) получают отдельный яркий фидбек — игрок
         // должен видеть, что исход был случайным, а не обычным приростом/потерей.
-        if (op === 'mystery') {
+        if (op === 'mystery' && netChange !== 0) {
           const lucky = netChange > 0;
           spawn(
             x,
@@ -145,15 +148,19 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
           return;
         }
         // При длинной серии позитивных ворот показываем маркер серии рядом с приростом толпы.
-        const text = netChange > 0
-          ? (comboStreak >= 3 ? `+${netChange} x${comboStreak}` : `+${netChange}`)
-          : `${netChange}`;
-        spawn(
-          x,
-          z,
-          text,
-          netChange > 0 ? (comboStreak >= 3 ? 'text-emerald-300 font-extrabold' : 'text-emerald-400') : 'text-red-400'
-        );
+        // Числовой исход — только при ненулевом изменении (нулевой спасённый перк
+        // покажет ниже только бейдж формации, а не красную «0»).
+        if (netChange !== 0) {
+          const text = netChange > 0
+            ? (comboStreak >= 3 ? `+${netChange} x${comboStreak}` : `+${netChange}`)
+            : `${netChange}`;
+          spawn(
+            x,
+            z,
+            text,
+            netChange > 0 ? (comboStreak >= 3 ? 'text-emerald-300 font-extrabold' : 'text-emerald-400') : 'text-red-400'
+          );
+        }
 
         if (perk) {
           if (perk === 'arrow_mult') {
