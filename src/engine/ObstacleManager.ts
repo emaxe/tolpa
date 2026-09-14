@@ -1334,7 +1334,9 @@ export class ObstacleManager {
           this.awardNearMiss(obsVis.hazardX, rz);
         } else if (minGap <= NEAR_MISS_BREAK_GAP) {
           // Прошёл мах на безопасной дистанции — риск не нужен, серия сбрасывается.
-          this.breakNearMissStreak(obsVis.hazardX, obsVis.hazardZ);
+          // Парити с наградой: спаркл сброса якорим на плоскость прохода (rz), а не на
+          // живую точку качания молота — иначе «УВОРОТ СБИТ» всплывает в стороне от места уворота.
+          this.breakNearMissStreak(obsVis.hazardX, rz);
         }
       }
       obsVis.lastLeaderZ = lz;
@@ -1370,7 +1372,9 @@ export class ObstacleManager {
           this.awardNearMiss(obsVis.hazardX, rz);
         } else if (minGap <= NEAR_MISS_BREAK_GAP) {
           // Пропустил шар на безопасной дистанции — риск не нужен, серия сбрасывается.
-          this.breakNearMissStreak(obsVis.hazardX, obsVis.hazardZ);
+          // Тот же Z-якорь, что у награды (плоскость прохода): шар к моменту оценки уже
+          // ушёл по Z, спаркл на hazardZ оторвался бы от места уворота.
+          this.breakNearMissStreak(obsVis.hazardX, rz);
         }
       }
       obsVis.lastLeaderZ = lz;
