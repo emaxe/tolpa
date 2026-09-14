@@ -501,8 +501,9 @@ export class ObstacleManager {
       }
       vis.dogAnimPhase = (vis.dogAnimPhase || 0) + dt * 9; // шаг
     } else {
-      // idle: стоим / присаживаемся
-      vis.dogAnimPhase = 0;
+      // idle: стоим / присаживаемся; фаза копится медленно вместо сброса в 0 —
+      // нет «щелчка» ног при переходе idle -> wander
+      vis.dogAnimPhase = (vis.dogAnimPhase || 0) + dt * 1.0;
     }
 
     // ---- 3. Анимация частей собаки ----
@@ -548,9 +549,11 @@ export class ObstacleManager {
       // Idle/отдых: собака сидит — зад опущен, корпус наклонён, передние лапы
       // прямые, задние подогнуты, голова приподнята, хвост лениво виляет.
       if (body) body.rotation.x = 0.35; // сидя: грудью вверх
-      if (headPivot) headPivot.rotation.x = -0.1 + 0.05 * Math.sin(performance.now() * 0.001 * 1.2);
+      // Голова/хвост от накопленной фазы собаки (пер-дог сид при спавне),
+      // а не от глобальных часов — иначе все отдыхающие собаки виляют в унисон
+      if (headPivot) headPivot.rotation.x = -0.1 + 0.05 * Math.sin(phase * 1.2);
       if (jaw) jaw.rotation.x = 0.05;
-      if (tailPivot) tailPivot.rotation.y = Math.sin(performance.now() * 0.001 * 2.5) * 0.3;
+      if (tailPivot) tailPivot.rotation.y = Math.sin(phase * 2.5) * 0.3;
       // Передние лапы (i<2) прямые вниз, задние (i>=2) подогнуты под корпус.
       if (lp0) lp0.rotation.x = 0.05;
       if (lp1) lp1.rotation.x = 0.05;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DialogueLine } from '../types/game';
 import { i18n } from '../core/Localization';
 import { soundEngine } from '../audio/SoundEngine';
@@ -17,9 +17,17 @@ export const DialogueModal: React.FC<DialogueModalProps> = ({ dialogues, onCompl
   const currentLine = dialogues[currentIndex];
   const fullText = currentLine ? i18n.t(currentLine.textKey, currentLine.fallbackText) : '';
 
+  // Держим актуальный onComplete в ref, чтобы нестабильная ссылка из родителя
+  // (App пересоздаёт inline-колбэк на каждый ре-рендер из-за setTick-подписки)
+  // НЕ перезапускала эффект печати с нулевого символа.
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  });
+
   useEffect(() => {
     if (!currentLine) {
-      onComplete();
+      onCompleteRef.current();
       return;
     }
 
@@ -41,7 +49,8 @@ export const DialogueModal: React.FC<DialogueModalProps> = ({ dialogues, onCompl
     }, 24);
 
     return () => clearInterval(timer);
-  }, [currentIndex, currentLine, fullText, onComplete]);
+    // onComplete исключён из deps намеренно: вызывается через onCompleteRef.current()
+  }, [currentIndex, currentLine, fullText]);
 
   const handleNext = () => {
     soundEngine.playSound('button_click');
