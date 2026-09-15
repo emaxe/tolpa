@@ -273,6 +273,7 @@ export class GameEngine {
   private unsubShake: (() => void) | null = null;
   private unsubGateCharge: (() => void) | null = null;
   private unsubMobFell: (() => void) | null = null;
+  private unsubRailScrape: (() => void) | null = null;
   private unsubMobsKilled: (() => void) | null = null;
   private unsubCombo: (() => void) | null = null;
   private unsubNearMiss: (() => void) | null = null;
@@ -440,6 +441,13 @@ export class GameEngine {
       this.particles.emitBurst(data.x, 0.6, data.z, 10, 0x94a3b8, 3.0);
       soundEngine.playSound('mob_fall');
       this.triggerHaptic(10);
+    });
+
+    // Лидер прижат к невидимому борту трассы: тихая пыль + приглушённый скрежет —
+    // предел руления становится читаемым до того, как толпа упадёт за край.
+    this.unsubRailScrape = eventBus.on('railScrape', (data: { x: number; z: number }) => {
+      this.particles.emitBurst(data.x, 0.5, data.z - 0.8, 6, 0x94a3b8, 2.0);
+      soundEngine.playSound('adrenaline_whoosh', 0.6, 0.12);
     });
 
     // Агрегатный фидбек при гибели мобов (финишная стена, атаки боссов)
@@ -3569,6 +3577,7 @@ export class GameEngine {
     this.unsubShake?.();
     this.unsubGateCharge?.();
     this.unsubMobFell?.();
+    this.unsubRailScrape?.();
     this.unsubMobsKilled?.();
     this.unsubCombo?.();
     this.unsubNearMiss?.();

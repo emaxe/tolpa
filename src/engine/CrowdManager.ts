@@ -42,6 +42,8 @@ export class CrowdManager {
   private groupScratch: MobInstance[] = [];
   // Таймер шагов толпы — ритмичный топот при беге ('footstep' синтезирован в SoundEngine).
   private footstepTimer: number = 0;
+  // Дебаунс фидбека «упор в край трассы» (паттерн footstepTimer).
+  private railScrapeTimer: number = 0;
   // Троттлинг визуально-звукового фидбека classAbility (ninja-dodge/tank-shield).
   // При массовой гибели толпы за один кадр (деление ворот, коллапс стен, АОЕ босса)
   // раньше на КАЖДОГО убитого моба эмитилось classAbility → GameEngine запускал
@@ -1064,6 +1066,22 @@ export class CrowdManager {
       -this.playableHalfWidth,
       this.playableHalfWidth
     );
+    // Фидбек упора лидера в невидимый борт: руление толкает к границе И лидер
+    // уже прижат к ней — пыль+скрежет с дебаунсом 0.35с (иначе игрок узнаёт о
+    // пределе только когда толпа уже падает за край на |x| > trackHalfWidth).
+    const pressedEdge =
+      steerInput > 0.4 ? this.leaderX >= this.playableHalfWidth - 0.05
+      : steerInput < -0.4 ? this.leaderX <= -this.playableHalfWidth + 0.05
+      : false;
+    if (this.aliveCount > 0 && pressedEdge) {
+      this.railScrapeTimer -= dt;
+      if (this.railScrapeTimer <= 0) {
+        this.railScrapeTimer = 0.35;
+        eventBus.emit('railScrape', { x: this.leaderX, z: this.leaderZ });
+      }
+    } else {
+      this.railScrapeTimer = 0;
+    }
 
     // Update individual mob positions & running animation
     this.updateMobPositions(dt);
