@@ -46,10 +46,10 @@ export const translations = {
     formationDiamond: 'Ромб (Броня)',
     formationWedgeBadge: '🛡️ Урон −40% · Деление −10%',
     formationWideBadge: '🧲 Охват +60% · Сложение +50% · Монеты → заряд',
-    formationCircleBadge: '💥 Таран ×1.35 · Стен ×2 · Сложение +30% · Деление −20%',
+    formationCircleBadge: '💥 Боссы ×1.35 · Стен ×2 · Сложение +30% · Деление −20%',
     formationArrowBadge: '⚡ Скорость +15% · Заряд ×1.5 · Стен ×2',
     formationOvalBadge: '⚖️ Баланс · Ворота и сферы +25%',
-    formationDiamondBadge: '💎 Броня +25% · Стены ×2 · Таран · Деление −15%',
+    formationDiamondBadge: '💎 Броня +25% · Стены ×2 · Деление −15%',
     metersToFinish: 'м до финиша',
     
     // Gates
@@ -59,10 +59,10 @@ export const translations = {
     // Formations
     wedgeDesc: 'Снижает урон от фронтальных ловушек на 40%; на воротах ÷ теряет на 10% меньше',
     wideDesc: 'Максимальный охват монет, ворот и сложения; прорыв финишных стен (-20% жертв); монеты заряжают адреналин',
-    circleDesc: 'Толкает и разрушает препятствия силой толпы; сложение на +воротах +30%; на воротах ÷ теряет на 20% меньше',
+    circleDesc: 'Давит толпой: первым коснувшимся бойцам даёт шанс уцелеть, но ловушку не сносит; сложение на +воротах +30%; на воротах ÷ теряет на 20% меньше',
     arrowDesc: 'Увеличивает скорость бега, ускоряет заряд Гипер-режима (×1.5) и пробивает стены клином (×2)',
     ovalDesc: 'Баланс: ворота и сферы +25%',
-    diamondDesc: 'Ромб: броня фронта +25%, пробивает стены и таранит в плотном строю; на воротах ÷ теряет на 15% меньше',
+    diamondDesc: 'Ромб: броня фронта +25%, пробивает финишные стены; ловушки на трассе не сносит; на воротах ÷ теряет на 15% меньше',
 
     // Specialized mobs
     tankName: 'Джаггернаут (Танк)',
@@ -373,7 +373,7 @@ export const translations = {
     loreBossesDesc: 'Боссы встречаются каждые 10 уровней (10, 20, 30, 40, 50). Следите за красными кругами телеграфа атак на земле. Переключайтесь в формацию Клин или Фалангу и активируйте Гипер-режим Адреналина (ПРОБЕЛ) в момент атаки босса!',
     // Бестиарий опасностей трассы
     loreHazardsTitle: 'Опасности трассы',
-    loreHazardsIntro: 'Разрушаемые ловушки (крушитель, маятники, таранный шар, псы, лазерная стена, охотник) прошибаются танками в отряде, тараном формаций Фаланга/Ромб или Гипер-режимом (ПРОБЕЛ). Остальные объезжайте по полосам.',
+    loreHazardsIntro: 'Ловушки НЕ расходуются: каждая убивает всех, кто в неё влезет, и остаётся на трассе. Танки, строй Фаланга/Ромб и Гипер-режим (ПРОБЕЛ) не сносят её, а лишь дают коснувшемуся бойцу шанс уцелеть. Остальные объезжайте по полосам.',
     hazMovingName: 'Движущиеся лезвия',
     hazMovingDesc: 'Пилы, таранные шары и шипастые снаряды едут поперёк трассы или навстречу. Убивает только сам снаряд — стойте в свободной полосе.',
     hazTimingName: 'Крушители и маятники',
@@ -385,11 +385,11 @@ export const translations = {
     hazBombName: 'Мины',
     hazBombDesc: 'Мерцающий маячок выдаёт мину: взрыв накрывает область рядом. Объезжайте — детонацию не переживёт никто в радиусе.',
     hazDogName: 'Сторожевые псы',
-    hazDogDesc: 'Пёс набрасывается на ближайшего моба у трассы. Крушится танками, тараном или Гипер-режимом — как и остальное, лучше обходить.',
+    hazDogDesc: 'Пёс набрасывается на ближайшего моба у трассы. Собаку нельзя снести — танк лишь переживёт укус щитом, но пёс останется на цепи. Обходите стороной.',
     hazHunterName: 'Охотник',
-    hazHunterDesc: 'Спит на трассе, но стоит пройти мимо — рычанием просыпается и преследует сзади на 1.25× скорости, пожирая отставших. Добейте его во сне (танк/таран/Гипер) или не отставайте от темпа толпы.',
+    hazHunterDesc: 'Спит на трассе, но стоит пройти мимо — рычанием просыпается и преследует сзади на 1.25× скорости, пожирая отставших. Убить его нельзя — уходите от него темпом толпы.',
     hazClassName: 'Классы против ловушек',
-    hazClassDesc: 'Ниндзя часто уворачивается от ударов ловушек, танки крепче держат урон и прошибают разрушаемое, а маги получают от опасностей повышенный урон.',
+    hazClassDesc: 'Ниндзя часто уворачивается от ударов ловушек, танки крепче держат урон, а маги получают от опасностей повышенный урон. Снести ловушку не может никто — её всегда обходят.',
     loreEventsTitle: 'Динамические события трассы',
     loreEventsIntro: 'С 3-го уровня на трассе вспыхивают события (в бесконечном режиме — всю дорогу). Каждое объявлено HUD-баннером; знание правил превращает шторм в возможность.',
     evSpeedBoostName: 'Скоростной рывок',
@@ -453,10 +453,10 @@ export const translations = {
     formationDiamond: 'Diamond (Armor)',
     formationWedgeBadge: '🛡️ Damage −40% · Divide −10%',
     formationWideBadge: '🧲 Coverage +60% · Merge +50% · Coins charge',
-    formationCircleBadge: '💥 Ram ×1.35 · Walls ×2 · Merge +30% · Divide −20%',
+    formationCircleBadge: '💥 Bosses ×1.35 · Walls ×2 · Merge +30% · Divide −20%',
     formationArrowBadge: '⚡ Speed +15% · Charge ×1.5 · Walls ×2',
     formationOvalBadge: '⚖️ Balance · Gates & orbs +25%',
-    formationDiamondBadge: '💎 Armor +25% · Walls ×2 · Ram · Divide −15%',
+    formationDiamondBadge: '💎 Armor +25% · Walls ×2 · Divide −15%',
     metersToFinish: 'm to finish',
     
     // Gates
@@ -466,10 +466,10 @@ export const translations = {
     // Formations
     wedgeDesc: 'Reduces frontal trap damage by 40%; loses 10% less at ÷ gates',
     wideDesc: 'Maximum width for coins, gates & adds; finish wall breakthrough (-20% sacrifice); coins charge adrenaline',
-    circleDesc: 'Pushes and smashes barriers with crowd weight; +30% at add gates; loses 20% less at ÷ gates',
+    circleDesc: 'Pushes with crowd weight: front mobs get a chance to survive, but traps are never smashed; +30% at add gates; loses 20% less at ÷ gates',
     arrowDesc: 'Boosts run speed and Hyper-mode charge (×1.5), pierces walls with a wedge (×2)',
     ovalDesc: 'Balanced: gates & orbs +25%',
-    diamondDesc: 'Diamond: +25% frontline armor, pierces walls and rams in tight formation; loses 15% less at ÷ gates',
+    diamondDesc: 'Diamond: +25% frontline armor, pierces finish walls; does not smash track traps; loses 15% less at ÷ gates',
 
     // Specialized mobs
     tankName: 'Juggernaut (Tank)',
@@ -779,7 +779,7 @@ export const translations = {
     loreBossesDesc: 'Bosses appear every 10 levels (10, 20, 30, 40, 50). Watch the red attack telegraph rings on the ground. Switch to Wedge or Phalanx formation and trigger Adrenaline Hyper mode (SPACE) right as the boss attacks!',
     // Track hazard bestiary
     loreHazardsTitle: 'Track Hazards',
-    loreHazardsIntro: 'Destructible traps (crusher, pendulums, wrecking ball, dogs, laser wall, hunter) are smashed by Tanks in the crowd, the Phalanx/Diamond formation ram, or Hyper mode (SPACE). Everything else: steer around by lane.',
+    loreHazardsIntro: 'Traps are NEVER consumed: each one kills everyone who touches it and stays on the track. Tanks, the Phalanx/Diamond ram and Hyper mode (SPACE) no longer smash it — they only give the touching mob a chance to survive. Everything else: steer around by lane.',
     hazMovingName: 'Moving blades',
     hazMovingDesc: 'Saws, wrecking balls and spiked rollers travel across or toward the track. Only the projectile itself kills — sit in a free lane.',
     hazTimingName: 'Crushers & pendulums',
@@ -791,11 +791,11 @@ export const translations = {
     hazBombName: 'Mines',
     hazBombDesc: 'A blinking beacon gives a mine away: the blast covers an area. Steer around — nobody in the radius survives the detonation.',
     hazDogName: 'Guard dogs',
-    hazDogDesc: 'A dog lunges at the nearest mob by the track. Crushable by tanks, ram or Hyper — but, like everything, easier to avoid.',
+    hazDogDesc: 'A dog lunges at the nearest mob by the track. It cannot be smashed — a tank just survives the bite on shields, the dog stays on its chain. Give it a wide berth.',
     hazHunterName: 'The Hunter',
-    hazHunterDesc: 'It sleeps on the track, but once you pass it wakes with a snarl and chases from behind at 1.25x speed, devouring stragglers. Finish it while asleep (tank/ram/Hyper) or keep pace with the crowd.',
+    hazHunterDesc: 'It sleeps on the track, but once you pass it wakes with a snarl and chases from behind at 1.25x speed, devouring stragglers. It cannot be killed — outrun it and keep pace with the crowd.',
     hazClassName: 'Classes vs traps',
-    hazClassDesc: 'Ninjas often dodge trap hits, tanks shrug off damage and smash destructibles, while mages take bonus damage from hazards.',
+    hazClassDesc: 'Ninjas often dodge trap hits, tanks shrug off more damage, while mages take bonus damage from hazards. Nobody can smash a trap — always steer around it.',
     loreEventsTitle: 'Dynamic Track Events',
     loreEventsIntro: 'From level 3 the track lights up with events (endless mode — all the way). Each one is announced by a HUD banner; knowing the rules turns a storm into an opportunity.',
     evSpeedBoostName: 'Speed Boost',

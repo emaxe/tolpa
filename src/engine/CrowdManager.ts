@@ -1033,11 +1033,6 @@ export class CrowdManager {
     return mob.type === 'tank' ? 3 : mob.type === 'mage' ? 2 : (this.formation === 'arrow' || this.formation === 'circle' || this.formation === 'diamond' ? 2 : 1);
   }
 
-  /** Фаланга (circle, ≥8) и Ромб (diamond, ≥10) с достаточной толпой могут таранить разрушаемые препятствия. */
-  public canRamObstacles(): boolean {
-    return (this.formation === 'circle' && this.aliveCount >= 8) || (this.formation === 'diamond' && this.aliveCount >= 10);
-  }
-
   public update(dt: number, speed: number, steerInput: number, trackWidth: number, steerSensitivity: number = 1.0): void {
     this.animTime += dt * 15;
 

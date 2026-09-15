@@ -2166,3 +2166,83 @@ describe('ObstacleManager — тыловая слышимость (Охотни�
     expect(vol(38, 12)).toBeCloseTo(1 - 22 / 22, 6); // dz=+26 — ноль на границе
   });
 });
+
+// Регрессия «препятствия исчезают»: ловушка, снесённая на первом касании
+// (Hyper/танк/таран), переставала убивать — остальная толпа проходила насквозь.
+// Теперь НИ ОДНА ловушка не расходуется от контакта (кроме мины — она
+// детонирует один раз по своей природе).
+describe('ObstacleManager — ловушки не расходуются от контакта', () => {
+  const particles = { emitBurst: () => {} } as any;
+  // Толпа ставится ПРЯМО в хитбокс ловушки (z — это её Z); update() проверяет коллизии.
+  const runOver = (mgr: ObstacleManager, c: CrowdManager, z: number) => {
+    c.leaderZ = z;
+    // spawnMob выдаёт i-frames, а x разбрасывается случайно — без сброса
+    // резолвер глушит контакт или моб стоит мимо хитбокса, и тест «зеленеет»
+    // на пустом месте. animTime=0 — фазовая ловушка (пресс/маятник) обязана
+    // быть в летальной фазе на момент контакта, иначе прогон зависит от того,
+    // сколько кадров уже отработал менеджер.
+    for (const o of (mgr as any).obstacles) o.animTime = 0;
+    for (const mob of c.getAliveMobs()) { mob.x = 0; mob.z = z; mob.prevZ = z; mob.invulnerableTime = 0; }
+    mgr.update(0.2, c, particles);
+  };
+
+  it('Hyper не сносит ловушку — она убивает и следующих коснувшихся', () => {
+    const scene = new THREE.Scene();
+    const mgr = new ObstacleManager(scene);
+    mgr.initObstacles(
+      [{ id: 'o1', type: 'crusher', x: 0, y: 0, z: 10, width: 2.4, depth: 2, speed: 1, range: 0, initialOffset: 0, destructible: true }],
+      []
+    );
+    const vis = (mgr as any).obstacles[0];
+    const c = new CrowdManager(new THREE.Scene());
+    for (let i = 0; i < 5; i++) c.spawnMob('regular');
+    c.isHyperMode = true;
+    runOver(mgr, c, 10);
+    // Ловушка жива и осталась в сцене (раньше Hyper сносил её на первом касании).
+    expect(vis.data.isDead).toBeFalsy();
+    expect(vis.mesh.parent).toBe(scene);
+
+    // Вторая, обычная толпа проходит ту же ловушку — она ОБЯЗАНА убить.
+    const c2 = new CrowdManager(new THREE.Scene());
+    c2.spawnMob('regular');
+    runOver(mgr, c2, 10);
+    expect(c2.getAliveCount()).toBe(0);
+    expect(vis.data.isDead).toBeFalsy();
+  });
+
+  it('танк в отряде не сносит ловушку (destructible больше не удаляет её)', () => {
+    const mgr = new ObstacleManager(new THREE.Scene());
+    mgr.initObstacles(
+      [{ id: 'o1', type: 'axe_pendulum', x: 0, y: 0, z: 10, width: 2.6, depth: 2, speed: 1, range: 0, initialOffset: 0, destructible: true }],
+      []
+    );
+    const vis = (mgr as any).obstacles[0];
+    const c = new CrowdManager(new THREE.Scene());
+    for (let i = 0; i < 4; i++) c.spawnMob('tank');
+    // Фаза маятника летальна ровно в нижней точке дуги.
+    vis.mesh.children[0].rotation.z = 0;
+    runOver(mgr, c, 10);
+    expect(vis.data.isDead).toBeFalsy();
+  });
+
+  it('мина детонирует один раз и убивает всех в радиусе (танк её не обезвреживает)', () => {
+    const mgr = new ObstacleManager(new THREE.Scene());
+    mgr.initObstacles(
+      [{ id: 'b1', type: 'bomb', x: 0, y: 0, z: 10, width: 2.4, depth: 2, speed: 0.8, range: 3.5, initialOffset: 0, destructible: true }],
+      []
+    );
+    const vis = (mgr as any).obstacles[0];
+    const c = new CrowdManager(new THREE.Scene());
+    for (let i = 0; i < 3; i++) c.spawnMob('regular');
+    c.getAliveMobs().forEach((m, i) => { m.x = i * 0.5 - 0.5; m.z = 10; m.prevZ = 9; m.invulnerableTime = 0; });
+    // Танк рядом — раньше он «обезвреживал» мину без потерь.
+    c.spawnMob('tank');
+    const killed: number[] = [];
+    const un = eventBus.on('mobsKilled', (d: any) => killed.push(d.count));
+    runOver(mgr, c, 10);
+    un();
+    expect(vis.data.isDead).toBe(true);
+    expect(vis.exploded).toBe(true);
+    expect(killed.reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
+  });
+});

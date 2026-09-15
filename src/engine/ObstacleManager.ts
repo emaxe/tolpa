@@ -83,6 +83,9 @@ interface ObstacleVisual {
   // chase = догоняет сзади. hunterTimer — обратный отсчёт текущей фазы/рычания.
   hunterState?: 'sleep' | 'wake' | 'chase';
   hunterTimer?: number;
+  // Z точки засады: с неё отсчитывается потолок погони (охотника больше нельзя
+  // добить, поэтому он не должен идти быстрее толпы бесконечно).
+  hunterAnchorZ?: number;
   // One-shot флаг удара гидравлического молота (звук hammer_impact играет один раз
   // за проход бойка через нижнюю точку, а не каждый кадр).
   hammerImpacted?: boolean;
@@ -820,9 +823,14 @@ export class ObstacleManager {
           // Охотник: до толпы стоит на трассе как обычное препятствие ('sleep',
           // летален). Толпа прошла -> 'wake' ~2.5с (рык, присед-подготовка, НЕ
           // летален — честное окно реакции на звук) -> 'chase': догоняет сзади на
-          // 1.25x forwardSpeed, целясь по X лидера. Отставшего за 40м убирает prune().
+          // 1.25x forwardSpeed, целясь по X лидера. Раньше его можно было добить
+          // танком/тараном/Hyper — теперь снести нельзя ничего, поэтому у погони
+          // появился предел: 55м от точки засады, дальше охотник отстаёт и его
+          // убирает prune(). Без потолка он шёл бы быстрее толпы всю трассу и
+          // выедал отстающих до конца уровня — «обойти» его было бы нечем.
           if (obsVis.hunterState === 'chase') {
-            obs.z += dt * (crowd.forwardSpeed * 1.25);
+            const maxChaseZ = (obsVis.hunterAnchorZ ?? obs.z) + 55;
+            obs.z = Math.min(obs.z + dt * (crowd.forwardSpeed * 1.25), maxChaseZ);
             const halfH = DEFAULT_TRACK_WIDTH / 2 - 1.0;
             obs.x = clamp(
               lerp(obs.x, crowd.leaderX, Math.min(1, dt * 2.2)),
@@ -848,6 +856,7 @@ export class ObstacleManager {
             if (crowd.leaderZ > obs.z + 2.5) {
               obsVis.hunterState = 'wake';
               obsVis.hunterTimer = 2.5;
+              obsVis.hunterAnchorZ = obs.z; // отсюда считаем потолок погони
               const volW = this.proximityVolume(obs.z, crowd.leaderZ);
               if (volW > 0) soundEngine.playSound('boss_roar', 0.7, volW);
               // Телеграф пробуждения: HUD-баннер + тряска + haptic у подписчиков
@@ -1145,23 +1154,6 @@ export class ObstacleManager {
       return;
     }
 
-    // Если Hyper Mode активен или есть танки — препятствие можно сломать.
-    const isHyper = crowd.isHyperMode;
-    // Перебор живых мобов в поисках танка выполняем ТОЛЬКО когда это может
-    // повлиять на результат (destructible-ловушка вне Hyper/тарана). Для всех
-    // прочих типов (laser_grid, lava_pit, saw_blade и т.д.) ветка с hasTanks
-    // мертва, поэтому лишний O(N) перебор по 200 мобам на каждое препятствие
-    // в кадре убираем.
-    let hasTanks = false;
-    if (obs.destructible && !isHyper) {
-      for (let i = 0; i < aliveMobs.length; i++) {
-        if (aliveMobs[i].type === 'tank') {
-          hasTanks = true;
-          break;
-        }
-      }
-    }
-
     let anyHit = false;
     let hitCount = 0;
     for (let mob of aliveMobs) {
@@ -1187,32 +1179,16 @@ export class ObstacleManager {
       );
 
       if (hit) {
-        if (isHyper || (obs.destructible && (hasTanks || crowd.canRamObstacles()))) {
-          // Сломать препятствие! Фаланга (circle)/Ромб с достаточной толпой таранит РАЗРУШАЕМЫЕ
-          // ловушки силой массы — теряет лишь 1 бойца вместо уничтожения всех коснувшихся.
-          // Флаг ram прокидывается в obstacleSmashed — FloatingText показывает плашку перка
-          // «ТАРАН СТРОЕМ!» вместо «СЛОМАНО!» (паритет с ветками guard dog / bomb).
-          const isRam = obs.destructible && crowd.canRamObstacles() && !isHyper && !hasTanks;
-          if (isRam) {
-            crowd.killMobs(1, 'obstacle');
-          }
-          obs.isDead = true;
-          this.scene.remove(obsVis.mesh);
-          if (vol > 0) soundEngine.playSound('obstacle_smash', 1, vol);
-          particles.emitBurst(obs.x, 1.0, obs.z, 30, 0xf97316, 6.0);
-          stateManager.runRecordObstacleSmash();
-          eventBus.emit('obstacleSmashed', { type: obs.type, x: obs.x, z: obs.z, ram: isRam });
-          break;
-        } else {
-          // Препятствие уничтожает каждого коснувшегося моба, но классы и прокачка
-          // дают стойкость (уворот ниндзя / щит / запас HP — резолвер паритетен со
-          // стенами). Фидбек выжившего (искры+звук) делает emitClassAbility внутри.
-          if (crowd.resolveObstacleImpact(mob)) {
-            this.playDeathEffect(obs, mob.x, 0.8, mob.z, particles);
-            anyHit = true;
-            hitCount++;
-            obsVis.hitAccum = (obsVis.hitAccum ?? 0) + 1;
-          }
+        // Ловушка НЕ расходуется: она продолжает убивать всех, кто её коснётся.
+        // Раньше Hyper/танк/таран сносили её (`obs.isDead = true`) на первом же
+        // касании — один боец (или ноль) за всю ловушку, остальная толпа шла
+        // насквозь. Теперь разрушаемость даёт лишь ПЕРВОМУ коснувшемуся мобу
+        // шанс выжить (щит танка / HP), а сама ловушка остаётся на трассе.
+        if (crowd.resolveObstacleImpact(mob)) {
+          this.playDeathEffect(obs, mob.x, 0.8, mob.z, particles);
+          anyHit = true;
+          hitCount++;
+          obsVis.hitAccum = (obsVis.hitAccum ?? 0) + 1;
         }
       }
     }
@@ -1492,46 +1468,9 @@ export class ObstacleManager {
     const rSq = r * r;
     if (aliveMobs.length === 0) return;
 
-    // Hyper / Танки / таран строем обезвреживают мину без потерь (таран — ценой 1 бойца)
-    const isHyper = crowd.isHyperMode;
-    let hasTanks = false;
-    // Скан на танки нужен только для разрушаемых мин (иначе obs.destructible=false
-    // и hasTanks не влияет на результат) — пропускаем O(N)-проход для недеструктивных.
-    if (obs.destructible) {
-      for (let i = 0; i < aliveMobs.length; i++) {
-        if (aliveMobs[i].type === 'tank') {
-          hasTanks = true;
-          break;
-        }
-      }
-    }
-    const canRam = obs.destructible && crowd.canRamObstacles();
-    if (isHyper || (obs.destructible && hasTanks) || canRam) {
-      let touched = false;
-      for (const m of aliveMobs) {
-        if (!m.alive) continue;
-        const dx = m.x - obs.x;
-        const dz = m.z - obs.z;
-        if (dx * dx + dz * dz <= rSq) {
-          touched = true;
-          break;
-        }
-      }
-      if (touched) {
-        // Таран строем (Фаланга/Ромб) сокрушает мину ценой 1 бойца — как в checkObstacleCollision.
-        if (canRam && !isHyper && !hasTanks) crowd.killMobs(1, 'obstacle');
-        obs.isDead = true;
-        vis.exploded = true;
-        this.scene.remove(vis.mesh);
-        if (vol > 0) soundEngine.playSound('obstacle_smash', 1, vol);
-        particles.emitBurst(obs.x, 1.0, obs.z, 35, 0xf97316, 6.5);
-        stateManager.runRecordObstacleSmash();
-        eventBus.emit('obstacleSmashed', { type: obs.type, x: obs.x, z: obs.z, ram: canRam && !isHyper && !hasTanks });
-      }
-      return;
-    }
-
-    // Проверяем, коснулся ли хоть один живой моб зоны взрыва
+    // Танки / таран строем / Hyper мину НЕ обезвреживают: она всё равно детонирует
+    // и убивает всех в радиусе (танк переживёт взрыв за счёт щита/HP как и в любой
+    // другой ловушке). Раньше ветка обезвреживания снимала мину без единой потери.
     let triggered = false;
     for (const m of aliveMobs) {
       if (!m.alive) continue;
@@ -1593,46 +1532,8 @@ export class ObstacleManager {
     const hitRSq = 1.4 * 1.4;    // радиус контакта тела собаки (прыжок + морда)
     const postRSq = 0.8 * 0.8;   // контакт со столбом у анкера
 
-    // Танки / гипер / таран строем уничтожают кибер-собаку (таран — ценой 1 бойца)
-    const isHyper = crowd.isHyperMode;
-    let hasTanks = false;
-    // Скан на танки нужен только для разрушаемых собак (иначе obs.destructible=false
-    // и hasTanks не влияет на результат) — пропускаем O(N)-проход для недеструктивных.
-    if (obs.destructible) {
-      for (let i = 0; i < aliveMobs.length; i++) {
-        if (aliveMobs[i].type === 'tank') {
-          hasTanks = true;
-          break;
-        }
-      }
-    }
-    const canRam = obs.destructible && crowd.canRamObstacles();
-    if (isHyper || (obs.destructible && hasTanks) || canRam) {
-      let touched = false;
-      for (const m of aliveMobs) {
-        if (!m.alive) continue;
-        const mdx = m.x - dogX;
-        const mdz = m.z - dogZ;
-        const pdx = m.x - obs.x;
-        const pdz = m.z - obs.z;
-        if (mdx * mdx + mdz * mdz <= hitRSq || pdx * pdx + pdz * pdz <= postRSq) {
-          touched = true;
-          break;
-        }
-      }
-      if (touched) {
-        // Таран строем (Фаланга/Ромб) сокрушает собаку ценой 1 бойца — как в checkObstacleCollision.
-        if (canRam && !isHyper && !hasTanks) crowd.killMobs(1, 'obstacle');
-        obs.isDead = true;
-        this.scene.remove(vis.mesh);
-        if (vol > 0) soundEngine.playSound('obstacle_smash', 1, vol);
-        particles.emitBurst(dogX, 1.0, dogZ, 30, 0xa855f7, 6.0);
-        stateManager.runRecordObstacleSmash();
-        eventBus.emit('obstacleSmashed', { type: obs.type, x: dogX, z: dogZ, ram: canRam && !isHyper && !hasTanks });
-        return;
-      }
-    }
-
+    // Танки / гипер / таран строем собаку НЕ снимают: она остаётся на цепи и
+    // продолжает кусать. Раньше первое касание танка/тарана удаляло её из сцены.
     if (vis.attackCooldown && vis.attackCooldown > 0) return;
 
     // Поиск ближайшего живого моба в радиусе укуса (вокруг собаки)
