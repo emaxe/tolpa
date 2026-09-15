@@ -253,8 +253,10 @@ export class SoundEngine {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'square';
-        osc.frequency.setValueAtTime(140, t);
-        osc.frequency.exponentialRampToValueAtTime(40, t + 0.12);
+        // pitchShift = аудиоэскалация масштаба потерь (хруст одиночного vs низкий рокот
+        // массовой гибели); дефолт 1.0 = прежний звук.
+        osc.frequency.setValueAtTime(140 * pitchShift, t);
+        osc.frequency.exponentialRampToValueAtTime(40 * pitchShift, t + 0.12);
 
         gain.gain.setValueAtTime(0.14, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);

@@ -502,6 +502,14 @@ export class CrowdManager {
     return null;
   }
 
+  /**
+   * Питч звука смерти по масштабу потерь: одиночный хруст (1.0) → низкий рокот
+   * массовой гибели (0.55 при 20+). Только аудио, на логику убийства не влияет.
+   */
+  private static deathPitch(killed: number): number {
+    return killed >= 20 ? 0.55 : killed >= 10 ? 0.65 : killed >= 5 ? 0.78 : 1.0;
+  }
+
   public killMobs(count: number, reason: string = 'obstacle'): number {
     if (this.isHyperMode) return 0; // Invulnerable in hyper mode
     if (count <= 0) return 0;
@@ -570,7 +578,7 @@ export class CrowdManager {
     }
 
     if (killed > 0) {
-      if (!reason.startsWith('boss')) soundEngine.playSound('mob_death');
+      if (!reason.startsWith('boss')) soundEngine.playSound('mob_death', CrowdManager.deathPitch(killed));
       eventBus.emit('mobsKilled', { count: killed, reason, x: this.leaderX, z: this.leaderZ });
     }
 
@@ -787,7 +795,7 @@ export class CrowdManager {
       budget--;
     }
     if (killed > 0) {
-      if (!reason.startsWith('boss')) soundEngine.playSound('mob_death');
+      if (!reason.startsWith('boss')) soundEngine.playSound('mob_death', CrowdManager.deathPitch(killed));
       eventBus.emit('mobsKilled', { count: killed, reason, x: this.leaderX, z: this.leaderZ });
     }
     return killed;
@@ -864,7 +872,7 @@ export class CrowdManager {
       killed++;
     }
     if (killed > 0) {
-      if (!reason.startsWith('boss')) soundEngine.playSound('mob_death');
+      if (!reason.startsWith('boss')) soundEngine.playSound('mob_death', CrowdManager.deathPitch(killed));
       eventBus.emit('mobsKilled', { count: killed, reason, x: this.leaderX, z: this.leaderZ });
     }
     return killed;
