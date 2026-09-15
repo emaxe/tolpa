@@ -101,6 +101,12 @@ interface ObstacleVisual {
   // Латч фазы маятника-топора: one-shot свист при входе в нижнюю (летальную) дугу,
   // реарм на подъёме (тот же паттерн, что crusherSlammed).
   axeWhooshed?: boolean;
+  // Латч фазы wrecking_ball: one-shot свист на проходе шаром центра дуги
+  // (максимум скорости), реарм на краях (тот же паттерн, что axeWhooshed).
+  ballWhooshed?: boolean;
+  // Латч фазы barrier_gate: one-shot лязг плиты в нижнем (летальном) положении,
+  // реарм при подъёме (тот же паттерн, что crusherSlammed).
+  gateSlammed?: boolean;
   // Near-Miss (уворот в упор): one-shot флаг награды за проход вплотную к активной
   // ловушке без касания + последняя Z-позиция лидера для детекта пересечения плоскости.
   nearMissAwarded?: boolean;
@@ -758,9 +764,22 @@ export class ObstacleManager {
           // — его фактическая X-координата, узкий хитбокс по ширине шара.
           const ball = obsVis.mesh.children[3];
           if (ball) {
-            ball.position.x = Math.sin(t) * obs.range;
+            const ballSin = Math.sin(t);
+            ball.position.x = ballSin * obs.range;
             obs.x = obsVis.mesh.position.x + ball.position.x;
             this.setHazard(obsVis, obs.x, obs.z, 1.6, 1.6);
+            // Звуковой телеграф фазы: свист на проходе центра дуги — там шар
+            // движется быстрее всего. Латч по образцу axeWhooshed; pitch 0.75
+            // (ниже топорного 0.9) — шар тяжелее, свист глубже.
+            if (Math.abs(ballSin) < 0.25) {
+              if (!obsVis.ballWhooshed) {
+                obsVis.ballWhooshed = true;
+                const volB = this.proximityVolume(obs.z, crowd.leaderZ);
+                if (volB > 0) soundEngine.playSound('adrenaline_whoosh', 0.75, volB);
+              }
+            } else if (Math.abs(ballSin) > 0.5) {
+              obsVis.ballWhooshed = false;
+            }
           }
           break;
 
@@ -786,6 +805,18 @@ export class ObstacleManager {
             barrierGate.position.y = gateY;
             const intensity = 0.3 + Math.max(0, 1 - gateY / 2.6) * 0.6;
             (barrierGate.material as THREE.MeshStandardMaterial).emissiveIntensity = intensity;
+            // Звуковой телеграф фазы: лязг плиты в нижнем (летальном) положении —
+            // тайминг прохода «под опущенной плитой» читается на слух. Латч по
+            // образцу crusherSlammed; pitch 0.7 (ниже пресса 0.85) — тяжёлый щит-затвор.
+            if (gateY < 0.5) {
+              if (!obsVis.gateSlammed) {
+                obsVis.gateSlammed = true;
+                const volG = this.proximityVolume(obs.z, crowd.leaderZ);
+                if (volG > 0) soundEngine.playSound('hammer_impact', 0.7, volG);
+              }
+            } else if (gateY > 1.0) {
+              obsVis.gateSlammed = false;
+            }
           }
           if (!obsVis.staticHazard) this.setHazard(obsVis, obs.x, obs.z, 3.4, 0.45);
           break;
