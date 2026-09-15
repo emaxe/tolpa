@@ -448,6 +448,9 @@ export class GameEngine {
     this.unsubRailScrape = eventBus.on('railScrape', (data: { x: number; z: number }) => {
       this.particles.emitBurst(data.x, 0.5, data.z - 0.8, 6, 0x94a3b8, 2.0);
       soundEngine.playSound('adrenaline_whoosh', 0.6, 0.12);
+      // Паритет фидбек-каналов: у скрежета были VFX+звук, но не было вибрации,
+      // тогда как каждый соседний consumer (mobFell, coinCollected) вибрирует.
+      this.triggerHaptic(8);
     });
 
     // Агрегатный фидбек при гибели мобов (финишная стена, атаки боссов)
