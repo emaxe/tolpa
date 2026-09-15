@@ -289,10 +289,11 @@ export class GateManager {
     // прирост толпы, который обязан дойти до комбо/UI/StateManager (иначе серия и +N
     // молча теряются для хвостового эшелона). См. блок эмита ниже по коду.
     let isMageTransmuteSpawn = false;
-    // Фактор бонуса за серию позитивных ворот: 1.0 при серии ≤ 1 (старое поведение),
-    // растёт до 1.8 при длинной серии. Награждает удержание серии правильных крыльев.
-    const comboFactor = this.comboStreak > 1
-      ? 1 + Math.min((this.comboStreak - 1) * GateManager.COMBO_BONUS_PER_STEP, GateManager.COMBO_BONUS_CAP)
+    // Фактор бонуса за серию позитивных ворот: серия N (текущие ворота включительно)
+    // даёт 1 + (N-1)*8% с потолком ×1.8 на 11-х (совпадает с баннером comboMax «серия ≥ 11»
+    // и pure-тестом). comboStreak здесь ещё НЕ инкрементирован, т.е. = N-1.
+    const comboFactor = this.comboStreak > 0
+      ? 1 + Math.min(this.comboStreak * GateManager.COMBO_BONUS_PER_STEP, GateManager.COMBO_BONUS_CAP)
       : 1;
 
     if (op === 'add') {

@@ -1348,6 +1348,37 @@ describe('Skin Rewards (бонусные скины)', () => {
     expect(bonusFor(100, 10)).toBeLessThanOrEqual(80);
     expect(bonusFor(100, 1)).toBe(0);
   });
+
+  // Регресс рантайм-проворота: серия N (текущие ворота включительно) обязана давать
+  // factor = 1+(N-1)*8% — ровно как в pure-формуле выше и как обещает баннер comboMax
+  // «серия ≥ 11». До фикса фактор считался от серии БЕЗ текущих ворот (off-by-one):
+  // первый бонус приходил на 3-и ворота вместо 2-х, кап ×1.8 — на 12-е вместо 11-х,
+  // и баннер «МАКС ×1.8» опережал фактический кап на одни ворота.
+  it('рантайм: 2-е подряд add-ворота дают +8%, кап — на 11-х вместе с баннером comboMax', () => {
+    const gm = new GateManager(new THREE.Scene());
+    gm.clear();
+    const bonuses: number[] = [];
+    let comboMaxEvents = 0;
+    const off = eventBus.on('comboMax', () => { comboMaxEvents += 1; });
+    const crowd = {
+      formation: null,
+      addMobsNear: (n: number) => n, // base = val
+      addMobsNearBonus: (n: number) => { bonuses.push(n); return n; },
+    };
+    const particles = { emitBurst: () => {} };
+    for (let i = 0; i < 11; i++) {
+      (gm as any).executeGateEffect(
+        { divideStep: 0 }, 'add', 25, crowd as any, particles as any,
+        0, 10, [], 0, true
+      );
+    }
+    off();
+    // Бонус с 2-х ворот: 10 вызовов на 11-ти; 2-е → floor(25*0.08)=2; 11-е → кап floor(25*0.8)=20.
+    expect(bonuses).toHaveLength(10);
+    expect(bonuses[0]).toBe(2);
+    expect(bonuses[bonuses.length - 1]).toBe(20);
+    expect(comboMaxEvents).toBe(1); // баннер и факт капа — на одних и тех же воротах
+  });
 });
 
 describe('Kinetic Wall Impact & Damage Accounting', () => {
