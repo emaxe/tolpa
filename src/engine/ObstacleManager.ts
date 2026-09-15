@@ -86,6 +86,9 @@ interface ObstacleVisual {
   // Z точки засады: с неё отсчитывается потолок погони (охотника больше нельзя
   // добить, поэтому он не должен идти быстрее толпы бесконечно).
   hunterAnchorZ?: number;
+  // One-shot флаг: погоня упёрлась в потолок (толпа вырвалась) — событие
+  // hunterLost эмится один раз на охотника, не каждый кадр.
+  hunterGaveUp?: boolean;
   // One-shot флаг удара гидравлического молота (звук hammer_impact играет один раз
   // за проход бойка через нижнюю точку, а не каждый кадр).
   hammerImpacted?: boolean;
@@ -830,7 +833,15 @@ export class ObstacleManager {
           // выедал отстающих до конца уровня — «обойти» его было бы нечем.
           if (obsVis.hunterState === 'chase') {
             const maxChaseZ = (obsVis.hunterAnchorZ ?? obs.z) + 55;
-            obs.z = Math.min(obs.z + dt * (crowd.forwardSpeed * 1.25), maxChaseZ);
+            obs.z = Math.min(maxChaseZ, obs.z + dt * crowd.forwardSpeed * 1.25);
+            // Толпа вырвалась за потолок погони — охотник отстал. Честный
+            // фидбек обещанию бестиария «оторвёшься — он отстанет»:
+            // один баннер + динг на охотника (one-shot флаг).
+            if (obs.z >= maxChaseZ && !obsVis.hunterGaveUp) {
+              obsVis.hunterGaveUp = true;
+              soundEngine.playSound('combo_ding', 1);
+              eventBus.emit('hunterLost', { x: obs.x, z: obs.z });
+            }
             const halfH = DEFAULT_TRACK_WIDTH / 2 - 1.0;
             obs.x = clamp(
               lerp(obs.x, crowd.leaderX, Math.min(1, dt * 2.2)),

@@ -416,6 +416,12 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       spawnScreen(i18n.t('hunterWake'), 'text-rose-500 font-black text-2xl drop-shadow-[0_0_14px_rgba(244,63,94,0.95)]', -120);
     });
 
+    // Охотник отстал — зелёный центральный success-баннер (тот же экранный
+    // спавн: охотник позади камеры, 3D-проекция переворачивала бы координаты).
+    const unsubHunterLost = eventBus.on('hunterLost', () => {
+      spawnScreen(i18n.t('hunterLost'), 'text-emerald-400 font-black text-2xl drop-shadow-[0_0_14px_rgba(52,211,153,0.9)]', -120);
+    });
+
     // Телеграф ответки босса — янтарный warning над кольцом (у HUD уже есть алерт
     // по тому же ключу bossRetaliation; центр — второй, в линии взгляда игрока).
     const unsubRetaliationTelegraph = eventBus.on('retaliationTelegraph', () => {
@@ -752,6 +758,7 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubAchReady();
       unsubLevelEvent();
       unsubHunterWake();
+      unsubHunterLost();
       unsubRetaliationTelegraph();
     };
   }, [engine]);

@@ -299,6 +299,7 @@ export class GameEngine {
   private unsubBossAttackTelegraph: (() => void) | null = null;
   private unsubRetaliationTelegraph: (() => void) | null = null;
   private unsubHunterWake: (() => void) | null = null;
+  private unsubHunterLost: (() => void) | null = null;
   private unsubComboBreak: (() => void) | null = null;
   private unsubFinishStep: (() => void) | null = null;
   private unsubCrowdMilestone: (() => void) | null = null;
@@ -889,6 +890,12 @@ export class GameEngine {
     this.unsubHunterWake = eventBus.on('hunterWake', () => {
       eventBus.emit('screenShake', { intensity: 0.3 });
       this.triggerHaptic([40, 30, 40]);
+    });
+
+    // Охотник отстал (потолок погони 55м) — мягкий позитивный виброотклик
+    // (звук динга играет эмиттер в ObstacleManager, параллельно с этим).
+    this.unsubHunterLost = eventBus.on('hunterLost', () => {
+      this.triggerHaptic([25, 20, 45]);
     });
 
     // Аудиовизуальный фидбек классовых способностей (Уворот Ниндзя, Блок Щита Танка, Трансмутация Мага)
@@ -3592,6 +3599,7 @@ export class GameEngine {
     this.unsubBossAttackTelegraph?.();
     this.unsubRetaliationTelegraph?.();
     this.unsubHunterWake?.();
+    this.unsubHunterLost?.();
     this.unsubSettings?.();
     this.unsubPerfLow?.();
     this.unsubFormation?.();

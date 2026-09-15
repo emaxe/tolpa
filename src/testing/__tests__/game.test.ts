@@ -1847,6 +1847,35 @@ describe('ObstacleManager — хитбокс охотника следует з�
     expect(vis.hazardX).toBeCloseTo(vis.mesh.position.x, 6);
     expect(vis.hazardZ).toBeCloseTo(vis.mesh.position.z, 6);
   });
+
+  // Регресс: потолок погони 55м от точки засады + one-shot событие hunterLost
+  // (баннер «Охотник отстал!» эмится ровно один раз, а не каждый кадр после
+  // упора в потолок). Фиксирует честность обещания бестиария «отстанет».
+  it('потолок погони: упор в anchor+55м — одиночный hunterLost', () => {
+    const mgr = new ObstacleManager(new THREE.Scene());
+    mgr.appendObstacles(
+      [{ id: 'h2', type: 'hunter', x: 0, y: 0, z: 12, width: 1.2, depth: 1.2, speed: 1, range: 0 }],
+      []
+    );
+    const vis = (mgr as any).obstacles[0];
+    vis.hunterState = 'chase';
+    vis.hunterRoarPlayed = true;
+    vis.hunterAnchorZ = 12; // анкор как после фазы wake
+    let lost = 0;
+    const unsub = eventBus.on('hunterLost', () => { lost++; });
+    const crowd = {
+      getAliveMobs: () => [],
+      leaderX: 0,
+      leaderZ: 8,
+      forwardSpeed: 20,
+      isHyperMode: false,
+    };
+    for (let i = 0; i < 80; i++) mgr.update(0.05, crowd as any, null as any);
+    unsub();
+    expect(vis.data.z).toBe(67); // 12 + 55: дальше потолка охотник не идёт
+    expect(vis.hunterGaveUp).toBe(true);
+    expect(lost).toBe(1); // ровно один баннер на охотника
+  });
 });
 
 
