@@ -578,21 +578,26 @@ export const HUD: React.FC<HUDProps> = ({
 
       {/* Компактная строка метрик режима + общих алертов (ловушка/босс) — один блок
           на оба режима: движок считает bossDistance/nextHazardDistance и в endless тоже.
-          Внизу слева, pointer-events-none, чтобы не перехватывать свайпы. */}
-      <div className="absolute bottom-24 left-4 max-sm:hidden pointer-events-none flex items-center gap-2.5 flex-wrap">
+          Внизу слева, pointer-events-none, чтобы не перехватывать свайпы.
+          Мобильный паритет: чипы опасности/босса видимы и на <640px — раньше весь блок
+          был max-sm:hidden, и на телефоне об ловушке сигнализировал только одноразовый
+          стингер (GameEngine hazardAlerted). На мобильном контейнер переезжает в нижний
+          центр (между колонкой формаций слева и адреналином справа), метрики остаются
+          скрытыми. */}
+      <div className="absolute bottom-24 left-4 max-sm:bottom-4 max-sm:left-1/2 max-sm:-translate-x-1/2 pointer-events-none flex items-center gap-2.5 flex-wrap">
         {!isEndless && metersLeft >= 0 && (
-          <span className="text-[10px] font-orbitron text-slate-600">
+          <span className="text-[10px] font-orbitron text-slate-600 max-sm:hidden">
             {metersLeft} {i18n.t('metersToFinish', 'м до финиша')}
           </span>
         )}
         {isEndless && (
           <>
-            <span className="text-[11px] font-orbitron text-teal-700 flex items-center gap-1">
+            <span className="text-[11px] font-orbitron text-teal-700 flex items-center gap-1 max-sm:hidden">
               <Route className="w-3 h-3" />
               {distanceTraveled.toLocaleString()} {i18n.t('unitM')}
             </span>
             {stateManager.getState().endlessHighScore > 0 && (
-              <span className="text-[10px] font-orbitron text-slate-600">
+              <span className="text-[10px] font-orbitron text-slate-600 max-sm:hidden">
                 {i18n.t('endlessRecord')}: {stateManager.getState().endlessHighScore.toLocaleString()} {i18n.t('unitM')}
               </span>
             )}
