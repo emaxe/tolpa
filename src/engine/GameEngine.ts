@@ -2747,6 +2747,16 @@ export class GameEngine {
       }
 
       if (newTimer <= 0) {
+        // Конец события ощущается: у speed_boost/ambush мгновенно сбрасывается
+        // eventSpeedMult, у emp_storm — множители ворот. Раньше сброс был тихим —
+        // игрок не понимал, что буст «закончился», а не просел лаг. One-shot FX
+        // в цвет события + мягкий нисходящий whoosh + лёгкая вибрация.
+        if (event.type === 'speed_boost' || event.type === 'ambush' || event.type === 'emp_storm') {
+          const endColor = event.type === 'speed_boost' ? 0x00f0ff : event.type === 'ambush' ? 0xef4444 : 0xa855f7;
+          this.particles.emitBurst(this.crowd.leaderX, 1.0, this.crowd.leaderZ + 1.5, 10, endColor, 2.5);
+          soundEngine.playSound('adrenaline_whoosh', 0.55, 0.35);
+          this.triggerHaptic([12]);
+        }
         this.cleanupEvent(event);
         this.activeEvent = null;
       } else {
