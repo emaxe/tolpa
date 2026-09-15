@@ -1413,6 +1413,44 @@ export class ObstacleManager {
       return;
     }
 
+    // Сторожевой пёс: hazard-бокс ездит ВМЕСТЕ с собакой по X и Z (цепь ±range
+    // вокруг якоря), поэтому разовый замер на статичной плоскости obs.z — лотерея
+    // по фазе прогулки: в момент пересечения пёс может быть в противоположном
+    // конце цепи (ложный сброс серии) или сбоку от лидера (ложная награда).
+    // Тот же сэмплер минимального зазора, что у пилы/секиры/молота: копим gap,
+    // пока лидер в Z-конверте цепи (радиус + половина бокса + шаг кадра),
+    // оцениваем один раз на выходе.
+    if (obs.type === 'guard_dog') {
+      const band = obs.range + obsVis.hazardD / 2 + 0.5;
+      const envMin = rz - band;
+      const envMax = rz + band;
+      if (lz >= envMin && lz <= envMax) {
+        const gap = circleRectGap(
+          crowd.leaderX,
+          lz,
+          0.3, // радиус лидера
+          obsVis.hazardX,
+          obsVis.hazardZ,
+          obsVis.hazardW,
+          obsVis.hazardD
+        );
+        if (gap > 0 && gap < (obsVis.nmMinGap ?? Infinity)) obsVis.nmMinGap = gap;
+      } else if (lz > envMax && obsVis.nmMinGap !== undefined && !obsVis.nearMissAwarded) {
+        const minGap = obsVis.nmMinGap;
+        obsVis.nmMinGap = undefined;
+        obsVis.nearMissAwarded = true;
+        if (minGap <= NEAR_MISS_GRANT_GAP) {
+          // Весь проход прошёл в упор к живой собаке без касания — награда.
+          this.awardNearMiss(obsVis.hazardX, rz);
+        } else if (minGap <= NEAR_MISS_BREAK_GAP) {
+          // Обогнул пса на безопасной дистанции — серия сбрасывается.
+          this.breakNearMissStreak(obsVis.hazardX, rz);
+        }
+      }
+      obsVis.lastLeaderZ = lz;
+      return;
+    }
+
     const prev = obsVis.lastLeaderZ ?? rz - 1000;
     // Фиксируем момент пересечения плоскости Z лидером = один замер на препятствие.
     if (prev < rz && lz >= rz && !obsVis.nearMissAwarded) {
