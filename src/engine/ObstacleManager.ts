@@ -98,6 +98,9 @@ interface ObstacleVisual {
   // Латч фазы лазерной стены OFF→ON: one-shot звуковой телеграф включения (zap).
   // Обновляется каждый кадр в update(), спам фронт-переходом исключён.
   wallWasOn?: boolean;
+  // Латч фазы маятника-топора: one-shot свист при входе в нижнюю (летальную) дугу,
+  // реарм на подъёме (тот же паттерн, что crusherSlammed).
+  axeWhooshed?: boolean;
   // Near-Miss (уворот в упор): one-shot флаг награды за проход вплотную к активной
   // ловушке без касания + последняя Z-позиция лидера для детекта пересечения плоскости.
   nearMissAwarded?: boolean;
@@ -430,6 +433,13 @@ export class ObstacleManager {
     vis.dogStateTime = (vis.dogStateTime || 0) + dt;
 
     if (attacking) {
+      // Рык в момент перехода в преследование — аудио-предупреждение ДО укуса
+      // (у укуса свой dog_snap pitch 1.0, здесь 0.7 — ниже/глубже). Латч не
+      // нужен: фронт не-attack→attack сам по себе one-shot.
+      if (vis.dogState !== 'attack') {
+        const volD = this.proximityVolume(obs.z, crowd.leaderZ);
+        if (volD > 0) soundEngine.playSound('dog_snap', 0.7, volD);
+      }
       vis.dogState = 'attack';
     } else if (vis.dogState === 'attack') {
       // Атака закончилась (цель вышла из радиуса) → возврат к гулянию/отдыху.
@@ -683,6 +693,19 @@ export class ObstacleManager {
           const axeHeadX = obsVis.mesh.position.x + Math.sin(swingZ) * 3.0;
           obs.x = axeHeadX;
           this.setHazard(obsVis, axeHeadX, obs.z, 1.8, 1.3);
+          // Звуковой телеграф фазы: свист на входе в летальную дугу (активна до
+          // |rotZ|<0.72, порог 0.5 — центр дуги), реарм на подъёме >0.8. Латч по
+          // образцу crusherSlammed — маятник до этого был единственным беззвучным
+          // телеграфом-качелью; pitch 0.9 (ниже адреналинового) — тяжелее лезвие.
+          if (Math.abs(swingZ) < 0.5) {
+            if (!obsVis.axeWhooshed) {
+              obsVis.axeWhooshed = true;
+              const volA = this.proximityVolume(obs.z, crowd.leaderZ);
+              if (volA > 0) soundEngine.playSound('adrenaline_whoosh', 0.9, volA);
+            }
+          } else if (Math.abs(swingZ) > 0.8) {
+            obsVis.axeWhooshed = false;
+          }
           break;
 
         case 'crusher':
