@@ -1376,6 +1376,43 @@ export class ObstacleManager {
       return;
     }
 
+    // Пила и секира качаются по X: хитбокс уезжает по дуге каждый кадр, и разовый
+    // замер в кадре пересечения плоскости Z ловит случайную фазу — награда/сброс
+    // серии выходят лотереей по удаче фазы. Тот же сэмплер минимального зазора,
+    // что у молота/шара: копим gap, пока лидер в Z-окне хитбокса, оцениваем один
+    // раз на выходе. Полный свип пилы закономерно даёт gap<=0 — ни награды, ни
+    // сброса серии (как у полноширинных ловушек).
+    if (obs.type === 'saw_blade' || obs.type === 'axe_pendulum') {
+      const band = obsVis.hazardD / 2 + 0.5; // половина глубины хитбокса + запас на шаг кадра
+      const envMin = rz - band;
+      const envMax = rz + band;
+      if (lz >= envMin && lz <= envMax) {
+        const gap = circleRectGap(
+          crowd.leaderX,
+          lz,
+          0.3, // радиус лидера
+          obsVis.hazardX,
+          obsVis.hazardZ,
+          obsVis.hazardW,
+          obsVis.hazardD
+        );
+        if (gap > 0 && gap < (obsVis.nmMinGap ?? Infinity)) obsVis.nmMinGap = gap;
+      } else if (lz > envMax && obsVis.nmMinGap !== undefined && !obsVis.nearMissAwarded) {
+        const minGap = obsVis.nmMinGap;
+        obsVis.nmMinGap = undefined;
+        obsVis.nearMissAwarded = true;
+        if (minGap <= NEAR_MISS_GRANT_GAP) {
+          // Весь проход вблизи живого хитбокса без касания — награда.
+          this.awardNearMiss(obsVis.hazardX, rz);
+        } else if (minGap <= NEAR_MISS_BREAK_GAP) {
+          // Прошёл качание на безопасной дистанции — серия сбрасывается.
+          this.breakNearMissStreak(obsVis.hazardX, rz);
+        }
+      }
+      obsVis.lastLeaderZ = lz;
+      return;
+    }
+
     const prev = obsVis.lastLeaderZ ?? rz - 1000;
     // Фиксируем момент пересечения плоскости Z лидером = один замер на препятствие.
     if (prev < rz && lz >= rz && !obsVis.nearMissAwarded) {
