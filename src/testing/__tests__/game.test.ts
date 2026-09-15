@@ -2311,3 +2311,41 @@ describe('ObstacleManager — ловушки не расходуются от к
     expect(killed.reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
   });
 });
+
+describe('Честность фазовых ловушек: live-меш == предикция', () => {
+  // Замыкает класс багов «двойная формула» (3bd00c7): live-анимация пишет меш,
+  // isHazardActiveAtTime — замкнутая формула для HUD-предупреждений. Если при
+  // правке анимации коэффициент поменяют только в одном месте — толпа увидит
+  // «безопасно» на летальной фазе (или наоборот). Тест гоняет реальную
+  // update-анимацию и сверяет оба предиката на каждом кадре.
+  const PARTICLES = { emitBurst: () => {} } as any;
+  const PHASE_TYPES = ['crusher', 'axe_pendulum', 'barrier_gate', 'swinging_hammer', 'laser_wall'] as const;
+
+  for (const type of PHASE_TYPES) {
+    it(`${type}: предикция совпадает с живой фазой и не вырождена`, () => {
+      const mgr = new ObstacleManager(new THREE.Scene());
+      mgr.initObstacles(
+        [{ id: 'o1', type, x: 0, y: 0, z: 10, width: 2.4, depth: 2, speed: 1, range: 0, initialOffset: 0 }],
+        []
+      );
+      const vis = (mgr as any).obstacles[0];
+      const crowd = new CrowdManager(new THREE.Scene());
+      crowd.leaderZ = 0; // в окне анимации [-30..60]; живых мобов нет — коллизий нет
+      let sawLethal = 0;
+      let sawSafe = 0;
+      for (let frame = 0; frame < 400; frame++) {
+        mgr.update(0.02, crowd, PARTICLES);
+        const t = vis.animTime;
+        const live = (mgr as any).isHazardActive(vis);
+        const predicted = (mgr as any).isHazardActiveAtTime(vis, t);
+        if (live !== predicted) {
+          throw new Error(`${type}: рассинхрон live/предикции на t=${t.toFixed(2)} (live=${live}, pred=${predicted})`);
+        }
+        live ? sawLethal++ : sawSafe++;
+      }
+      // Вырожденность (всегда опасна / всегда безопасна) = сломанный гейт фазы.
+      expect(sawLethal).toBeGreaterThan(0);
+      expect(sawSafe).toBeGreaterThan(0);
+    });
+  }
+});
