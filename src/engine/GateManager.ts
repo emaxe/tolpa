@@ -149,7 +149,22 @@ export class GateManager {
   /** Добавляет ворота к уже существующим — используется endless-режимом. */
   public appendGates(gatesData: GateData[]): void {
     this.ensureSharedGeometry();
-    gatesData.forEach((gate) => this.gates.push(this.buildGateVisual(gate)));
+    gatesData.forEach((gate) => {
+      // EMP-паритет: стрим чанков во время шторма обязан искажать и СВЕЖИЕ ворота
+      // (баннер «ворота делят толпу» обещает все непройденные, а не только видимые
+      // в момент старта события). Фиксируем оригинал до мутации — clearEmpStorm
+      // вернёт op/value и перекрасит материал, как и для applyEmpStorm().
+      if (this.empActive) {
+        this.empOriginals.push({ gate, op: gate.op, value: gate.value });
+        gate.op = 'divide';
+        gate.value = this.empDivisor;
+        const gv = this.buildGateVisual(gate);
+        gv.mat.color.setHex(0xa855f7);
+        this.gates.push(gv);
+        return;
+      }
+      this.gates.push(this.buildGateVisual(gate));
+    });
   }
 
   public update(dt: number, crowd: CrowdManager, particles: ParticleSystem): void {
@@ -540,11 +555,15 @@ export class GateManager {
   // ÷2 — то есть начинают прореживать толпу. divide остаётся divide. Сброс по clearEmpStorm.
   // ---------------------------------------------------------------------------
   private empActive: boolean = false;
+  // Делитель текущего шторма: нужен appendGates(), чтобы новые в процессе
+  // ворота искали тот же ÷N, что и превращённые applyEmpStorm().
+  private empDivisor: number = 2;
   private empOriginals: { gate: GateData; op: GateOp; value: number }[] = [];
 
   public applyEmpStorm(divisor: number = 2): void {
     if (this.empActive) return;
     this.empActive = true;
+    this.empDivisor = divisor;
     this.empOriginals = [];
     for (const gv of this.gates) {
       const gate = gv.data;

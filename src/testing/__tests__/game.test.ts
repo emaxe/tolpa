@@ -1379,6 +1379,42 @@ describe('Skin Rewards (бонусные скины)', () => {
     expect(bonuses[bonuses.length - 1]).toBe(20);
     expect(comboMaxEvents).toBe(1); // баннер и факт капа — на одних и тех же воротах
   });
+
+  // EMP-паритет: баннер шторма обещает «ворота делят толпу» для ВСЕХ непройденных
+  // ворот, но endless-стример доспавл ворота и во время события — раньше они
+  // оставались +N (знак врал в обе стороны). Фиксирует регресс мутацию appendGates
+  // при активном шторме и восстановление clearEmpStorm().
+  it('EMP: ворота, доспавленные посреди шторма, тоже ÷N и восстанавливаются после', () => {
+    // createGateTexture живёт на canvas/document — в node-среде тестов достаточно
+    // всепрощающего стаба (методы-заглушки, свойства-заглушки).
+    const any: any = new Proxy(function () {}, {
+      get: (_t, p) => (p === Symbol.toPrimitive ? () => 0 : any),
+      apply: () => any,
+      set: () => true,
+    });
+    const prevDoc = (globalThis as any).document;
+    (globalThis as any).document = {
+      createElement: () => ({ width: 0, height: 0, getContext: () => any }),
+    };
+    try {
+      const gm = new GateManager(new THREE.Scene());
+      gm.clear();
+      const mk = (id: string, z: number, value: number): any => ({
+        id, z, x: 0, width: 4, op: 'add', value, motion: 'none', motionSpeed: 0, motionRange: 0,
+      });
+      gm.initGates([mk('a', 10, 5)]);
+      gm.applyEmpStorm(3);
+      gm.appendGates([mk('b', 50, 9)]);
+      const fresh = (gm as any).gates.find((g: any) => g.data.id === 'b');
+      expect(fresh.data.op).toBe('divide');
+      expect(fresh.data.value).toBe(3); // делитель именно шторма, не дефолт
+      gm.clearEmpStorm();
+      expect(fresh.data.op).toBe('add');
+      expect(fresh.data.value).toBe(9);
+    } finally {
+      (globalThis as any).document = prevDoc;
+    }
+  });
 });
 
 describe('Kinetic Wall Impact & Damage Accounting', () => {
