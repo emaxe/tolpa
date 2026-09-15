@@ -92,6 +92,9 @@ interface ObstacleVisual {
   // One-shot флаг удара гидравлического молота (звук hammer_impact играет один раз
   // за проход бойка через нижнюю точку, а не каждый кадр).
   hammerImpacted?: boolean;
+  // One-shot флаг удара плиты пресса (crusher): звук играет на достижении плитой
+  // нижней точки, перебрасывается при подъёме (тот же паттерн, что hammerImpacted).
+  crusherSlammed?: boolean;
   // Латч фазы лазерной стены OFF→ON: one-shot звуковой телеграф включения (zap).
   // Обновляется каждый кадр в update(), спам фронт-переходом исключён.
   wallWasOn?: boolean;
@@ -687,6 +690,18 @@ export class ObstacleManager {
           const slamY = Math.abs(Math.sin(t * 1.5));
           obsVis.mesh.position.y = 0.5 + slamY * 2.0;
           obs.y = obsVis.mesh.position.y;
+          // Звуковой телеграф фазы: гулкий удар плиты у земли one-shot'ом (латч по
+          // образцу hammerImpacted) — цикл crusher был немым, теперь тайминг
+          // читается на слух. Pitch ниже молота (0.85) — пресс звучит тяжелее.
+          if (slamY < 0.15) {
+            if (!obsVis.crusherSlammed) {
+              obsVis.crusherSlammed = true;
+              const vol = this.proximityVolume(obs.z, crowd.leaderZ);
+              if (vol > 0) soundEngine.playSound('hammer_impact', 0.85, vol);
+            }
+          } else if (slamY > 0.4) {
+            obsVis.crusherSlammed = false;
+          }
           this.setHazard(obsVis, obsVis.mesh.position.x, obs.z, obs.width, obs.depth);
           break;
 
