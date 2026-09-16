@@ -98,6 +98,10 @@ interface ObstacleVisual {
   // Латч фазы лазерной стены OFF→ON: one-shot звуковой телеграф включения (zap).
   // Обновляется каждый кадр в update(), спам фронт-переходом исключён.
   wallWasOn?: boolean;
+  // One-shot флаг свиста пилы на проходе центра свипа (|sin| мал → диск движется
+  // быстрее всего). Пила была единственной движущейся ловушкой без аудио-телеграфа
+  // фазы, хотя секира/шар/молот/пресс/плита/лазерная стена/катящийся шар его имеют.
+  sawWhooshed?: boolean;
   // Латч фазы маятника-топора: one-shot свист при входе в нижнюю (летальную) дугу,
   // реарм на подъёме (тот же паттерн, что crusherSlammed).
   axeWhooshed?: boolean;
@@ -687,6 +691,20 @@ export class ObstacleManager {
           );
           obs.x = obsVis.mesh.position.x;
           this.setHazard(obsVis, obs.x, obs.z, 1.7, 1.2);
+          // Звуковой телеграф фазы: свист на проходе центра свипа, где диск движется
+          // быстрее всего (латч по образцу axeWhooshed/ballWhooshed). Пила была
+          // единственной движущейся ловушкой без аудио-фазы — игрок не слышал её
+          // подход, хотя топор/шар/молот/пресс/плита/лазерная стена свистят.
+          // Pitch 1.1 выше адреналинового 0.9 (секира) — пила быстрее и звонче.
+          if (Math.abs(Math.sin(t)) < 0.25) {
+            if (!obsVis.sawWhooshed) {
+              obsVis.sawWhooshed = true;
+              const volSaw = this.proximityVolume(obs.z, crowd.leaderZ);
+              if (volSaw > 0) soundEngine.playSound('adrenaline_whoosh', 1.1, volSaw);
+            }
+          } else if (Math.abs(Math.sin(t)) > 0.5) {
+            obsVis.sawWhooshed = false;
+          }
           break;
 
         case 'axe_pendulum':
