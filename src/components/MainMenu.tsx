@@ -274,7 +274,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
                       )}
                       {bestScore > 0 && (
                         <span className="text-[7px] font-mono opacity-70 leading-none mt-0.5">
-                          {i18n.t('endlessRecord')} {bestScore.toLocaleString()}
+                          {i18n.t('score')} {bestScore.toLocaleString()}
                         </span>
                       )}
                     </>

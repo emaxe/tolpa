@@ -27,16 +27,16 @@ export const TestModal: React.FC<TestModalProps> = ({ onClose }) => {
   }, []);
 
   const criteriaChecklist = [
-    { text: 'Игра запускается в Chrome, Firefox, Safari, Edge без ошибок', passed: true },
-    { text: 'Адаптивное управление (Мышь/Клавиатура/Сенсорный ввод/Свайпы)', passed: true },
-    { text: 'Все 3D-ассеты и аудио сгенерированы процедурно кодом (0 внешних файлов)', passed: true },
-    { text: 'Сюжетная линия, диалоги персонажей и русская локализация', passed: true },
-    { text: 'Меню настроек с громкостью, качеством, тряской, чувствительностью и сохранением', passed: true },
-    { text: 'Базовые механики: бег толпы, повороты, ворота, препятствия, финальная стена', passed: true },
-    { text: 'Дополнительные механики: 6 формаций, адреналин, танки/ниндзя/маги, условные ворота', passed: true },
-    { text: '50 уровней + 5 уникальных боссов (L10, L20, L30, L40, L50)', passed: true },
-    { text: 'Финальный мультипликатор очков и разрушение замка', passed: true },
-    { text: 'Производительность: InstancedMesh, ObjectPool, 60 FPS на десктопе, 30+ на мобильных', passed: true },
+    { text: i18n.t('testCrit1'), passed: true },
+    { text: i18n.t('testCrit2'), passed: true },
+    { text: i18n.t('testCrit3'), passed: true },
+    { text: i18n.t('testCrit4'), passed: true },
+    { text: i18n.t('testCrit5'), passed: true },
+    { text: i18n.t('testCrit6'), passed: true },
+    { text: i18n.t('testCrit7'), passed: true },
+    { text: i18n.t('testCrit8'), passed: true },
+    { text: i18n.t('testCrit9'), passed: true },
+    { text: i18n.t('testCrit10'), passed: true },
   ];
 
   return (
@@ -80,7 +80,7 @@ export const TestModal: React.FC<TestModalProps> = ({ onClose }) => {
             }`}
           >
             <Layers className="w-4 h-4" />
-            <span>Unit & Smoke Тесты ({results.length})</span>
+            <span>{i18n.t('testTabUnit')} ({results.length})</span>
           </button>
           <button
             onClick={() => {
@@ -93,7 +93,7 @@ export const TestModal: React.FC<TestModalProps> = ({ onClose }) => {
             }`}
           >
             <CheckSquare className="w-4 h-4" />
-            <span>Чек-лист Релиза (10/10)</span>
+            <span>{i18n.t('testTabChecklist')}</span>
           </button>
         </div>
 
@@ -102,7 +102,7 @@ export const TestModal: React.FC<TestModalProps> = ({ onClose }) => {
           {tab === 'tests' ? (
             <>
               <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-orbitron text-slate-600">Автоматизированные тесты движка и логики</span>
+                <span className="text-xs font-orbitron text-slate-600">{i18n.t('testSubEngine')}</span>
                 <button
                   // Звук здесь, не внутри executeTests: тесты автозапускаются при
                   // открытии модалки — звук внутри дал бы «писк» при каждом открытии.
@@ -114,7 +114,7 @@ export const TestModal: React.FC<TestModalProps> = ({ onClose }) => {
                   className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-orbitron flex items-center gap-1.5 cursor-pointer"
                 >
                   <Play className="w-3.5 h-3.5" />
-                  <span>Перезапустить тесты</span>
+                  <span>{i18n.t('testRerun')}</span>
                 </button>
               </div>
 
