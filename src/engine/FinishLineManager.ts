@@ -188,6 +188,8 @@ export class FinishLineManager {
               z: step.z,
               perk: crowd.formation === 'wide' ? 'wide_finish' : null,
               tankBonus: finish.tankBonusUsed,
+              mageBonus: finish.mageBonusUsed,
+              ninjaBonus: finish.ninjaBonusUsed,
             });
 
             // Красная вспышка урона + плавающий текст потерь при жертве.

@@ -612,7 +612,8 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
     // Финишная дорожка множителей: всплывающий яркий 3D-множитель при пробитии стены
     const unsubFinishStep = eventBus.on(
       'finishStepSmashed',
-      (data: { multiplier?: number; x?: number; z?: number; perk?: string | null; tankBonus?: boolean }) => {
+      (data: { multiplier?: number; x?: number; z?: number; perk?: string | null;
+               tankBonus?: boolean; mageBonus?: boolean; ninjaBonus?: boolean }) => {
         if (!data || typeof data.multiplier !== 'number') return;
         const mult = data.multiplier;
         const isMax = mult >= 10;
@@ -641,6 +642,24 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
             (data.z ?? 0) - 1.6,
             i18n.t('perkTankFinish', 'ТАНК: ПРОБОЙ ×2'),
             'text-amber-300 font-bold drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]'
+          );
+        }
+
+        // Тосты классов на финише (паритет с танковым perkTankFinish).
+        if (data.mageBonus === true) {
+          spawn(
+            (data.x ?? 0) - 0.6,
+            (data.z ?? 0) - 2.2,
+            i18n.t('perkMageFinish', 'МАГ: АРКАН-ПРОБОЙ ×2'),
+            'text-emerald-300 font-bold drop-shadow-[0_0_8px_rgba(16,185,129,0.8)]'
+          );
+        }
+        if (data.ninjaBonus === true) {
+          spawn(
+            (data.x ?? 0) + 0.6,
+            (data.z ?? 0) - 2.8,
+            i18n.t('perkNinjaFinish', 'НИНДЗЯ: ПАРКУР-ПРЫЖОК ⚡'),
+            'text-purple-300 font-bold drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]'
           );
         }
       }

@@ -370,11 +370,11 @@ export function getFinishWallCost(baseCost: number, formation: FormationType = '
 
 /**
  * Кинетический вес моба при прорыве финишной стены множителей: Танк — тяжёлый
- * легионер, гасит 2 единицы стоимости жертвы (остальные классы — 1). Симметрия
- * с computeWallImpact по ходу забега, где Танк бьёт стены втрое сильнее.
+ * легионер, гасит 2 единицы стоимости жертвы; Хроно-Маг — аркан-энергия, тоже 2
+ * (паритет с getMobBossPower, где маг 1.75 — второй по силе класс). Остальные — 1.
  */
 export function getMobFinishPower(type: MobType): number {
-  return type === 'tank' ? 2 : 1;
+  return type === 'tank' || type === 'mage' ? 2 : 1;
 }
 
 /**

@@ -616,11 +616,20 @@ export class CrowdManager {
    * Танк гасит 2 единицы — гибнет, но экономит лёгкого легионера.
    * Возвращает число жертв и флаг, что Танк реально сэкономил моба.
    */
-  public consumeMobsForFinish(requiredCost: number): { sacrificed: number; tankBonusUsed: boolean } {
-    if (requiredCost <= 0) return { sacrificed: 0, tankBonusUsed: false };
+  public consumeMobsForFinish(requiredCost: number): {
+    sacrificed: number;
+    tankBonusUsed: boolean;
+    mageBonusUsed: boolean;
+    ninjaBonusUsed: boolean;
+  } {
+    if (requiredCost <= 0) {
+      return { sacrificed: 0, tankBonusUsed: false, mageBonusUsed: false, ninjaBonusUsed: false };
+    }
     let absorbed = 0;
     let killed = 0;
     let tanksKilled = 0;
+    let magesKilled = 0;
+    let ninjaVaults = 0;
     const alive = this.getAliveMobs();
     // НЕ мутируем разделяемый кэш-буфер aliveSnapshot — копируем в groupScratch (0-GC).
     this.groupScratch.length = 0;
@@ -631,6 +640,17 @@ export class CrowdManager {
       // Гварда минимума одного живого (как строгое > в вызывающей проверке): последнего
       // моба не списываем никогда — иначе Танк с весом 2 мог бы выжрать всю толпу.
       if (killed >= this.groupScratch.length - 1) break;
+
+      // Уворот Кибер-Ниндзя на финише: та же 50%-механика, что в resolveObstacleImpact /
+      // resolveWallImpact — ниндзя перепрыгивает ступень, стена получает 1 единицу урона,
+      // но моб остаётся в строю. Раньше на финише ниндзя умирал как рядовой легионер,
+      // хотя 350 монет апгрейда обещали «уклоняется от лезвий».
+      if (mob.type === 'ninja' && Math.random() < 0.5) {
+        absorbed += 1;
+        ninjaVaults++;
+        continue;
+      }
+
       mob.alive = false;
       this.aliveCount--;
       this.invalidateAliveSnapshot();
@@ -640,10 +660,17 @@ export class CrowdManager {
       this.instancedMesh.setMatrixAt(mob.id, this.dummy.matrix);
       absorbed += getMobFinishPower(mob.type);
       if (mob.type === 'tank') tanksKilled++;
+      if (mob.type === 'mage') magesKilled++;
       killed++;
     }
-    // Бонус засчитан, только если тяжёлые жертвы реально сократили потери отряда.
-    return { sacrificed: killed, tankBonusUsed: tanksKilled > 0 && killed < requiredCost };
+    // Бонус засчитан, только если тяжёлые жертвы реально сократили потери отряда
+    // (та же семантика, что у tankBonusUsed).
+    return {
+      sacrificed: killed,
+      tankBonusUsed: tanksKilled > 0 && killed < requiredCost,
+      mageBonusUsed: magesKilled > 0 && killed < requiredCost,
+      ninjaBonusUsed: ninjaVaults > 0,
+    };
   }
 
   /** Убивает конкретного моба по id, игнорируя броню/уклонение/гипер-режим. Возвращает true, если убит. */

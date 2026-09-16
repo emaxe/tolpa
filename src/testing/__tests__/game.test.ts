@@ -1557,11 +1557,68 @@ describe('getMobBossPower (классовый вес в уроне по босс
 });
 
 describe('getMobFinishPower (кинетический вес при финишном прорыве)', () => {
-  it('Танк весит 2, остальные классы — 1', () => {
+  it('Танк и Хроно-Маг весят 2, остальные классы — 1', () => {
     expect(getMobFinishPower('tank')).toBe(2);
+    expect(getMobFinishPower('mage')).toBe(2);
     expect(getMobFinishPower('regular')).toBe(1);
     expect(getMobFinishPower('ninja')).toBe(1);
-    expect(getMobFinishPower('mage')).toBe(1);
+  });
+});
+
+describe('consumeMobsForFinish (классовый паритет на финишной лестнице)', () => {
+  it('Маги поглощают по 2 единицы стоимости: 6 магов при стоимости 4 теряют 2 бойца и включают mageBonusUsed', () => {
+    const c = new CrowdManager(new THREE.Scene());
+    for (let i = 0; i < 6; i++) c.spawnMob('mage');
+    expect(c.getAliveCount()).toBe(6);
+
+    const res = c.consumeMobsForFinish(4);
+    expect(res.sacrificed).toBe(2);
+    expect(res.mageBonusUsed).toBe(true);
+    expect(c.getAliveCount()).toBe(4);
+  });
+
+  it('Ниндзя без уворота (ролл >= 0.5) гибнут как обычные бойцы: 6 ниндзя при стоимости 4 теряют 4 бойца', () => {
+    const c = new CrowdManager(new THREE.Scene());
+    for (let i = 0; i < 6; i++) c.spawnMob('ninja');
+    expect(c.getAliveCount()).toBe(6);
+
+    const realRandom = Math.random;
+    try {
+      Math.random = () => 0.9;
+      const res = c.consumeMobsForFinish(4);
+      expect(res.sacrificed).toBe(4);
+      expect(res.ninjaBonusUsed).toBe(false);
+      expect(c.getAliveCount()).toBe(2);
+    } finally {
+      Math.random = realRandom;
+    }
+  });
+
+  it('Ниндзя с уворотом (ролл < 0.5) перепрыгивают ступень: стена поглощает стоимость без потерь отряда', () => {
+    const c = new CrowdManager(new THREE.Scene());
+    for (let i = 0; i < 6; i++) c.spawnMob('ninja');
+    expect(c.getAliveCount()).toBe(6);
+
+    const realRandom = Math.random;
+    try {
+      Math.random = () => 0.1;
+      const res = c.consumeMobsForFinish(4);
+      expect(res.sacrificed).toBe(0);
+      expect(res.ninjaBonusUsed).toBe(true);
+      expect(c.getAliveCount()).toBe(6);
+    } finally {
+      Math.random = realRandom;
+    }
+  });
+
+  it('Гварда последнего живого моба: при избыточной стоимости (10) у 3 магов списывается не более 2', () => {
+    const c = new CrowdManager(new THREE.Scene());
+    for (let i = 0; i < 3; i++) c.spawnMob('mage');
+    expect(c.getAliveCount()).toBe(3);
+
+    const res = c.consumeMobsForFinish(10);
+    expect(res.sacrificed).toBeLessThanOrEqual(2);
+    expect(c.getAliveCount()).toBeGreaterThanOrEqual(1);
   });
 });
 
