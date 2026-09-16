@@ -731,7 +731,7 @@ describe('Level Generator Smoke Tests', () => {
     }
   });
 
-  it('мины спавнятся (50 уровней) и генерируются разрушаемыми (танк/таран/Hyper)', () => {
+  it('мины спавнятся (50 уровней)', () => {
     let bombCount = 0;
     let totalObs = 0;
     for (let lvl = 1; lvl <= 50; lvl++) {
@@ -740,7 +740,6 @@ describe('Level Generator Smoke Tests', () => {
       for (const obs of obs50) {
         if (obs.type === 'bomb') {
           bombCount++;
-          expect(obs.destructible).toBe(true);
         }
       }
     }
@@ -2255,7 +2254,7 @@ describe('ObstacleManager — ловушки не расходуются от к
     const scene = new THREE.Scene();
     const mgr = new ObstacleManager(scene);
     mgr.initObstacles(
-      [{ id: 'o1', type: 'crusher', x: 0, y: 0, z: 10, width: 2.4, depth: 2, speed: 1, range: 0, initialOffset: 0, destructible: true }],
+      [{ id: 'o1', type: 'crusher', x: 0, y: 0, z: 10, width: 2.4, depth: 2, speed: 1, range: 0, initialOffset: 0}],
       []
     );
     const vis = (mgr as any).obstacles[0];
@@ -2275,10 +2274,10 @@ describe('ObstacleManager — ловушки не расходуются от к
     expect(vis.data.isDead).toBeFalsy();
   });
 
-  it('танк в отряде не сносит ловушку (destructible больше не удаляет её)', () => {
+  it('танк в отряде не сносит ловушку', () => {
     const mgr = new ObstacleManager(new THREE.Scene());
     mgr.initObstacles(
-      [{ id: 'o1', type: 'axe_pendulum', x: 0, y: 0, z: 10, width: 2.6, depth: 2, speed: 1, range: 0, initialOffset: 0, destructible: true }],
+      [{ id: 'o1', type: 'axe_pendulum', x: 0, y: 0, z: 10, width: 2.6, depth: 2, speed: 1, range: 0, initialOffset: 0}],
       []
     );
     const vis = (mgr as any).obstacles[0];
@@ -2293,7 +2292,7 @@ describe('ObstacleManager — ловушки не расходуются от к
   it('мина детонирует один раз и убивает всех в радиусе (танк её не обезвреживает)', () => {
     const mgr = new ObstacleManager(new THREE.Scene());
     mgr.initObstacles(
-      [{ id: 'b1', type: 'bomb', x: 0, y: 0, z: 10, width: 2.4, depth: 2, speed: 0.8, range: 3.5, initialOffset: 0, destructible: true }],
+      [{ id: 'b1', type: 'bomb', x: 0, y: 0, z: 10, width: 2.4, depth: 2, speed: 0.8, range: 3.5, initialOffset: 0}],
       []
     );
     const vis = (mgr as any).obstacles[0];

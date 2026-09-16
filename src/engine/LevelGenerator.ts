@@ -620,24 +620,6 @@ export class LevelGenerator {
       range,
       initialOffset: rng() * Math.PI * 2,
       attackRate: type === 'guard_dog' ? Math.min(3, 1 + Math.floor(levelNum / 17)) : undefined,
-      destructible:
-        type === 'crusher' ||
-        type === 'axe_pendulum' ||
-        type === 'wrecking_ball' ||
-        type === 'guard_dog' ||
-        // Лазерная стена полноширинная и периодическая: бокового уклонения нет,
-        // проход зависит от фазы — единственный источник агентности игрока,
-        // таран (Круг≥8/Ромб≥10), танк или Hyper, как у остальных ловушек.
-        type === 'laser_wall' ||
-        // Охотник в фазах sleep (стоит на трассе) и chase (догоняет) летален —
-        // паритет с guard_dog: танк/таран/Hyper добивают его, не теряя всю толпу.
-        // Фаза 'wake' не летальна (isHazardActive=false), коллизии туда не доходят.
-        type === 'swinging_hammer' ||
-        type === 'hunter' ||
-        // Мина: ветка обезвреживания в resolveBomb (Hyper / танк / таран строем)
-        // реализована полностью, но генератор никогда не ставил флаг — мина
-        // гарантированно стирала всю толпу в радиусе 3.5. Включаем паритет.
-        type === 'bomb',
     };
   }
 
@@ -790,12 +772,12 @@ export class LevelGenerator {
     return { count: 4, spanZ: 18 };
   }
 
-  // 4. Прорыв танком (2 разрушаемых препятствия + бонус в центре)
+  // 4. Прорыв танком (2 ловушки + бонус в центре)
   private static patternTankBreachCluster(ctx: PatternContext): { count: number; spanZ: number } {
     const idPrefix = ctx.idPrefix;
     const type2 = ctx.rng() < 0.5 ? 'axe_pendulum' : 'swinging_hammer';
 
-    // 2 разрушаемых препятствия
+    // 2 ловушки
     this.pushObs(ctx.out, 'crusher', ctx.z0, -2.2, ctx.levelNum, ctx.trackWidth, ctx.phaseMult, ctx.rng, {
       speed: 2.2,
       ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
@@ -804,7 +786,6 @@ export class LevelGenerator {
       width: 2.6,
       range: 0.8,
       speed: 2.2,
-      destructible: true,
       ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
     });
 
@@ -958,7 +939,6 @@ export class LevelGenerator {
       width: 2.0,
       range: 2.6,
       attackRate: rate,
-      destructible: true,
       speed: 1.6,
       ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
     });
@@ -966,7 +946,6 @@ export class LevelGenerator {
       width: 2.0,
       range: 2.6,
       attackRate: rate,
-      destructible: true,
       speed: 1.6,
       ...(idPrefix ? { id: `${idPrefix}_${ctx.out.length}` } : {}),
     });

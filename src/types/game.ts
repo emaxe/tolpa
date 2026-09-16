@@ -76,7 +76,6 @@ export interface ObstacleData {
   speed: number;
   range: number;
   initialOffset?: number;
-  destructible?: boolean; // УСТАРЕЛО: ловушки больше не сносятся контактом (танк/таран/Hyper не удаляют их)
   isDead?: boolean;
   /** Киборг-собака: сколько человечков собака может убить в секунду (1..3). */
   attackRate?: number;

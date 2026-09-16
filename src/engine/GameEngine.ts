@@ -2885,7 +2885,6 @@ export class GameEngine {
         depth: 2,
         speed: isHammer ? 1.8 + Math.random() * 0.8 : 0,
         range: 0,
-        destructible: isHammer,
         initialOffset: Math.random() * Math.PI * 2,
       });
     }
