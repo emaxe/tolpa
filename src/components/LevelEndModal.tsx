@@ -190,7 +190,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
                   <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-600">
                     <Zap className="w-3.5 h-3.5 text-amber-600" /> {i18n.t('runMaxNearMissStreak')}
                   </span>
-                  <span className="font-orbitron font-bold text-amber-700">×{runStats.maxNearMissStreak}</span>
+                  <span className="font-orbitron font-bold text-amber-700">{runStats.maxNearMissStreak}</span>
                 </div>
               )}
               {runStats.mobsSavedByFormation > 0 && (

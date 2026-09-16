@@ -180,7 +180,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
               <span>{i18n.t('endlessMode')}</span>
               {state.endlessHighScore > 0 && (
                 <span className="text-[9px] text-amber-700/80">
-                  {i18n.t('endlessRecord')}: {state.endlessHighScore.toLocaleString()} м
+                  {i18n.t('endlessRecord')}: {state.endlessHighScore.toLocaleString()} {i18n.t('unitM')}
                 </span>
               )}
             </button>
@@ -227,7 +227,7 @@ export const MainMenu: React.FC<MainMenuProps> = ({
             </button>
 
             <h3 className="font-orbitron font-bold text-sm text-teal-700 uppercase tracking-wider">
-              {i18n.t('levelSelect')} (50 Уровней • 5 Боссов)
+              {i18n.t('levelSelect')} ({i18n.t('levelSelectSub')})
             </h3>
           </div>
 
