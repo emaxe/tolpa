@@ -193,6 +193,14 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
                   <span className="font-orbitron font-bold text-amber-700">×{runStats.maxNearMissStreak}</span>
                 </div>
               )}
+              {runStats.mobsSavedByFormation > 0 && (
+                <div className="flex items-center justify-between text-slate-700">
+                  <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-600">
+                    <Shield className="w-3.5 h-3.5 text-violet-600" /> {i18n.t('runMobsSaved')}
+                  </span>
+                  <span className="font-orbitron font-bold text-violet-700">{runStats.mobsSavedByFormation}</span>
+                </div>
+              )}
               {runStats.bossesDefeated > 0 && (
                 <div className="flex items-center justify-between text-slate-700 col-span-2">
                   <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-600">
@@ -215,6 +223,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
               { icon: Shield, color: 'text-rose-600', label: i18n.t('statTotalBosses', 'Боссов повержено'), value: stateManager.getStats().totalBossesDefeated },
               { icon: Zap, color: 'text-amber-600', label: i18n.t('statBestCombo', 'Лучшее комбо'), value: `×${stateManager.getStats().highestCombo}` },
               { icon: Users, color: 'text-indigo-600', label: i18n.t('statMaxCrowd', 'Макс. толпа'), value: stateManager.getStats().maxCrowdReached },
+              { icon: Shield, color: 'text-violet-600', label: i18n.t('statTotalMobsSaved', 'Спасено строем за всё время'), value: stateManager.getStats().totalMobsSavedByFormation },
               { icon: Route, color: 'text-cyan-600', label: i18n.t('statGames', 'Забегов сыграно'), value: stateManager.getStats().gamesPlayed },
             ].map(({ icon: Icon, color, label, value }, idx) => (
               <div key={idx} className="flex items-center justify-between text-slate-700">
