@@ -111,7 +111,7 @@ export const TestModal: React.FC<TestModalProps> = ({ onClose }) => {
                     executeTests();
                   }}
                   disabled={isRunning}
-                  className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-orbitron flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-amber-800 font-bold border border-amber-500/30 rounded-lg text-xs font-orbitron flex items-center gap-1.5 cursor-pointer"
                 >
                   <Play className="w-3.5 h-3.5" />
                   <span>{i18n.t('testRerun')}</span>

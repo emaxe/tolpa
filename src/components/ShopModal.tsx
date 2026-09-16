@@ -108,8 +108,8 @@ export const ShopModal: React.FC<ShopModalProps> = ({ onClose }) => {
 
             {/* Currencies */}
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-amber-500/40 text-xs font-orbitron font-bold text-amber-400">
-                <Coins className="w-4 h-4 text-amber-400" />
+              <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-amber-500/40 text-xs font-orbitron font-bold text-amber-700">
+                <Coins className="w-4 h-4 text-amber-600" />
                 <span>{state.coins.toLocaleString()}</span>
               </div>
               <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-rose-500/40 text-xs font-orbitron font-bold text-rose-400">
@@ -175,7 +175,7 @@ export const ShopModal: React.FC<ShopModalProps> = ({ onClose }) => {
                   className="bg-slate-100/60 border border-slate-300 hover:border-slate-300 rounded-xl p-3.5 flex items-center justify-between gap-4 transition-all"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-white rounded-xl border border-amber-500/30 text-amber-400 shrink-0">
+                    <div className="p-2.5 bg-white rounded-xl border border-amber-500/30 text-amber-600 shrink-0">
                       <Icon className="w-5 h-5" />
                     </div>
                     <div>

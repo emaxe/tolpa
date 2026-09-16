@@ -356,7 +356,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
                   <div className="flex gap-2">
                     <button
                       onClick={handleReset}
-                      className="flex-1 py-1.5 bg-red-600 hover:bg-red-500 text-slate-900 font-orbitron font-bold text-xs rounded-lg cursor-pointer"
+                      className="flex-1 py-1.5 bg-red-600 hover:bg-red-500 text-white font-orbitron font-bold text-xs rounded-lg cursor-pointer"
                     >
                       {i18n.t('resetYes')}
                     </button>
