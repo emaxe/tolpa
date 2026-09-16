@@ -428,6 +428,20 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       spawnScreen(i18n.t('bossRetaliation'), 'text-amber-400 font-black text-xl drop-shadow-[0_0_12px_rgba(251,191,36,0.9)]', -80);
     });
 
+    // Паритет с соседними алертами (hunterWake/retaliationTelegraph): критический
+    // warning «толпа не пробьёт стену» раньше был только HUD-баннером сверху, а
+    // взгляд игрока направлен в центр трассы — центральный текст добавляется вторым
+    // consumer'ом того же события (эмит: GameEngine.checkFinishWall, раз на стену).
+    const unsubCrowdLowWarning = eventBus.on('crowdLowWarning', () => {
+      spawnScreen(i18n.t('crowdLowWarning'), 'text-rose-500 font-black text-xl drop-shadow-[0_0_12px_rgba(244,63,94,0.95)]', -90);
+    });
+
+    // Конец гипер-режима: у HUD есть баннер (hyperModeEnded), но центр молчал —
+    // игрок не замечал, что щит закончился, особенно в бою/на массе препятствий.
+    const unsubAdrenalineEnded = eventBus.on('adrenalineEnded', () => {
+      spawnScreen(i18n.t('hyperModeEnded', 'ГИПЕР-РЕЖИМ ЗАВЕРШЁН'), 'text-slate-300 font-extrabold text-lg drop-shadow-[0_0_8px_rgba(148,163,184,0.8)]', -110);
+    });
+
     // Покупка апгрейда: всплывающая плашка в центре экрана.
     // Событие upgradePurchased эмитится StateManager, но раньше никем не потреблялось.
     const unsubUpgrade = eventBus.on('upgradePurchased', (data: { upgradeKey?: string; level?: number }) => {
@@ -760,6 +774,8 @@ export const FloatingText: React.FC<FloatingTextProps> = ({ engine }) => {
       unsubHunterWake();
       unsubHunterLost();
       unsubRetaliationTelegraph();
+      unsubCrowdLowWarning();
+      unsubAdrenalineEnded();
     };
   }, [engine]);
 
