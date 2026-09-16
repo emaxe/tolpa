@@ -340,6 +340,8 @@ export class GameEngine {
   private adaptiveAccum: number = 0;
   private adaptiveFrames: number = 0;
   private adaptiveLastChange: number = 0;
+  // Потолок DPR, до которого адаптивный watchdog опустил разрешение (Infinity = не опускал).
+  private watchdogDprCap: number = Infinity;
   private currentPixelRatio: number = 1;
 
   constructor(container: HTMLElement, callbacks: GameEngineCallbacks = {}) {
@@ -656,6 +658,10 @@ export class GameEngine {
         this.autoLowActive = true;
         this.autoLowAt = performance.now();
         this.currentPixelRatio = Math.min(this.currentPixelRatio || 1.0, 1.0);
+        // Авто-даунгрейд тоже ограничивает потолок: иначе смена любых настроек
+        // (settingsChanged → applyGraphicsSettings) вернула бы DPR к полному
+        // пресету и отменила авто-режим раньше времени.
+        this.watchdogDprCap = Math.min(this.watchdogDprCap, this.currentPixelRatio);
         if (this.renderer) {
           this.renderer.setPixelRatio(this.currentPixelRatio);
           if (this.renderer.shadowMap) this.renderer.shadowMap.enabled = false;
@@ -1073,8 +1079,8 @@ export class GameEngine {
     // Целевой pixelRatio по пресету качества: общий потолок с watchdog-ом (getQualityDprCap).
     // medium теперь честная середина (1.25 на mobile high-DPI), а не клон low.
     const target = Math.min(dpr, getQualityDprCap(settings.graphicsQuality, bigScreen));
-    // Не поднимаем выше, чем уже установил адаптивный watchdog (если он снизил из-за FPS).
-    this.currentPixelRatio = Math.min(target, this.currentPixelRatio || target);
+    // Потолок пресета применяется всегда, а watchdog может только ограничить его сверху, пока сам не восстановится.
+    this.currentPixelRatio = Math.min(target, this.watchdogDprCap);
     if (this.renderer) {
       this.renderer.setPixelRatio(this.currentPixelRatio);
       if (this.renderer.shadowMap) this.renderer.shadowMap.enabled = settings.enableShadows;
@@ -1115,6 +1121,7 @@ export class GameEngine {
       const next = Math.max(0.75, this.currentPixelRatio * 0.85);
       if (next < this.currentPixelRatio) {
         this.currentPixelRatio = next;
+        this.watchdogDprCap = this.currentPixelRatio;
         this.renderer.setPixelRatio(this.currentPixelRatio);
         this.adaptiveLastChange = now;
       }
@@ -1127,6 +1134,9 @@ export class GameEngine {
       const next = Math.min(target, this.currentPixelRatio * 1.1);
       if (next > this.currentPixelRatio) {
         this.currentPixelRatio = next;
+        if (next >= target) {
+          this.watchdogDprCap = Infinity;
+        }
         this.renderer.setPixelRatio(this.currentPixelRatio);
         this.adaptiveLastChange = now;
       }
