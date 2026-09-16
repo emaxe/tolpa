@@ -15,7 +15,7 @@ import { soundEngine } from '../audio/SoundEngine';
 import { MusicTheme } from '../types/audio';
 import { eventBus, type FormationDefendPayload } from '../core/EventBus';
 import { perfMonitor } from '../core/Performance';
-import { clamp, getNearMissMultiplier, NEAR_MISS_GRANT_GAP, NEAR_MISS_BREAK_GAP, TRACK_RAIL_MARGIN } from '../utils/math';
+import { clamp, getNearMissMultiplier, NEAR_MISS_GRANT_GAP, NEAR_MISS_BREAK_GAP, TRACK_RAIL_MARGIN, getQualityDprCap } from '../utils/math';
 import { createSpectatorGeometry, getBillboardTexture } from '../utils/proceduralMeshes';
 
 /** h→rgb для радужного треила (HSL, s=1/l=0.55). Модульный уровень: без создания замыкания на каждый кадр. */
@@ -1070,9 +1070,9 @@ export class GameEngine {
     // Большой экран (широкий viewport) = огромный fill rate при высоком pixelRatio.
     // На 4K/больших мониторах 2.0 даёт 4× пикселей — главный убийца FPS. Снижаем потолок.
     const bigScreen = window.innerWidth >= 1920 || window.innerHeight >= 1080;
-    const highCap = bigScreen ? 1.5 : 2.0;
-    // Целевой pixelRatio по качеству: high = до highCap, medium/low = 1.0 (дешевле на мобильных).
-    const target = settings.graphicsQuality === 'high' ? Math.min(dpr, highCap) : 1.0;
+    // Целевой pixelRatio по пресету качества: общий потолок с watchdog-ом (getQualityDprCap).
+    // medium теперь честная середина (1.25 на mobile high-DPI), а не клон low.
+    const target = Math.min(dpr, getQualityDprCap(settings.graphicsQuality, bigScreen));
     // Не поднимаем выше, чем уже установил адаптивный watchdog (если он снизил из-за FPS).
     this.currentPixelRatio = Math.min(target, this.currentPixelRatio || target);
     if (this.renderer) {
@@ -1119,10 +1119,11 @@ export class GameEngine {
         this.adaptiveLastChange = now;
       }
     } else if (avgFrame < 0.02 && now - this.adaptiveLastChange > 2500) {
-      // Кадр быстрый — восстанавливаем к целевому качеству.
+      // Кадр быстрый — восстанавливаем к потолку ВЫБРАННОГО качества (общий хелпер
+      // getQualityDprCap; раньше ветка поднимала до high-потолка 1.5/2.0 на любом пресете).
       const dpr = window.devicePixelRatio || 1;
       const bigScreen = window.innerWidth >= 1920 || window.innerHeight >= 1080;
-      const target = Math.min(dpr, bigScreen ? 1.5 : 2.0);
+      const target = Math.min(dpr, getQualityDprCap(settings.graphicsQuality, bigScreen));
       const next = Math.min(target, this.currentPixelRatio * 1.1);
       if (next > this.currentPixelRatio) {
         this.currentPixelRatio = next;

@@ -12,7 +12,7 @@ import { ParticleSystem } from '../../engine/ParticleSystem';
 import { GateManager } from '../../engine/GateManager';
 import { BonusManager } from '../../engine/BonusManager';
 import type { MobInstance, ObstacleType } from '../../types/game';
-import { calculateFormationOffset, getFormationScale, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT, getMobFinishPower, getMobBossPower, mysteryPenaltyStep, wallGrazedNearMiss } from '../../utils/math';
+import { calculateFormationOffset, getFormationScale, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT, getMobFinishPower, getMobBossPower, mysteryPenaltyStep, wallGrazedNearMiss, getQualityDprCap } from '../../utils/math';
 import { BOSS_TELEGRAPH_STYLE } from '../../components/FloatingText';
 import { i18n } from '../../core/Localization';
 import type { BossAttack } from '../../types/game';
@@ -2075,6 +2075,17 @@ describe('graze кинетических стен (wallGrazedNearMiss)', () => {
     expect(wallGrazedNearMiss(3.5, 7, 3.4)).toBe('award');
     // Лидер на 10.6 — зазор до правого края 0.2.
     expect(wallGrazedNearMiss(10.6, 7, 3.4)).toBe('award');
+  });
+});
+
+describe('Потолок DPR по качеству графики (getQualityDprCap)', () => {
+  it('три пресета разводимы на маленьком экране; medium больше не клон low', () => {
+    expect(getQualityDprCap('low', false)).toBe(1.0);
+    expect(getQualityDprCap('medium', false)).toBe(1.25);
+    expect(getQualityDprCap('high', false)).toBe(2.0);
+    // Большой экран: medium жёстко прижат к low (fill rate), high — 1.5.
+    expect(getQualityDprCap('medium', true)).toBe(getQualityDprCap('low', true));
+    expect(getQualityDprCap('high', true)).toBe(1.5);
   });
 });
 

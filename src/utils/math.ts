@@ -394,3 +394,16 @@ export function getMobBossPower(type: MobType): number {
 export function mysteryPenaltyStep(val: number): number {
   return val >= 10 ? 3 : 2;
 }
+
+/**
+ * Потолок pixelRatio по пресету качества графики. high — полный потолок
+ * (1.5 на больших экранах из-за fill rate, иначе 2.0), medium — честная
+ * середина (1.25 на мобильных с высоким DPI; на больших экранах совпадает
+ * с low, т.к. там DPR и так 1), low — 1.0. Общая точка для
+ * applyGraphicsSettings и ветки восстановления adaptive-watchdog: раньше
+ * medium был зажат в 1.0 (неотличим от low), а watchdog поднимал DPR до
+ * high-потолка, игнорируя качество.
+ */
+export function getQualityDprCap(quality: 'high' | 'medium' | 'low', bigScreen: boolean): number {
+  return quality === 'high' ? (bigScreen ? 1.5 : 2.0) : quality === 'medium' ? (bigScreen ? 1.0 : 1.25) : 1.0;
+}
