@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
 import { ObstacleManager, HAZARD_HIT_PITCH } from '../../engine/ObstacleManager';
 import { LevelGenerator, DEFAULT_TRACK_WIDTH, getTargetMobsToWin, getStarsForFinish, phaseSpeedMult } from '../../engine/LevelGenerator';
-import { StateManager, stateManager } from '../../core/StateManager';
+import { StateManager, stateManager, INITIAL_ACHIEVEMENTS } from '../../core/StateManager';
 import { eventBus } from '../../core/EventBus';
 import { translations } from '../../core/Localization';
 import { ObjectPool, Poolable } from '../../core/ObjectPool';
@@ -14,6 +14,7 @@ import { BonusManager } from '../../engine/BonusManager';
 import type { MobInstance, ObstacleType } from '../../types/game';
 import { calculateFormationOffset, getFormationScale, clamp, lerp, circleRectGap, getNearMissMultiplier, computeWallImpact, getFinishWallCost, WIDE_FINISH_DISCOUNT, getMobFinishPower, getMobBossPower, mysteryPenaltyStep, wallGrazedNearMiss, getQualityDprCap } from '../../utils/math';
 import { BOSS_TELEGRAPH_STYLE } from '../../components/FloatingText';
+import { ACH_CATEGORY_ORDER } from '../../components/AchievementsModal';
 import { i18n } from '../../core/Localization';
 import type { BossAttack } from '../../types/game';
 
@@ -2435,4 +2436,32 @@ describe('Честность фазовых ловушек: live-меш == пр�
       expect(sawSafe).toBeGreaterThan(0);
     });
   }
+});
+
+describe('Категории достижений не теряются в UI', () => {
+  // Замок: все 25 достижений имеют поле category, но раньше его не читал НИ ОДИН
+  // компонент (модалка шла плоским списком). После группировки категория вне
+  // ACH_CATEGORY_ORDER молча выпадала бы из списка — тест это ловит.
+  const ru = translations['ru'] as Record<string, string>;
+  const en = translations['en'] as Record<string, string>;
+
+  it('у каждого достижения категория есть в ACH_CATEGORY_ORDER', () => {
+    for (const ach of INITIAL_ACHIEVEMENTS) {
+      expect(ACH_CATEGORY_ORDER).toContain(ach.category);
+    }
+  });
+
+  it('у каждой категории есть заголовок в RU и EN', () => {
+    for (const cat of ACH_CATEGORY_ORDER) {
+      expect(typeof ru[`achCategory_${cat}`]).toBe('string');
+      expect(ru[`achCategory_${cat}`].length).toBeGreaterThan(0);
+      expect(typeof en[`achCategory_${cat}`]).toBe('string');
+      expect(en[`achCategory_${cat}`].length).toBeGreaterThan(0);
+    }
+  });
+
+  it('ACH_CATEGORY_ORDER покрывает все категории достижений', () => {
+    const used = new Set(INITIAL_ACHIEVEMENTS.map((a) => a.category));
+    expect(new Set(ACH_CATEGORY_ORDER)).toEqual(used);
+  });
 });

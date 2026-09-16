@@ -298,6 +298,11 @@ export const translations = {
 
     // Achievements
     achievTitle: 'ДОСТИЖЕНИЯ И НАГРАДЫ',
+    // Заголовки групп списка достижений (поле AchievementItem.category).
+    achCategory_combat: 'БОЙ И ОПАСНОСТИ',
+    achCategory_levels: 'КАМПАНИЯ И БЕСКОНЕЧНЫЙ РЕЖИМ',
+    achCategory_crowd: 'ЛЕГИОН',
+    achCategory_economy: 'ЭКОНОМИКА',
     achFirstBlood: 'Первый Шаг',
     achFirstBloodDesc: 'Пройдите первый уровень',
     achLegion50: 'Малая Армия',
@@ -749,6 +754,10 @@ export const translations = {
 
     // Achievements
     achievTitle: 'ACHIEVEMENTS & BADGES',
+    achCategory_combat: 'COMBAT & HAZARDS',
+    achCategory_levels: 'CAMPAIGN & ENDLESS',
+    achCategory_crowd: 'LEGION',
+    achCategory_economy: 'ECONOMY',
     achFirstBlood: 'First Step',
     achFirstBloodDesc: 'Clear Level 1',
     achLegion50: 'Small Army',

@@ -1,6 +1,7 @@
 import React from 'react';
 import confetti from 'canvas-confetti';
 import { INITIAL_ACHIEVEMENTS, INITIAL_SKINS, stateManager } from '../core/StateManager';
+import type { AchievementItem } from '../types/game';
 import { i18n } from '../core/Localization';
 import { soundEngine } from '../audio/SoundEngine';
 import { X, Award, Coins, Gem, Check, Footprints, Users, ShieldAlert, Swords, Crown, Zap, Flame, Hammer, DoorOpen, Trophy, Skull, Star, Gamepad2, Route, Shirt } from 'lucide-react';
@@ -8,6 +9,11 @@ import { X, Award, Coins, Gem, Check, Footprints, Users, ShieldAlert, Swords, Cr
 interface AchievementsModalProps {
   onClose: () => void;
 }
+
+// Порядок категорий достижений в списке. Ключи локализации — achCategory_<cat>.
+// Экспорт нужен тесту-замку: категория без своей группы в этом массиве молча
+// выпадала бы из модалки (все 25 достижений имели category, но никто её не читал).
+export const ACH_CATEGORY_ORDER: AchievementItem['category'][] = ['combat', 'levels', 'crowd', 'economy'];
 
 export const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose }) => {
   const state = stateManager.getState();
@@ -87,9 +93,25 @@ export const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose })
           </button>
         </div>
 
-        {/* List */}
-        <div className="p-4 overflow-y-auto space-y-3">
-          {INITIAL_ACHIEVEMENTS.map((ach) => {
+        {/* List — сгруппировано по полю category (было заполнено во всех 25 достижениях,
+            но не читалось ни одним компонентом: список шёл плоской простыней). */}
+        <div className="p-4 overflow-y-auto space-y-4">
+          {ACH_CATEGORY_ORDER.map((cat) => {
+            const items = INITIAL_ACHIEVEMENTS.filter((a) => a.category === cat);
+            if (items.length === 0) return null;
+            return (
+              <div key={cat} className="space-y-2">
+                <div className="flex items-center gap-2 font-orbitron text-xs font-bold text-slate-700 tracking-wide">
+                  <span>{i18n.t(`achCategory_${cat}`)}</span>
+                  <span className="text-[10px] text-slate-500">
+                    {items.filter((a) => {
+                      const u = state.achievements[a.id];
+                      return u && u.claimed;
+                    }).length}
+                    /{items.length}
+                  </span>
+                </div>
+                {items.map((ach) => {
             const userAch = state.achievements[ach.id] || { progress: 0, claimed: false };
             const isCompleted = userAch.progress >= ach.goal;
             const isClaimed = userAch.claimed;
@@ -179,6 +201,9 @@ export const AchievementsModal: React.FC<AchievementsModalProps> = ({ onClose })
                     </div>
                   )}
                 </div>
+              </div>
+            );
+              })}
               </div>
             );
           })}
