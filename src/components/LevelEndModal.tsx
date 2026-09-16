@@ -237,6 +237,7 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
               { icon: Gem, color: 'text-fuchsia-600', label: i18n.t('statTotalGems', 'Кристаллов собрано'), value: stateManager.getStats().totalGemsEarned },
               { icon: Swords, color: 'text-orange-600', label: i18n.t('statTotalObstacles', 'Снесено препятствий'), value: stateManager.getStats().totalObstaclesSmashed },
               { icon: Zap, color: 'text-cyan-600', label: i18n.t('statTotalNearMisses', 'Уворотов в упор'), value: stateManager.getStats().totalNearMisses },
+              { icon: Zap, color: 'text-lime-600', label: i18n.t('statBestNearMissStreak', 'Лучшая серия уворотов'), value: stateManager.getStats().maxNearMissStreak },
               { icon: Zap, color: 'text-red-600', label: i18n.t('statTotalAdrenaline', 'Адреналиновых рывков'), value: stateManager.getStats().totalAdrenalineActivations },
               { icon: Trophy, color: 'text-emerald-600', label: i18n.t('statLevelsCompleted', 'Уровней пройдено'), value: stateManager.getStats().levelsCompleted },
               { icon: Route, color: 'text-sky-600', label: i18n.t('statCoinChains', 'Серий монет 12/12'), value: stateManager.getStats().coinChainApexes },
