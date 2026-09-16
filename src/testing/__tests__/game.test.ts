@@ -470,6 +470,26 @@ describe('Save System', () => {
     expect(result).toBe(false);
   });
 
+  it('импорт сейва и сброс прогресса эмитят settingsChanged (движок/звук применяют настройки)', () => {
+    const mgr = StateManager.getInstance();
+    const seen: any[] = [];
+    const unsub = eventBus.on('settingsChanged', (s: any) => seen.push(s));
+    try {
+      // импорт сейва с нестандартной громкостью музыки
+      const payload = btoa(JSON.stringify({ settings: { musicVolume: 0.11, soundVolume: 0.22 } }));
+      expect(mgr.importSave(payload)).toBe(true);
+      expect(seen.length).toBeGreaterThan(0);
+      expect(seen[seen.length - 1].musicVolume).toBeCloseTo(0.11, 5);
+      seen.length = 0;
+      mgr.resetProgress();
+      expect(seen.length).toBeGreaterThan(0);
+      expect(seen[seen.length - 1].musicVolume).toBe(0.6); // INITIAL_SETTINGS
+    } finally {
+      unsub();
+      mgr.resetProgress();
+    }
+  });
+
   it('увороты в упор накапливают счётчик в RunStats', () => {
     const mgr = StateManager.getInstance();
     mgr.beginRun();

@@ -972,6 +972,8 @@ export class StateManager {
   public resetProgress(): void {
     this.state = this.getInitialData();
     i18n.setLanguage(this.state.settings.language);
+    // Сброс возвращает дефолтные настройки — движок (графика/тени/DPR) и звук обязаны примениться сразу.
+    eventBus.emit('settingsChanged', this.state.settings);
     this.notify();
   }
 
@@ -1272,6 +1274,8 @@ export class StateManager {
         };
         i18n.setLanguage(this.state.settings.language);
         this.syncLifetimeAchievements();
+        // Импорт сейва меняет settings — движок (графика/тени/DPR) и звук обязаны примениться сразу, как при updateSettings().
+        eventBus.emit('settingsChanged', this.state.settings);
         this.notify();
         return true;
       }

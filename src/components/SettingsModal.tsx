@@ -49,11 +49,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose, onLanguag
     setSettings(next);
     stateManager.updateSettings({ [key]: value });
 
-    if (key === 'soundVolume') {
-      soundEngine.setSfxVolume(value as number);
-    } else if (key === 'musicVolume') {
-      soundEngine.setBgmVolume(value as number);
-    } else if (key === 'language') {
+    if (key === 'language') {
       if (onLanguageChanged) onLanguageChanged();
     }
   };

@@ -1,5 +1,6 @@
 import { SoundEffect, MusicTheme } from '../types/audio';
 import { stateManager } from '../core/StateManager';
+import { eventBus } from '../core/EventBus';
 
 export class SoundEngine {
   private static instance: SoundEngine;
@@ -39,6 +40,15 @@ export class SoundEngine {
 
   private constructor() {
     // Lazy initialize on first user interaction
+    // Живое применение уровней громкости из настроек: updateSettings(), importSave()
+    // и resetProgress() эмитят settingsChanged — звук обязан следовать за сейвом, а не
+    // только за слайдером модалки настроек. До init() гейны ещё null — сеттеры это
+    // гвардят, а init() затем читает уже обновлённые state.settings.
+    eventBus.on('settingsChanged', (s?: { soundVolume?: number; musicVolume?: number }) => {
+      if (!s) return;
+      if (typeof s.soundVolume === 'number') this.setSfxVolume(s.soundVolume);
+      if (typeof s.musicVolume === 'number') this.setBgmVolume(s.musicVolume);
+    });
   }
 
   public static getInstance(): SoundEngine {
