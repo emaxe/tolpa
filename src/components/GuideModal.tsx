@@ -19,6 +19,14 @@ const HAZARDS: Array<[string, string]> = [
   ['hazClass', 'border-teal-500/30 text-teal-700'],
 ];
 
+// Собираемые сферы-бонусы: [key, стили рамки/заголовка] — копирайт в Localization.
+const BONUSES: Array<[string, string]> = [
+  ['bonAddMobs', 'border-emerald-500/30 text-emerald-700'],
+  ['bonHeal', 'border-teal-500/30 text-teal-700'],
+  ['bonAdrenaline', 'border-amber-500/30 text-amber-700'],
+  ['bonCoins', 'border-yellow-500/30 text-yellow-700'],
+];
+
 // Динамические события трассы: [key, стили рамки/заголовка] — копирайт в Localization.
 const EVENTS: Array<[string, string]> = [
   ['evSpeedBoost', 'border-cyan-500/30 text-cyan-700'],
@@ -105,7 +113,7 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
               <Target className="w-4 h-4 text-rose-400" />
               <span>{i18n.t('loreTacticsTitle')}</span>
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
                 <strong className="text-teal-700 font-orbitron">{i18n.t('tacticNearMissTitle')}:</strong>
                 <p className="text-slate-600 mt-1">{i18n.t('tacticNearMiss')}</p>
@@ -117,6 +125,18 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
               <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
                 <strong className="text-teal-700 font-orbitron">{i18n.t('tacticFinishTitle')}:</strong>
                 <p className="text-slate-600 mt-1">{i18n.t('tacticFinish')}</p>
+              </div>
+              <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
+                <strong className="text-teal-700 font-orbitron">{i18n.t('tacticWallTitle')}:</strong>
+                <p className="text-slate-600 mt-1">{i18n.t('tacticWall')}</p>
+              </div>
+              <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
+                <strong className="text-teal-700 font-orbitron">{i18n.t('tacticGateComboTitle')}:</strong>
+                <p className="text-slate-600 mt-1">{i18n.t('tacticGateCombo')}</p>
+              </div>
+              <div className="bg-slate-100/50 p-3 rounded-xl border border-slate-300">
+                <strong className="text-teal-700 font-orbitron">{i18n.t('tacticCoinChainTitle')}:</strong>
+                <p className="text-slate-600 mt-1">{i18n.t('tacticCoinChain')}</p>
               </div>
             </div>
           </section>
@@ -151,6 +171,23 @@ export const GuideModal: React.FC<GuideModalProps> = ({ onClose }) => {
                   <p className="text-slate-600 mt-0.5">{i18n.t('mageDesc')}</p>
                 </div>
               </div>
+            </div>
+          </section>
+
+          {/* Collectible Bonus Spheres — сферы-бонусы */}
+          <section className="space-y-3">
+            <h3 className="font-orbitron font-bold text-slate-900 text-sm flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-emerald-400" />
+              <span>{i18n.t('loreBonusesTitle')}</span>
+            </h3>
+            <p className="text-xs text-slate-600">{i18n.t('loreBonusesIntro')}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              {BONUSES.map(([key, cls]) => (
+                <div key={key} className={`bg-slate-100/50 p-3 rounded-xl border ${cls.split(' ')[0]}`}>
+                  <strong className={`font-orbitron ${cls.split(' ')[1]}`}>{i18n.t(`${key}Name`)}</strong>
+                  <p className="text-slate-600 mt-1">{i18n.t(`${key}Desc`)}</p>
+                </div>
+              ))}
             </div>
           </section>
 
