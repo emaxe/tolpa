@@ -201,6 +201,14 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
                   <span className="font-orbitron font-bold text-violet-700">{runStats.mobsSavedByFormation}</span>
                 </div>
               )}
+              {runStats.coinChainApexes > 0 && (
+                <div className="flex items-center justify-between text-slate-700">
+                  <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-600">
+                    <Coins className="w-3.5 h-3.5 text-yellow-600" /> {i18n.t('runCoinChainApexes')}
+                  </span>
+                  <span className="font-orbitron font-bold text-yellow-700">{runStats.coinChainApexes}</span>
+                </div>
+              )}
               {runStats.bossesDefeated > 0 && (
                 <div className="flex items-center justify-between text-slate-700 col-span-2">
                   <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-600">
@@ -225,6 +233,13 @@ export const LevelEndModal: React.FC<LevelEndModalProps> = ({
               { icon: Users, color: 'text-indigo-600', label: i18n.t('statMaxCrowd', 'Макс. толпа'), value: stateManager.getStats().maxCrowdReached },
               { icon: Shield, color: 'text-violet-600', label: i18n.t('statTotalMobsSaved', 'Спасено строем за всё время'), value: stateManager.getStats().totalMobsSavedByFormation },
               { icon: Route, color: 'text-cyan-600', label: i18n.t('statGames', 'Забегов сыграно'), value: stateManager.getStats().gamesPlayed },
+              { icon: Coins, color: 'text-yellow-600', label: i18n.t('statTotalCoins', 'Монет заработано'), value: stateManager.getStats().totalCoinsEarned },
+              { icon: Gem, color: 'text-fuchsia-600', label: i18n.t('statTotalGems', 'Кристаллов собрано'), value: stateManager.getStats().totalGemsEarned },
+              { icon: Swords, color: 'text-orange-600', label: i18n.t('statTotalObstacles', 'Снесено препятствий'), value: stateManager.getStats().totalObstaclesSmashed },
+              { icon: Zap, color: 'text-cyan-600', label: i18n.t('statTotalNearMisses', 'Уворотов в упор'), value: stateManager.getStats().totalNearMisses },
+              { icon: Zap, color: 'text-red-600', label: i18n.t('statTotalAdrenaline', 'Адреналиновых рывков'), value: stateManager.getStats().totalAdrenalineActivations },
+              { icon: Trophy, color: 'text-emerald-600', label: i18n.t('statLevelsCompleted', 'Уровней пройдено'), value: stateManager.getStats().levelsCompleted },
+              { icon: Route, color: 'text-sky-600', label: i18n.t('statCoinChains', 'Серий монет 12/12'), value: stateManager.getStats().coinChainApexes },
             ].map(({ icon: Icon, color, label, value }, idx) => (
               <div key={idx} className="flex items-center justify-between text-slate-700">
                 <span className="flex items-center gap-1.5 font-orbitron text-[11px] text-slate-600">
